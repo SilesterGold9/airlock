@@ -111,17 +111,17 @@ Output lands in `src-tauri/target/release/bundle/`.
 
 ## Versions
 
-Track progress on GitHub: [Releases](https://github.com/SilesterGold9/cp-trainer/releases) and [Milestones](https://github.com/SilesterGold9/cp-trainer/milestones).
+Track progress on GitHub: [Releases](https://github.com/SilesterGold9/airlock/releases) and [Milestones](https://github.com/SilesterGold9/airlock/milestones).
 
 | Version | Focus | Status | Milestone |
 |---------|-------|--------|-----------|
-| `v0.1.0` | Foundation — local judge, practice/contest, LeetCode-inspired design system, 2 sample problems | Released [v0.1.0](https://github.com/SilesterGold9/cp-trainer/releases/tag/v0.1.0) `3654803` | — |
-| `v0.2.0` | Stress-test UI page | Planned, due 2026-09-23 | [#1](https://github.com/SilesterGold9/cp-trainer/milestone/1) / [Issue #1](https://github.com/SilesterGold9/cp-trainer/issues/1) |
-| `v0.3.0` | Problem import screen | Planned, due 2026-09-30 | [#2](https://github.com/SilesterGold9/cp-trainer/milestone/2) / [Issue #2](https://github.com/SilesterGold9/cp-trainer/issues/2) |
-| `v0.4.0` | Submission history and stats dashboard | Planned, due 2026-10-05 | [#3](https://github.com/SilesterGold9/cp-trainer/milestone/3) / [Issue #3](https://github.com/SilesterGold9/cp-trainer/issues/3) |
-| `v0.5.0` | Diff viewer on WA | Planned, due 2026-10-10 | [#4](https://github.com/SilesterGold9/cp-trainer/milestone/4) / [Issue #4](https://github.com/SilesterGold9/cp-trainer/issues/4) |
-| `v0.6.0` | Multi-contest scoreboard history | Planned, due 2026-10-13 | [#5](https://github.com/SilesterGold9/cp-trainer/milestone/5) / [Issue #5](https://github.com/SilesterGold9/cp-trainer/issues/5) |
-| `v1.0.0` | Polish for Oct 15 — real `contest_id`, limits, tag standard, bundle QA | Planned, due 2026-10-15 | [#6](https://github.com/SilesterGold9/cp-trainer/milestone/6) / [Issue #6](https://github.com/SilesterGold9/cp-trainer/issues/6) |
+| `v0.1.0` | Foundation — local judge, practice/contest, LeetCode-inspired design system, 2 sample problems | Released [v0.1.0](https://github.com/SilesterGold9/airlock/releases/tag/v0.1.0) `3654803` | — |
+| `v0.2.0` | Stress-test UI page | Planned, due 2026-09-23 | [#1](https://github.com/SilesterGold9/airlock/milestone/1) / [Issue #1](https://github.com/SilesterGold9/airlock/issues/1) |
+| `v0.3.0` | Problem import screen | Planned, due 2026-09-30 | [#2](https://github.com/SilesterGold9/airlock/milestone/2) / [Issue #2](https://github.com/SilesterGold9/airlock/issues/2) |
+| `v0.4.0` | Submission history and stats dashboard | Planned, due 2026-10-05 | [#3](https://github.com/SilesterGold9/airlock/milestone/3) / [Issue #3](https://github.com/SilesterGold9/airlock/issues/3) |
+| `v0.5.0` | Diff viewer on WA | Planned, due 2026-10-10 | [#4](https://github.com/SilesterGold9/airlock/milestone/4) / [Issue #4](https://github.com/SilesterGold9/airlock/issues/4) |
+| `v0.6.0` | Multi-contest scoreboard history | Planned, due 2026-10-13 | [#5](https://github.com/SilesterGold9/airlock/milestone/5) / [Issue #5](https://github.com/SilesterGold9/airlock/issues/5) |
+| `v1.0.0` | Polish for Oct 15 — real `contest_id`, limits, tag standard, bundle QA | Planned, due 2026-10-15 | [#6](https://github.com/SilesterGold9/airlock/milestone/6) / [Issue #6](https://github.com/SilesterGold9/airlock/issues/6) |
 
 Versioning is SemVer. Tags are `vMAJOR.MINOR.PATCH` and each Milestone groups the Issues for that version.
 

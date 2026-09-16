@@ -1,6 +1,6 @@
 # CP Trainer Design System Plan — LeetCode DNA
 
-CP Trainer is now at https://github.com/SilesterGold9/cp-trainer. This plan harvests LeetCode's brand DNA and turns it into a concrete token and component system you can build on top of the current Tauri + React + Tailwind stack.
+CP Trainer is now at https://github.com/SilesterGold9/airlock. This plan harvests LeetCode's brand DNA and turns it into a concrete token and component system you can build on top of the current Tauri + React + Tailwind stack.
 
 ## Why this plan exists
 
@@ -274,7 +274,7 @@ Use Tailwind utilities: `transition-colors duration-150 ease-[cubic-bezier(0.2,0
 * [ ] Build `ui/button`, `ui/card`, `ui/badge`, `ui/split-view`
 * [ ] Migrate `Practice.tsx` and `Contest.tsx` to `SplitView` and new badges
 * [ ] Verify `npm run tauri dev` still `1.4s` build and `vite 210ms`
-* [ ] Push to `SilesterGold9/cp-trainer` main
+* [ ] Push to `SilesterGold9/airlock` main
 
 ## Sources
 

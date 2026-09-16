@@ -141,9 +141,9 @@ export default function Stress() {
 
   function handleLanguageChange(lang: "cpp" | "java") {
     setLanguage(lang);
-    if (!candidate.trim() || candidate === CANDIDATE_TEMPLATES[language]) setCandidate(CANDIDATE_TEMPLATES[lang]);
-    if (!brute.trim() || brute === BRUTE_TEMPLATES[language]) setBrute(BRUTE_TEMPLATES[lang]);
-    if (!generator.trim() || generator === GEN_TEMPLATES[language]) setGenerator(GEN_TEMPLATES[lang]);
+    setCandidate(CANDIDATE_TEMPLATES[lang]);
+    setBrute(BRUTE_TEMPLATES[lang]);
+    setGenerator(GEN_TEMPLATES[lang]);
   }
 
   async function handleRun() {

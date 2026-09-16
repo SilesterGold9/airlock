@@ -42,16 +42,16 @@ export default function CodeEditor({
 }: CodeEditorProps) {
   return (
     <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden bg-card">
-      <div className="flex items-center justify-between bg-card px-3 h-10 border-b border-border shrink-0">
-        <div className="w-28">
+      <div className="flex items-center justify-between bg-card px-3 h-9 border-b border-border shrink-0">
+        <div className="w-24">
           <Select
+            size="sm"
             value={language}
             onChange={(e) => {
               const lang = e.target.value as "cpp" | "java";
               onLanguageChange(lang);
-              if (!value.trim()) onChange(TEMPLATES[lang]);
+              onChange(TEMPLATES[lang]);
             }}
-            className="h-7 text-xs"
           >
             <option value="cpp">C++17</option>
             <option value="java">Java</option>

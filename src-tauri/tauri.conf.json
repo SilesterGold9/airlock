@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "cp-trainer",
+  "productName": "Airlock",
   "version": "0.4.0",
-  "identifier": "com.silvestre.cptrainer",
+  "identifier": "com.silvestre.airlock",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "CP Trainer",
+        "title": "Airlock",
         "width": 1280,
         "height": 800,
         "resizable": true

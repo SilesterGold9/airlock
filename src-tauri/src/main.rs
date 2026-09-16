@@ -18,7 +18,26 @@ fn main() {
                 .app_data_dir()
                 .expect("could not resolve app data dir");
             std::fs::create_dir_all(&app_dir).ok();
-            let db_path = app_dir.join("cp-trainer.sqlite");
+            let db_path = app_dir.join("airlock.sqlite");
+            // migrate from old identifier com.silvestre.cptrainer if needed
+            if !db_path.exists() {
+                if let Some(old_dir) = app.path().app_data_dir().ok().and_then(|p| p.parent().map(|pp| pp.join("com.silvestre.cptrainer"))) {
+                    let old_path = old_dir.join("cp-trainer.sqlite");
+                    if old_path.exists() {
+                        let _ = std::fs::create_dir_all(old_dir.parent().unwrap_or(&app_dir));
+                        let _ = std::fs::copy(&old_path, &db_path);
+                    }
+                    let old_new_path = old_dir.join("airlock.sqlite");
+                    if old_new_path.exists() && !db_path.exists() {
+                        let _ = std::fs::copy(&old_new_path, &db_path);
+                    }
+                }
+                // also handle previous airlock location with old file name
+                let legacy = app_dir.join("cp-trainer.sqlite");
+                if legacy.exists() && !db_path.exists() {
+                    let _ = std::fs::copy(&legacy, &db_path);
+                }
+            }
             let conn = db::init(&db_path).expect("failed to init database");
             app.manage(AppState {
                 conn: Mutex::new(conn),

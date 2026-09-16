@@ -1,7 +1,7 @@
 [package]
-name = "cp-trainer"
+name = "airlock"
 version = "0.4.0"
-description = "Offline competitive programming trainer"
+description = "Airlock — offline-first competitive programming trainer"
 edition = "2021"
 
 [build-dependencies]

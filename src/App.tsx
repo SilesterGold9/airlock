@@ -4,11 +4,18 @@ import Contest from "./pages/Contest";
 import Stress from "./pages/Stress";
 import Import from "./pages/Import";
 import History from "./pages/History";
+import { LogoIcon } from "./components/Logo";
 
 export default function App() {
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
-      <nav className="sticky top-0 z-50 h-12 flex items-center gap-1 bg-background/80 backdrop-blur-md border-b border-border px-4 shrink-0">
+      <nav className="sticky top-0 z-50 h-12 flex items-center gap-3 bg-background/80 backdrop-blur-md border-b border-border px-4 shrink-0">
+        <div className="flex items-center gap-2 mr-2">
+          <LogoIcon size={28} />
+          <span className="font-mono font-bold text-sm tracking-tight">Airlock</span>
+          <span className="hidden sm:inline text-xs text-muted-foreground ml-1">offline-first cp trainer</span>
+        </div>
+        <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
         {[
           { to: "/", label: "Practice" },
           { to: "/contest", label: "Contest" },

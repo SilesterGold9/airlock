@@ -1,9 +1,15 @@
-# CP Trainer
+# Airlock
+
+<p align="center">
+  <img src="assets/airlock-logo-wordmark.svg" alt="Airlock — offline-first cp trainer" width="560" />
+</p>
 
 An offline-first competitive programming trainer: local problem vault, local judge
 (C++ and Java), practice mode, and ICPC-style timed contest mode with penalty
 scoring. Built with Tauri (Rust) + React so the judge runs natively against
 your own `g++`/`javac`, with zero network dependency at practice time.
+
+> **Rebrand:** This was `CP Trainer` (`cp-trainer`, `com.silvestre.cptrainer`). The app is now **Airlock** (`airlock`, `com.silvestre.airlock`). The product name, window title, and icons now show Airlock. Old data at `~/.local/share/com.silvestre.cptrainer/` is auto-migrated on first run.
 
 ## Why this exists
 
@@ -36,13 +42,16 @@ npm run tauri dev
 ```
 
 First run creates the SQLite DB at
-`~/.local/share/com.silvestre.cptrainer/cp-trainer.sqlite` and the schema is
-created automatically (see `src-tauri/src/db.rs`).
+`~/.local/share/com.silvestre.airlock/airlock.sqlite` and the schema is
+created automatically (see `src-tauri/src/db.rs`). If you have old data at
+`~/.local/share/com.silvestre.cptrainer/cp-trainer.sqlite` it is copied automatically.
 
 ### Seed the two sample problems
 
 ```bash
-python3 scripts/seed_problems.py ~/.local/share/com.silvestre.cptrainer/cp-trainer.sqlite
+python3 scripts/seed_problems.py ~/.local/share/com.silvestre.airlock/airlock.sqlite
+# legacy path still works if you have not migrated yet:
+# python3 scripts/seed_problems.py ~/.local/share/com.silvestre.cptrainer/cp-trainer.sqlite
 ```
 
 Restart the app (or reload) and they'll show up in Practice mode. Use these
@@ -51,11 +60,11 @@ JSON files as the template for pasting in more problems — same shape as the
 
 ### Before your first `tauri build` (not needed for `tauri dev`)
 
-`tauri.conf.json` references icon files under `src-tauri/icons/` that don't
-exist in this scaffold. Generate them from any square PNG:
+Icons in `src-tauri/icons/` are generated from `assets/airlock-logo-icon.svg`:
 
 ```bash
-npm run tauri icon path/to/any-square-logo.png
+magick -background none assets/airlock-logo-icon.svg -resize 512x512 /tmp/airlock-512.png
+npm run tauri icon /tmp/airlock-512.png
 ```
 
 ### Build a real installable binary

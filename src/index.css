@@ -18,16 +18,16 @@
     --radius: 8px;
   }
   .dark {
-    --background: 0 0% 6%;
-    --foreground: 0 0% 96%;
-    --card: 0 0% 14%;
-    --card-foreground: 0 0% 96%;
-    --muted: 0 0% 16%;
-    --muted-foreground: 0 0% 66%;
-    --border: 0 0% 20%;
-    --input: 0 0% 18%;
-    --ring: 24 100% 54%;
-    --success: 140 60% 40%;
+    --background: 222 84% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 142 76% 36%;
+    --success: 142 76% 36%;
     --destructive: 355 95% 68%;
     color-scheme: dark;
   }

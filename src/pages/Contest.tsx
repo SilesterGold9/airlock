@@ -9,6 +9,7 @@ import { Badge, DifficultyBadge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { SplitView } from "../components/ui/split-view";
+import { Input } from "../components/ui/input";
 
 interface ProblemStatus {
   solved: boolean;
@@ -109,18 +110,9 @@ export default function Contest() {
         <h1 className="text-xl font-semibold mb-6">Set up a virtual contest</h1>
         <Card className="p-6">
           <label className="block text-xs font-medium text-muted-foreground mb-1">Contest name</label>
-          <input
-            className="w-full bg-card border border-border rounded-lg h-9 px-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-ring"
-            value={contestName}
-            onChange={(e) => setContestName(e.target.value)}
-          />
+          <Input className="mb-4" value={contestName} onChange={(e) => setContestName(e.target.value)} placeholder="My contest" />
           <label className="block text-xs font-medium text-muted-foreground mb-1">Duration (minutes)</label>
-          <input
-            type="number"
-            className="w-full bg-card border border-border rounded-lg h-9 px-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-ring"
-            value={durationMinutes}
-            onChange={(e) => setDurationMinutes(Number(e.target.value))}
-          />
+          <Input type="number" className="mb-4" value={String(durationMinutes)} onChange={(e) => setDurationMinutes(Number(e.target.value))} />
           <label className="block text-xs font-medium text-muted-foreground mb-2">
             Problems ({selectedIds.length} selected)
           </label>
@@ -132,7 +124,7 @@ export default function Contest() {
                     type="checkbox"
                     checked={selectedIds.includes(p.id)}
                     onChange={() => toggleSelect(p.id)}
-                    className="rounded border-border"
+                    className="h-4 w-4 rounded border-input bg-input text-brand focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
                   />
                   <span className="text-sm font-medium flex-1">{p.title}</span>
                   <DifficultyBadge difficulty={p.difficulty} />

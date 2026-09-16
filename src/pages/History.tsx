@@ -4,6 +4,7 @@ import type { Problem, Submission } from "../lib/types";
 import VerdictBadge from "../components/VerdictBadge";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import { Select } from "../components/ui/select";
 
 function formatTime(iso: string) {
   try {
@@ -141,20 +142,24 @@ export default function History() {
       <Card className="p-0 overflow-hidden">
         <div className="p-4 border-b border-border flex flex-wrap gap-3 items-center">
           <span className="text-sm font-medium">Submissions</span>
-          <select className="bg-card border border-border rounded-md h-8 px-2 text-xs" value={filterTag} onChange={(e) => setFilterTag(e.target.value)}>
-            <option value="all">All tags</option>
-            {allTags.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-          <select className="bg-card border border-border rounded-md h-8 px-2 text-xs" value={filterVerdict} onChange={(e) => setFilterVerdict(e.target.value)}>
-            <option value="all">All verdicts</option>
-            <option value="Accepted">Accepted</option>
-            <option value="WrongAnswer">WrongAnswer</option>
-            <option value="TimeLimitExceeded">TLE</option>
-            <option value="RuntimeError">RE</option>
-            <option value="CompileError">CE</option>
-          </select>
+          <div className="w-36">
+            <Select value={filterTag} onChange={(e) => setFilterTag(e.target.value)} className="h-8 text-xs">
+              <option value="all">All tags</option>
+              {allTags.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </Select>
+          </div>
+          <div className="w-40">
+            <Select value={filterVerdict} onChange={(e) => setFilterVerdict(e.target.value)} className="h-8 text-xs">
+              <option value="all">All verdicts</option>
+              <option value="Accepted">Accepted</option>
+              <option value="WrongAnswer">WrongAnswer</option>
+              <option value="TimeLimitExceeded">TLE</option>
+              <option value="RuntimeError">RE</option>
+              <option value="CompileError">CE</option>
+            </Select>
+          </div>
           <span className="text-xs text-muted-foreground ml-auto">{filtered.length} shown</span>
         </div>
 

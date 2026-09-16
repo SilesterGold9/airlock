@@ -6,6 +6,8 @@ import VerdictBadge from "../components/VerdictBadge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 
 const GEN_TEMPLATES: Record<"cpp" | "java", string> = {
   cpp: `#include <bits/stdc++.h>
@@ -180,53 +182,31 @@ export default function Stress() {
           stdin.
         </p>
         <div className="flex flex-wrap gap-3 mt-3 items-end">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 min-w-[220px]">
             <label className="text-xs font-medium text-muted-foreground">Problem (optional)</label>
-            <select
-              className="bg-card border border-border rounded-md h-8 px-2 text-sm min-w-[220px]"
-              value={selectedProblemId}
-              onChange={(e) => handleProblemPick(e.target.value)}
-            >
+            <Select value={selectedProblemId} onChange={(e) => handleProblemPick(e.target.value)}>
               <option value="">No problem — free form</option>
               {problems.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 w-28">
             <label className="text-xs font-medium text-muted-foreground">Language</label>
-            <select
-              className="bg-card border border-border rounded-md h-8 px-2 text-sm"
-              value={language}
-              onChange={(e) => handleLanguageChange(e.target.value as "cpp" | "java")}
-            >
+            <Select value={language} onChange={(e) => handleLanguageChange(e.target.value as "cpp" | "java")}>
               <option value="cpp">C++17</option>
               <option value="java">Java</option>
-            </select>
+            </Select>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 w-28">
             <label className="text-xs font-medium text-muted-foreground">Max cases</label>
-            <input
-              type="number"
-              min={1}
-              max={10000}
-              value={maxCases}
-              onChange={(e) => setMaxCases(Number(e.target.value) || 100)}
-              className="bg-card border border-border rounded-md h-8 px-2 text-sm w-28"
-            />
+            <Input type="number" min={1} max={10000} value={String(maxCases)} onChange={(e) => setMaxCases(Number(e.target.value) || 100)} />
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 w-28">
             <label className="text-xs font-medium text-muted-foreground">Time limit ms</label>
-            <input
-              type="number"
-              min={100}
-              max={10000}
-              value={timeLimit}
-              onChange={(e) => setTimeLimit(Number(e.target.value) || 1000)}
-              className="bg-card border border-border rounded-md h-8 px-2 text-sm w-28"
-            />
+            <Input type="number" min={100} max={10000} value={String(timeLimit)} onChange={(e) => setTimeLimit(Number(e.target.value) || 1000)} />
           </div>
           <Button onClick={handleRun} disabled={result.type === "running"} size="md" className="ml-auto">
             {result.type === "running" ? "Running..." : "Run stress test"}

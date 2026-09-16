@@ -1,4 +1,5 @@
 import Editor from "@monaco-editor/react";
+import { Select } from "./ui/select";
 
 interface CodeEditorProps {
   language: "cpp" | "java";
@@ -42,18 +43,20 @@ export default function CodeEditor({
   return (
     <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden bg-card">
       <div className="flex items-center justify-between bg-card px-3 h-10 border-b border-border shrink-0">
-        <select
-          className="bg-white/[0.08] border border-border text-sm rounded-md h-7 px-2"
-          value={language}
-          onChange={(e) => {
-            const lang = e.target.value as "cpp" | "java";
-            onLanguageChange(lang);
-            if (!value.trim()) onChange(TEMPLATES[lang]);
-          }}
-        >
-          <option value="cpp">C++17</option>
-          <option value="java">Java</option>
-        </select>
+        <div className="w-28">
+          <Select
+            value={language}
+            onChange={(e) => {
+              const lang = e.target.value as "cpp" | "java";
+              onLanguageChange(lang);
+              if (!value.trim()) onChange(TEMPLATES[lang]);
+            }}
+            className="h-7 text-xs"
+          >
+            <option value="cpp">C++17</option>
+            <option value="java">Java</option>
+          </Select>
+        </div>
         <button
           className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
           onClick={() => onChange(TEMPLATES[language])}

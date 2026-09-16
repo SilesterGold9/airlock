@@ -7,6 +7,7 @@ import VerdictBadge from "../components/VerdictBadge";
 import { Badge, DifficultyBadge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { SplitView } from "../components/ui/split-view";
+import { Select } from "../components/ui/select";
 
 export default function Practice() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -48,8 +49,8 @@ export default function Practice() {
     <div className="flex h-full bg-background">
       {/* Problem list */}
       <aside className="w-72 border-r border-border overflow-y-auto p-3 shrink-0 bg-background">
-        <select
-          className="w-full mb-3 bg-card border border-border text-sm rounded-md h-8 px-2"
+        <Select
+          className="w-full mb-3"
           value={tagFilter}
           onChange={(e) => setTagFilter(e.target.value)}
         >
@@ -59,7 +60,7 @@ export default function Practice() {
               {t}
             </option>
           ))}
-        </select>
+        </Select>
         <ul className="space-y-0">
           {visible.map((p) => (
             <li key={p.id}>

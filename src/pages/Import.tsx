@@ -4,6 +4,9 @@ import type { Problem } from "../lib/types";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Select } from "../components/ui/select";
 import VerdictBadge from "../components/VerdictBadge";
 
 const SAMPLE: Problem = {
@@ -160,34 +163,34 @@ export default function Import() {
         <Card className="p-6 space-y-4">
           <div className="grid gap-1">
             <label className="text-xs font-medium text-muted-foreground">Title</label>
-            <input className="bg-card border border-border rounded-lg h-9 px-3 text-sm" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A+B" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A+B" />
           </div>
           <div className="grid gap-1">
             <label className="text-xs font-medium text-muted-foreground">Statement markdown</label>
-            <textarea className="bg-card border border-border rounded-lg p-3 text-sm min-h-[140px] font-sans" value={statement} onChange={(e) => setStatement(e.target.value)} placeholder="Describe the problem..." />
+            <Textarea className="min-h-[140px] font-sans" value={statement} onChange={(e) => setStatement(e.target.value)} placeholder="Describe the problem..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1">
               <label className="text-xs font-medium text-muted-foreground">Tags comma separated</label>
-              <input className="bg-card border border-border rounded-lg h-9 px-3 text-sm" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="implementation, warmup" />
+              <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="implementation, warmup" />
             </div>
             <div className="grid gap-1">
               <label className="text-xs font-medium text-muted-foreground">Source</label>
-              <input className="bg-card border border-border rounded-lg h-9 px-3 text-sm" value={source} onChange={(e) => setSource(e.target.value)} />
+              <Input value={source} onChange={(e) => setSource(e.target.value)} placeholder="self-authored" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="grid gap-1">
               <label className="text-xs font-medium text-muted-foreground">Difficulty 0 to 5000</label>
-              <input type="number" className="bg-card border border-border rounded-lg h-9 px-3 text-sm" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} />
+              <Input type="number" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} />
             </div>
             <div className="grid gap-1">
               <label className="text-xs font-medium text-muted-foreground">Time limit ms</label>
-              <input type="number" className="bg-card border border-border rounded-lg h-9 px-3 text-sm" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
+              <Input type="number" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
             </div>
             <div className="grid gap-1">
               <label className="text-xs font-medium text-muted-foreground">Memory MB</label>
-              <input type="number" className="bg-card border border-border rounded-lg h-9 px-3 text-sm" value={memoryLimit} onChange={(e) => setMemoryLimit(e.target.value)} />
+              <Input type="number" value={memoryLimit} onChange={(e) => setMemoryLimit(e.target.value)} />
             </div>
           </div>
 
@@ -209,11 +212,11 @@ export default function Import() {
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="grid gap-1">
                     <label className="text-xs text-muted-foreground">Input</label>
-                    <textarea className="bg-card border border-border rounded-md p-2 text-xs font-mono min-h-[80px]" value={t.input} onChange={(e) => setTests(tests.map((x, idx) => (idx === i ? { ...x, input: e.target.value } : x)))} />
+                    <Textarea className="min-h-[80px] font-mono text-xs" value={t.input} onChange={(e) => setTests(tests.map((x, idx) => (idx === i ? { ...x, input: e.target.value } : x)))} />
                   </div>
                   <div className="grid gap-1">
                     <label className="text-xs text-muted-foreground">Expected output</label>
-                    <textarea className="bg-card border border-border rounded-md p-2 text-xs font-mono min-h-[80px]" value={t.expected_output} onChange={(e) => setTests(tests.map((x, idx) => (idx === i ? { ...x, expected_output: e.target.value } : x)))} />
+                    <Textarea className="min-h-[80px] font-mono text-xs" value={t.expected_output} onChange={(e) => setTests(tests.map((x, idx) => (idx === i ? { ...x, expected_output: e.target.value } : x)))} />
                   </div>
                 </div>
               </Card>
@@ -223,13 +226,15 @@ export default function Import() {
           <div className="grid gap-1">
             <label className="text-xs font-medium text-muted-foreground">Brute force src optional</label>
             <div className="flex gap-2 mb-1">
-              <select className="bg-card border border-border rounded-md h-8 px-2 text-xs" value={bruteLang} onChange={(e) => setBruteLang(e.target.value as "cpp" | "java")}>
-                <option value="cpp">C++</option>
-                <option value="java">Java</option>
-              </select>
+              <div className="w-28">
+                <Select value={bruteLang} onChange={(e) => setBruteLang(e.target.value as "cpp" | "java")} className="h-8 text-xs">
+                  <option value="cpp">C++</option>
+                  <option value="java">Java</option>
+                </Select>
+              </div>
               <span className="text-xs text-muted-foreground self-center">used by stress lab</span>
             </div>
-            <textarea className="bg-card border border-border rounded-lg p-3 text-xs font-mono min-h-[120px]" value={bruteSrc} onChange={(e) => setBruteSrc(e.target.value)} placeholder="Optional brute force solution" />
+            <Textarea className="min-h-[120px] font-mono text-xs" value={bruteSrc} onChange={(e) => setBruteSrc(e.target.value)} placeholder="Optional brute force solution" />
           </div>
 
           <Button onClick={handleFormSave} disabled={saving} className="w-full">
@@ -272,7 +277,7 @@ export default function Import() {
               />
             </label>
           </div>
-          <textarea className="bg-card border border-border rounded-lg p-3 text-xs font-mono min-h-[360px] w-full" value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
+          <Textarea className="min-h-[360px] font-mono text-xs" value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
           <Button onClick={handleJsonSave} disabled={saving} className="w-full">
             {saving ? "Importing..." : "Import JSON"}
           </Button>

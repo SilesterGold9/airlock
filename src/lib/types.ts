@@ -44,6 +44,16 @@ export type SubmissionContext =
   | "Practice"
   | { Contest: { contest_id: string } };
 
+export interface Submission {
+  id: string;
+  problem_id: string;
+  language: string;
+  source_code: string;
+  verdict: Verdict;
+  submitted_at: string;
+  context: SubmissionContext;
+}
+
 export interface Contest {
   id: string;
   name: string;

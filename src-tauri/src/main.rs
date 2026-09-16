@@ -31,6 +31,8 @@ fn main() {
             commands::submit_solution,
             commands::create_contest,
             commands::run_stress_test,
+            commands::list_submissions,
+            commands::list_submissions_by_problem,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

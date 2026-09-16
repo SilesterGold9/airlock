@@ -1,6 +1,9 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import Practice from "./pages/Practice";
 import Contest from "./pages/Contest";
+import Stress from "./pages/Stress";
+import Import from "./pages/Import";
+import History from "./pages/History";
 
 export default function App() {
   return (
@@ -9,6 +12,9 @@ export default function App() {
         {[
           { to: "/", label: "Practice" },
           { to: "/contest", label: "Contest" },
+          { to: "/stress", label: "Stress" },
+          { to: "/import", label: "Import" },
+          { to: "/history", label: "History" },
         ].map((item) => (
           <NavLink
             key={item.to}
@@ -30,6 +36,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Practice />} />
           <Route path="/contest" element={<Contest />} />
+          <Route path="/stress" element={<Stress />} />
+          <Route path="/import" element={<Import />} />
+          <Route path="/history" element={<History />} />
         </Routes>
       </main>
     </div>

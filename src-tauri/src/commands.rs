@@ -113,3 +113,18 @@ pub fn run_stress_test(
         time_limit_ms,
     )
 }
+
+#[tauri::command]
+pub fn list_submissions(state: State<AppState>) -> Result<Vec<Submission>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::list_submissions(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn list_submissions_by_problem(
+    state: State<AppState>,
+    problem_id: String,
+) -> Result<Vec<Submission>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::list_submissions_by_problem(&conn, &problem_id).map_err(|e| e.to_string())
+}

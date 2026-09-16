@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Contest, JudgeReport, Problem, SubmissionContext } from "./types";
+import type { Contest, JudgeReport, Problem, Submission, SubmissionContext } from "./types";
 
 export const api = {
   listProblems: () => invoke<Problem[]>("list_problems"),
@@ -42,4 +42,9 @@ export const api = {
       maxCases: args.maxCases,
       timeLimitMs: args.timeLimitMs,
     }),
+
+  listSubmissions: () => invoke<Submission[]>("list_submissions"),
+
+  listSubmissionsByProblem: (problemId: string) =>
+    invoke<Submission[]>("list_submissions_by_problem", { problemId }),
 };

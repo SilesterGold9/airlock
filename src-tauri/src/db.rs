@@ -146,6 +146,57 @@ pub fn insert_contest(conn: &Connection, c: &Contest) -> SqlResult<()> {
     Ok(())
 }
 
+pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context FROM submissions ORDER BY submitted_at DESC",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        let verdict_str: String = row.get(4)?;
+        let context_json: String = row.get(6)?;
+        Ok(Submission {
+            id: row.get(0)?,
+            problem_id: row.get(1)?,
+            language: row.get(2)?,
+            source_code: row.get(3)?,
+            verdict: str_to_verdict(&verdict_str),
+            submitted_at: row.get(5)?,
+            context: serde_json::from_str(&context_json).unwrap_or(crate::models::SubmissionContext::Practice),
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn list_submissions_by_problem(conn: &Connection, problem_id: &str) -> SqlResult<Vec<Submission>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context FROM submissions WHERE problem_id = ?1 ORDER BY submitted_at DESC",
+    )?;
+    let rows = stmt.query_map(params![problem_id], |row| {
+        let verdict_str: String = row.get(4)?;
+        let context_json: String = row.get(6)?;
+        Ok(Submission {
+            id: row.get(0)?,
+            problem_id: row.get(1)?,
+            language: row.get(2)?,
+            source_code: row.get(3)?,
+            verdict: str_to_verdict(&verdict_str),
+            submitted_at: row.get(5)?,
+            context: serde_json::from_str(&context_json).unwrap_or(crate::models::SubmissionContext::Practice),
+        })
+    })?;
+    rows.collect()
+}
+
+fn str_to_verdict(s: &str) -> Verdict {
+    match s {
+        "AC" => Verdict::Accepted,
+        "WA" => Verdict::WrongAnswer,
+        "TLE" => Verdict::TimeLimitExceeded,
+        "RE" => Verdict::RuntimeError,
+        "CE" => Verdict::CompileError,
+        _ => Verdict::WrongAnswer,
+    }
+}
+
 fn verdict_to_str(v: &Verdict) -> &'static str {
     match v {
         Verdict::Accepted => "AC",

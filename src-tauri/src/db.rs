@@ -204,6 +204,16 @@ pub fn list_submissions_by_problem(conn: &Connection, problem_id: &str) -> SqlRe
     rows.collect()
 }
 
+pub fn clear_submissions(conn: &Connection) -> SqlResult<usize> {
+    Ok(conn.execute("DELETE FROM submissions", [])? as usize)
+}
+
+pub fn clear_all_data(conn: &Connection) -> SqlResult<()> {
+    conn.execute("DELETE FROM submissions", [])?;
+    conn.execute("DELETE FROM contests", [])?;
+    Ok(())
+}
+
 fn str_to_verdict(s: &str) -> Verdict {
     match s {
         "AC" => Verdict::Accepted,

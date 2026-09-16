@@ -5,6 +5,7 @@ import VerdictBadge from "../components/VerdictBadge";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Select } from "../components/ui/select";
+import { Button } from "../components/ui/button";
 
 function formatTime(iso: string) {
   try {
@@ -39,6 +40,7 @@ export default function History() {
   const [filterTag, setFilterTag] = useState<string>("all");
   const [filterVerdict, setFilterVerdict] = useState<string>("all");
   const [selected, setSelected] = useState<Submission | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
@@ -74,13 +76,56 @@ export default function History() {
 
   const perTag = useMemo(() => groupByTag(problems, submissions), [problems, submissions]);
 
+  async function handleClear() {
+    if (submissions.length === 0) return;
+    const ok = window.confirm(`Clear all ${submissions.length} submissions? This cannot be undone. Contests and problems will stay.`);
+    if (!ok) return;
+    setClearing(true);
+    try {
+      await api.clearSubmissions();
+      setSubmissions([]);
+      setSelected(null);
+    } catch (e) {
+      console.error(e);
+      alert(String(e));
+    } finally {
+      setClearing(false);
+    }
+  }
+
+  async function handleResetAll() {
+    const ok = window.confirm("Reset all data? This will delete all submissions and contests but keep problems. This cannot be undone.");
+    if (!ok) return;
+    setClearing(true);
+    try {
+      await api.clearAllData();
+      setSubmissions([]);
+      setSelected(null);
+    } catch (e) {
+      console.error(e);
+      alert(String(e));
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-xl font-semibold">History and stats</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Every Practice and Contest submission is logged. Filter by tag or verdict, inspect code, track accuracy.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold">History and stats</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Every Practice and Contest submission is logged. Filter by tag or verdict, inspect code, track accuracy.
+          </p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="secondary" size="sm" onClick={handleClear} disabled={clearing || submissions.length === 0}>
+            {clearing ? "Clearing..." : "Clear history"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleResetAll} disabled={clearing} title="Delete submissions and contests">
+            Reset all
+          </Button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-3">

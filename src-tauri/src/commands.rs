@@ -134,3 +134,15 @@ pub fn list_contests(state: State<AppState>) -> Result<Vec<Contest>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::list_contests(&conn).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn clear_submissions(state: State<AppState>) -> Result<usize, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::clear_submissions(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn clear_all_data(state: State<AppState>) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::clear_all_data(&conn).map_err(|e| e.to_string())
+}

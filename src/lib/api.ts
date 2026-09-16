@@ -49,4 +49,8 @@ export const api = {
     invoke<Submission[]>("list_submissions_by_problem", { problemId }),
 
   listContests: () => invoke<Contest[]>("list_contests"),
+
+  clearSubmissions: () => invoke<number>("clear_submissions"),
+
+  clearAllData: () => invoke<void>("clear_all_data"),
 };

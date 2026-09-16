@@ -82,32 +82,36 @@ Output lands in `src-tauri/target/release/bundle/`.
   `wait-timeout`, diffs output with whitespace-tolerant normalization, returns
   AC / WA / TLE / RE / CE per test. Stops at the first failing test (matches
   how most judges give you feedback).
-- **Stress test engine**: same file, `run_stress_test` — feed it a generator,
-  your candidate, and a brute force; it runs random cases until they disagree.
-  Not yet wired to a UI page — that's the top item on the roadmap below.
+- **Stress test lab** (`src/pages/Stress.tsx`): three editors for candidate, brute force and generator, runs `run_stress_test` and shows first mismatch.
 - **Practice mode** (`src/pages/Practice.tsx`): browse/filter by tag, untimed,
-  Monaco editor, per-test verdict breakdown.
+  Monaco editor, per-test verdict breakdown with diff viewer on WA.
 - **Contest mode** (`src/pages/Contest.tsx`): pick a problem set + duration,
   countdown timer, ICPC-style penalty tracking (20 min per wrong submission
-  before AC, time-of-solve in minutes), live scoreboard sidebar.
+  before AC, time-of-solve in minutes), live scoreboard sidebar and past contests history.
+- **Import** (`src/pages/Import.tsx`): form and JSON paste for `Problem`, wired to `api.saveProblem`.
+- **History** (`src/pages/History.tsx`): submissions table and per-tag accuracy from `submissions`.
 - **SQLite persistence** for problems, test cases, submissions, and contests.
 
-## Roadmap (in priority order for your Oct 15 deadline)
+## Roadmap — original scaffold (now shipped)
 
-1. **Stress-test UI page** — the backend command (`run_stress_test`) exists;
-   it just needs a page with three code boxes (candidate / brute force /
-   generator) and a "run" button showing the first failing case.
-2. **Problem import screen** — a form or JSON paste box wired to
-   `api.saveProblem`, so you're not editing SQLite by hand for new problems.
-3. **Submission history & stats dashboard** — you're already recording every
-   submission in the `submissions` table; a page that reads it back into a
-   per-tag accuracy chart and a solve-time trend is pure frontend work at
-   that point.
-4. **Diff viewer on WA** — show expected vs. actual output side by side
-   instead of just the raw text blob (the data's already in `TestResult`).
-5. **Multi-contest scoreboard history** — right now `create_contest` fires
-   and forgets past contests; worth listing past contests and letting you
-   review old ones.
+All five items below are done and released. They were the priority for the initial scaffold.
+
+1. **Stress-test UI page** — done in `v0.4.0` `src/pages/Stress.tsx` (`run_stress_test` wired).
+2. **Problem import screen** — done in `v0.4.0` `src/pages/Import.tsx` (`api.saveProblem`).
+3. **Submission history & stats dashboard** — done in `v0.4.0` `src/pages/History.tsx` (`list_submissions`).
+4. **Diff viewer on WA** — done in `v0.6.0` `src/components/DiffViewer.tsx` side-by-side with highlight.
+5. **Multi-contest scoreboard history** — done in `v0.6.0` `src/pages/Contest.tsx` past contests via `list_contests`.
+
+Next is the Airlock feature roadmap for Oct 15 in Luanda, tracked in `PLAN_AIRLOCK_1-3.md` and GitHub milestones.
+
+## Airlock roadmap — next batch (Oct 15)
+
+1. Problem notes (your own editorials)
+2. Partial scoring
+3. Upsolving
+4. Team mode
+5. Portuguese localization
+6. Post-contest polish
 
 ## Versions
 
@@ -115,13 +119,12 @@ Track progress on GitHub: [Releases](https://github.com/SilesterGold9/airlock/re
 
 | Version | Focus | Status | Milestone |
 |---------|-------|--------|-----------|
-| `v0.1.0` | Foundation — local judge, practice/contest, LeetCode-inspired design system, 2 sample problems | Released [v0.1.0](https://github.com/SilesterGold9/airlock/releases/tag/v0.1.0) `3654803` | — |
-| `v0.2.0` | Stress-test UI page | Planned, due 2026-09-23 | [#1](https://github.com/SilesterGold9/airlock/milestone/1) / [Issue #1](https://github.com/SilesterGold9/airlock/issues/1) |
-| `v0.3.0` | Problem import screen | Planned, due 2026-09-30 | [#2](https://github.com/SilesterGold9/airlock/milestone/2) / [Issue #2](https://github.com/SilesterGold9/airlock/issues/2) |
-| `v0.4.0` | Submission history and stats dashboard | Planned, due 2026-10-05 | [#3](https://github.com/SilesterGold9/airlock/milestone/3) / [Issue #3](https://github.com/SilesterGold9/airlock/issues/3) |
-| `v0.5.0` | Diff viewer on WA | Planned, due 2026-10-10 | [#4](https://github.com/SilesterGold9/airlock/milestone/4) / [Issue #4](https://github.com/SilesterGold9/airlock/issues/4) |
-| `v0.6.0` | Multi-contest scoreboard history | Planned, due 2026-10-13 | [#5](https://github.com/SilesterGold9/airlock/milestone/5) / [Issue #5](https://github.com/SilesterGold9/airlock/issues/5) |
+| `v0.1.0` | Foundation — local judge, practice/contest, design system, 2 samples | Released [v0.1.0](https://github.com/SilesterGold9/airlock/releases/tag/v0.1.0) `3654803` | — |
+| `v0.2.0` — `v0.4.0` | Stress lab, import, history | Released [v0.4.0](https://github.com/SilesterGold9/airlock/releases/tag/v0.4.0) `171501b` | Milestones 1 to 3 closed |
+| `v0.6.0` | Diff viewer and contest history | Released [v0.6.0](https://github.com/SilesterGold9/airlock/releases/tag/v0.6.0) `2e620ae` | Milestones 4 and 5 closed |
+| `v0.5.0` | — | Merged into `v0.6.0` | — |
 | `v1.0.0` | Polish for Oct 15 — real `contest_id`, limits, tag standard, bundle QA | Planned, due 2026-10-15 | [#6](https://github.com/SilesterGold9/airlock/milestone/6) / [Issue #6](https://github.com/SilesterGold9/airlock/issues/6) |
+| Next | Airlock roadmap 1 to 3 — notes, partial scoring, upsolving | Planned, see `PLAN_AIRLOCK_1-3.md` | — |
 
 Versioning is SemVer. Tags are `vMAJOR.MINOR.PATCH` and each Milestone groups the Issues for that version.
 

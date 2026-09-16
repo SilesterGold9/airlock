@@ -47,4 +47,6 @@ export const api = {
 
   listSubmissionsByProblem: (problemId: string) =>
     invoke<Submission[]>("list_submissions_by_problem", { problemId }),
+
+  listContests: () => invoke<Contest[]>("list_contests"),
 };

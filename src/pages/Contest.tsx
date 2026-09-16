@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
-import type { JudgeReport, Problem } from "../lib/types";
+import type { Contest as ContestModel, JudgeReport, Problem } from "../lib/types";
 import { getVerdictInfo } from "../lib/verdict";
 import CodeEditor from "../components/CodeEditor";
 import VerdictBadge from "../components/VerdictBadge";
@@ -9,6 +9,7 @@ import { Badge, DifficultyBadge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { SplitView } from "../components/ui/split-view";
+import DiffViewer from "../components/DiffViewer";
 import { Input } from "../components/ui/input";
 
 interface ProblemStatus {
@@ -35,10 +36,31 @@ export default function Contest() {
   const [judging, setJudging] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
   const [ended, setEnded] = useState(false);
+  const [contests, setContests] = useState<ContestModel[]>([]);
+  const [viewingHistory, setViewingHistory] = useState<ContestModel | null>(null);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (setup) {
+      api.listContests().then(setContests).catch(console.error);
+    }
+  }, [setup]);
+
+  function reviewContest(c: ContestModel) {
+    const chosen = problems.filter((p) => c.problem_ids.includes(p.id));
+    if (chosen.length === 0) return;
+    setActive(chosen);
+    setStatuses(Object.fromEntries(chosen.map((p) => [p.id, { solved: false, wrongAttempts: 0 }])));
+    setCurrent(chosen[0]);
+    setStartTime(c.started_at ? new Date(c.started_at).getTime() : Date.now());
+    setViewingHistory(c);
+    setDurationMinutes(c.duration_minutes);
+    setSetup(false);
+    setEnded(true);
+  }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) =>
@@ -136,6 +158,37 @@ export default function Contest() {
             Start contest
           </Button>
         </Card>
+
+        <Card className="p-4 mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">Past contests</h2>
+            <span className="text-xs text-muted-foreground">{contests.length} saved</span>
+          </div>
+          {contests.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg bg-white/[0.02]">
+              No past contests yet. Run one and it will appear here.
+            </div>
+          ) : (
+            <ul className="space-y-2 max-h-64 overflow-y-auto">
+              {contests.map((c) => {
+                const started = c.started_at ? new Date(c.started_at).toLocaleString() : "unknown";
+                return (
+                  <li key={c.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-white/[0.04] transition-colors">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{c.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {c.problem_ids.length} problems · {c.duration_minutes} min · {started}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="secondary" onClick={() => reviewContest(c)}>
+                      Review
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
       </div>
     );
   }
@@ -143,6 +196,25 @@ export default function Contest() {
   return (
     <div className="flex h-full bg-background">
       <aside className="w-64 border-r border-border p-3 flex flex-col shrink-0 bg-background">
+        {viewingHistory && (
+          <div className="mb-3 p-2 rounded-lg bg-wa/10 border border-wa/20">
+            <div className="text-xs font-semibold text-wa">Viewing past contest</div>
+            <div className="text-xs text-muted-foreground truncate">{viewingHistory.name}</div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="mt-2 w-full"
+              onClick={() => {
+                setViewingHistory(null);
+                setSetup(true);
+                setActive([]);
+                setCurrent(null);
+              }}
+            >
+              Back to setup
+            </Button>
+          </div>
+        )}
         <Timer durationMinutes={durationMinutes} onExpire={() => setEnded(true)} />
         <div className="text-xs text-muted-foreground mt-1 mb-4 tabular-nums">
           Solved {solvedCount}/{active.length} · Penalty {totalPenalty}min
@@ -255,13 +327,31 @@ export default function Contest() {
                                           <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap border border-border mb-2 font-mono">
                                             {test.input}
                                           </pre>
-                                          <div className="text-xs font-semibold text-foreground mb-1">Expected</div>
-                                          <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap border border-border mb-2 font-mono">
-                                            {test.expected_output}
-                                          </pre>
+                                          {r.verdict === "WrongAnswer" && r.actual_output != null ? (
+                                            <DiffViewer expected={test.expected_output || ""} actual={r.actual_output || ""} />
+                                          ) : (
+                                            <>
+                                              <div className="text-xs font-semibold text-foreground mb-1">Expected</div>
+                                              <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap border border-border mb-2 font-mono">
+                                                {test.expected_output}
+                                              </pre>
+                                              {r.actual_output != null && (
+                                                <>
+                                                  <div className="text-xs font-semibold text-foreground mb-1">Your output</div>
+                                                  <pre
+                                                    className={`rounded-md p-2 text-xs whitespace-pre-wrap border mb-2 font-mono ${
+                                                      isFail ? "bg-wa/10 border-wa/30" : "bg-black/40 border-border"
+                                                    }`}
+                                                  >
+                                                    {r.actual_output || "(empty)"}
+                                                  </pre>
+                                                </>
+                                              )}
+                                            </>
+                                          )}
                                         </>
                                       )}
-                                      {r.actual_output != null && (
+                                      {r.actual_output != null && !test && (
                                         <>
                                           <div className="text-xs font-semibold text-foreground mb-1">Your output</div>
                                           <pre

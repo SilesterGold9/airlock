@@ -8,6 +8,7 @@ import { Badge, DifficultyBadge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { SplitView } from "../components/ui/split-view";
 import { Select } from "../components/ui/select";
+import DiffViewer from "../components/DiffViewer";
 
 export default function Practice() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -185,23 +186,29 @@ export default function Practice() {
                                               {test.input || "(empty)"}
                                             </pre>
                                           </div>
-                                          <div>
-                                            <div className="text-xs font-semibold text-foreground mb-1">Expected output</div>
-                                            <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-border font-mono">
-                                              {test.expected_output || "(empty)"}
-                                            </pre>
-                                          </div>
-                                          {r.actual_output != null && (
-                                            <div>
-                                              <div className="text-xs font-semibold text-foreground mb-1">Your output</div>
-                                              <pre
-                                                className={`rounded-md p-2 text-xs whitespace-pre-wrap break-words border font-mono ${
-                                                  isFail ? "bg-wa/10 border-wa/30" : "bg-black/40 border-border"
-                                                }`}
-                                              >
-                                                {r.actual_output || "(no output)"}
-                                              </pre>
-                                            </div>
+                                          {r.verdict === "WrongAnswer" && r.actual_output != null ? (
+                                            <DiffViewer expected={test.expected_output || ""} actual={r.actual_output || ""} />
+                                          ) : (
+                                            <>
+                                              <div>
+                                                <div className="text-xs font-semibold text-foreground mb-1">Expected output</div>
+                                                <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-border font-mono">
+                                                  {test.expected_output || "(empty)"}
+                                                </pre>
+                                              </div>
+                                              {r.actual_output != null && (
+                                                <div>
+                                                  <div className="text-xs font-semibold text-foreground mb-1">Your output</div>
+                                                  <pre
+                                                    className={`rounded-md p-2 text-xs whitespace-pre-wrap break-words border font-mono ${
+                                                      isFail ? "bg-wa/10 border-wa/30" : "bg-black/40 border-border"
+                                                    }`}
+                                                  >
+                                                    {r.actual_output || "(no output)"}
+                                                  </pre>
+                                                </div>
+                                              )}
+                                            </>
                                           )}
                                           {r.message && (
                                             <div>

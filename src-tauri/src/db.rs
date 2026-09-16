@@ -146,6 +146,24 @@ pub fn insert_contest(conn: &Connection, c: &Contest) -> SqlResult<()> {
     Ok(())
 }
 
+pub fn list_contests(conn: &Connection) -> SqlResult<Vec<Contest>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, problem_ids, duration_minutes, started_at, penalty_minutes FROM contests ORDER BY started_at DESC",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        let ids_json: String = row.get(2)?;
+        Ok(Contest {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            problem_ids: serde_json::from_str(&ids_json).unwrap_or_default(),
+            duration_minutes: row.get::<_, i64>(3)? as u32,
+            started_at: row.get(4)?,
+            penalty_minutes: row.get::<_, i64>(5)? as u32,
+        })
+    })?;
+    rows.collect()
+}
+
 pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
     let mut stmt = conn.prepare(
         "SELECT id, problem_id, language, source_code, verdict, submitted_at, context FROM submissions ORDER BY submitted_at DESC",

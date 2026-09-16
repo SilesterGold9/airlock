@@ -128,3 +128,9 @@ pub fn list_submissions_by_problem(
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::list_submissions_by_problem(&conn, &problem_id).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn list_contests(state: State<AppState>) -> Result<Vec<Contest>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::list_contests(&conn).map_err(|e| e.to_string())
+}

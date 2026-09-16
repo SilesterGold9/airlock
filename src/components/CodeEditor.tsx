@@ -40,10 +40,10 @@ export default function CodeEditor({
   onLanguageChange,
 }: CodeEditorProps) {
   return (
-    <div className="flex flex-col h-full border border-slate-800 rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between bg-slate-900 px-3 py-2 border-b border-slate-800">
+    <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden bg-card">
+      <div className="flex items-center justify-between bg-card px-3 h-10 border-b border-border shrink-0">
         <select
-          className="bg-slate-800 text-sm rounded px-2 py-1"
+          className="bg-white/[0.08] border border-border text-sm rounded-md h-7 px-2"
           value={language}
           onChange={(e) => {
             const lang = e.target.value as "cpp" | "java";
@@ -55,7 +55,7 @@ export default function CodeEditor({
           <option value="java">Java</option>
         </select>
         <button
-          className="text-xs text-slate-400 hover:text-slate-200"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
           onClick={() => onChange(TEMPLATES[language])}
         >
           Reset template

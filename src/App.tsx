@@ -4,8 +4,8 @@ import Contest from "./pages/Contest";
 
 export default function App() {
   return (
-    <div className="h-screen flex flex-col">
-      <nav className="flex gap-1 bg-slate-900 border-b border-slate-800 px-3 py-2">
+    <div className="h-screen flex flex-col bg-background text-foreground">
+      <nav className="sticky top-0 z-50 h-12 flex items-center gap-1 bg-background/80 backdrop-blur-md border-b border-border px-4 shrink-0">
         {[
           { to: "/", label: "Practice" },
           { to: "/contest", label: "Contest" },
@@ -15,8 +15,10 @@ export default function App() {
             to={item.to}
             end={item.to === "/"}
             className={({ isActive }) =>
-              `px-3 py-1.5 rounded text-sm font-medium ${
-                isActive ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"
+              `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
+                isActive
+                  ? "bg-white/[0.08] text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
               }`
             }
           >

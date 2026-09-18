@@ -125,7 +125,7 @@ export default function History() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6 animate-fade-in">
+    <div className="max-w-3xl mx-auto p-6 animate-fade-in space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">{t("history.title")}</h1>
@@ -143,33 +143,33 @@ export default function History() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-4 gap-3">
-        <Card className="p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Card className="p-3">
           <div className="text-xs text-muted-foreground">{t("history.totalSubs")}</div>
-          <div className="text-2xl font-semibold mt-1">{stats.total}</div>
-          <div className="text-xs text-muted-foreground">{stats.ac} {t("history.acceptedCount")}</div>
+          <div className="text-2xl font-semibold mt-1 tabular-nums">{stats.total}</div>
+          <div className="text-xs text-muted-foreground tabular-nums">{stats.ac} {t("history.acceptedCount")}</div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3">
           <div className="text-xs text-muted-foreground">{t("history.accuracy")}</div>
-          <div className="text-2xl font-semibold mt-1">{stats.rate.toFixed(1)}%</div>
+          <div className="text-2xl font-semibold mt-1 tabular-nums">{stats.rate.toFixed(1)}%</div>
           <div className="w-full h-1.5 bg-white/[0.06] rounded-full mt-2 overflow-hidden">
             <div className="h-full bg-ac transition-all duration-500" style={{ width: `${stats.rate}%` }} />
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3">
           <div className="text-xs text-muted-foreground">{t("history.rating")}</div>
-          <div className="text-2xl font-semibold mt-1">{ratingInfo.rating}</div>
+          <div className="text-2xl font-semibold mt-1 tabular-nums">{ratingInfo.rating}</div>
           <div className="text-xs text-muted-foreground">{t("history.eloTrend")}</div>
           <div className="flex items-end gap-0.5 h-8 mt-2">
             {ratingInfo.history.slice(-10).map((h, i) => {
               const max = Math.max(...ratingInfo.history.map((x) => x.rating), 1600);
               const min = Math.min(...ratingInfo.history.map((x) => x.rating), 1000);
               const range = Math.max(1, max - min);
-              return <div key={i} className="flex-1 bg-brand/60 rounded-sm" style={{ height: `${((h.rating - min) / range) * 24 + 4}px` }} title={`${h.date}: ${h.rating}`} />;
+              return <div key={i} className="flex-1 bg-ac/60 rounded-sm" style={{ height: `${((h.rating - min) / range) * 24 + 4}px` }} title={`${h.date}: ${h.rating}`} />;
             })}
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-3">
           <div className="text-xs text-muted-foreground">{t("history.last14Days")}</div>
           <div className="flex items-end gap-1 h-10 mt-2">
             {stats.days.length === 0 ? (
@@ -189,21 +189,21 @@ export default function History() {
         </Card>
       </div>
 
-      <Card className="p-4">
-        <div className="text-sm font-semibold mb-3">{t("history.perTag")}</div>
+      <Card className="p-3">
+        <div className="text-sm font-semibold mb-2">{t("history.perTag")}</div>
         {perTag.length === 0 ? (
           <div className="text-xs text-muted-foreground">{t("history.noTagged")}</div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {perTag.map((pt) => (
-              <div key={pt.tag} className="flex items-center gap-3">
+              <div key={pt.tag} className="flex items-center gap-3 px-1 py-1 rounded-md hover:bg-white/[0.04] transition-colors duration-150">
                 <span className="text-xs w-24 truncate">
                   <Badge variant="outline">{pt.tag}</Badge>
                 </span>
-                <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                   <div className="h-full bg-ac transition-all duration-500" style={{ width: `${pt.rate * 100}%` }} />
                 </div>
-                <span className="text-xs tabular-nums w-20 text-right">
+                <span className="text-xs tabular-nums w-20 text-right text-muted-foreground">
                   {pt.ac}/{pt.total} {(pt.rate * 100).toFixed(0)}%
                 </span>
               </div>
@@ -213,18 +213,18 @@ export default function History() {
       </Card>
 
       <Card className="p-0 overflow-hidden">
-        <div className="p-4 border-b border-border flex flex-wrap gap-3 items-center">
-          <span className="text-sm font-medium">{t("history.submissions")}</span>
-          <div className="w-36">
-            <Select value={filterTag} onChange={(e) => setFilterTag(e.target.value)} className="h-8 text-xs">
+        <div className="px-3 py-2.5 border-b border-border flex flex-wrap gap-2 items-center">
+          <span className="text-sm font-semibold">{t("history.submissions")}</span>
+          <div className="w-32">
+            <Select size="sm" value={filterTag} onChange={(e) => setFilterTag(e.target.value)}>
               <option value="all">{t("practice.allTags")}</option>
               {allTags.map((tg) => (
                 <option key={tg} value={tg}>{tg}</option>
               ))}
             </Select>
           </div>
-          <div className="w-40">
-            <Select value={filterVerdict} onChange={(e) => setFilterVerdict(e.target.value)} className="h-8 text-xs">
+          <div className="w-36">
+            <Select size="sm" value={filterVerdict} onChange={(e) => setFilterVerdict(e.target.value)}>
               <option value="all">{t("history.allVerdicts")}</option>
               <option value="Accepted">{t("verdict.Accepted")}</option>
               <option value="WrongAnswer">{t("verdict.WrongAnswer")}</option>
@@ -237,11 +237,11 @@ export default function History() {
             <input type="checkbox" checked={includeUpsolve} onChange={(e) => setIncludeUpsolve(e.target.checked)} className="h-3 w-3 rounded border-input bg-input" />
             <span className="text-muted-foreground">{t("common.includeUpsolve")}</span>
           </label>
-          <span className="text-xs text-muted-foreground">{filtered.length} {t("history.shownCount")}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">{filtered.length} {t("history.shownCount")}</span>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">{t("history.noMatch")}</div>
+          <div className="m-3 text-xs text-muted-foreground py-6 text-center border border-dashed border-border rounded-lg bg-white/[0.02]">{t("history.noMatch")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -264,10 +264,10 @@ export default function History() {
                       onClick={() => setSelected(isSelected ? null : s)}
                       className={`border-b border-white/[0.04] last:border-0 hover:bg-white/[0.04] cursor-pointer transition-colors duration-150 ${isSelected ? "bg-white/[0.06]" : ""}`}
                     >
-                      <td className="px-3 py-2.5 text-xs whitespace-nowrap">{formatTime(s.submitted_at)}</td>
+                      <td className="px-3 py-2.5 text-xs whitespace-nowrap tabular-nums text-muted-foreground">{formatTime(s.submitted_at)}</td>
                       <td className="px-3 py-2.5">
-                        <div className="font-medium leading-tight">{p?.title || s.problem_id.slice(0, 8)}</div>
-                        <div className="text-xs text-muted-foreground">{p?.difficulty ?? ""}</div>
+                        <div className="font-medium text-sm leading-tight">{p?.title || s.problem_id.slice(0, 8)}</div>
+                        <div className="text-xs text-muted-foreground tabular-nums">{p?.difficulty ?? ""}</div>
                       </td>
                       <td className="px-3 py-2.5">
                         <Badge variant="outline">{s.language}</Badge>
@@ -280,7 +280,7 @@ export default function History() {
                           </div>
                         )}
                         {s.hints_revealed != null && s.hints_revealed > 0 && (
-                          <div className="text-[10px] text-muted-foreground mt-1">
+                          <div className="text-[10px] text-muted-foreground mt-1 tabular-nums">
                             {t("history.hintsUsed").replace("{count}", String(s.hints_revealed))}
                           </div>
                         )}
@@ -304,9 +304,9 @@ export default function History() {
         )}
 
         {selected && (
-          <div className="border-t border-border p-4 bg-black/20 animate-slide-up">
+          <div className="border-t border-border p-3 bg-black/20 animate-fade-in">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold">{t("history.sourceCode")}</span>
+              <span className="text-sm font-semibold">{t("history.sourceCode")}</span>
               <VerdictBadge verdict={selected.verdict} showLong />
             </div>
             <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs font-mono whitespace-pre-wrap break-words max-h-64 overflow-auto">

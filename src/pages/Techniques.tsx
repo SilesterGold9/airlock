@@ -67,26 +67,27 @@ function TechniqueRow({
   }
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3">
+    <Card className="p-3 hover:bg-white/[0.02] transition-colors duration-150">
+      <div className="flex items-center gap-2.5">
         <input
           type="checkbox"
           checked={selected}
           onChange={onToggleSelect}
-          className="h-4 w-4 accent-current"
+          className="h-4 w-4 rounded border-input bg-input accent-current"
           aria-label={technique.name}
         />
         <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${DOT[technique.status]}`} />
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm truncate">{technique.name}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">
+          <div className="text-xs text-muted-foreground mt-0.5 tabular-nums">
             {t("techniques.updated").replace("{date}", formatDate(technique.status_updated_at))}
             {" · "}
             {t("techniques.linked").replace("{count}", String(linked.length))}
           </div>
         </div>
         <Select
-          className="w-36"
+          size="sm"
+          className="w-32"
           value={technique.status}
           onChange={(e) => onStatusChange(e.target.value as TechniqueStatus)}
         >
@@ -101,7 +102,7 @@ function TechniqueRow({
         </Button>
       </div>
       {linked.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3 ml-7">
+        <div className="flex flex-wrap gap-1 mt-2 ml-7">
           {linked.map((p) => (
             <Badge key={p.id} variant="outline">
               {p.title}
@@ -110,9 +111,9 @@ function TechniqueRow({
         </div>
       )}
       {notesOpen && (
-        <div className="mt-3 ml-7 grid gap-2">
+        <div className="mt-2 ml-7 grid gap-2 animate-fade-in">
           <Textarea
-            className="min-h-[100px] font-sans"
+            className="min-h-[80px] font-sans"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={t("techniques.notesPlaceholder")}
@@ -225,9 +226,9 @@ export default function Techniques() {
   return (
     <div className="max-w-3xl mx-auto p-6 animate-fade-in">
       <h1 className="text-xl font-semibold">{t("techniques.title")}</h1>
-      <p className="text-sm text-muted-foreground mt-1">{t("techniques.subtitle")}</p>
+      <p className="text-xs text-muted-foreground mt-1">{t("techniques.subtitle")}</p>
 
-      <div className="flex flex-wrap gap-1.5 mt-4">
+      <div className="flex flex-wrap gap-1.5 mt-3">
         {STATUSES.map((s) => (
           <Badge key={s} variant="outline">
             <span className={`h-2 w-2 rounded-full mr-1.5 ${DOT[s]}`} />
@@ -236,7 +237,7 @@ export default function Techniques() {
         ))}
       </div>
 
-      <Card className="p-4 mt-4 flex flex-col sm:flex-row gap-2 sm:items-center">
+      <Card className="p-3 mt-3 flex flex-col sm:flex-row gap-2 sm:items-center">
         <div className="flex gap-2 flex-1">
           <Input
             value={newName}
@@ -253,13 +254,13 @@ export default function Techniques() {
       </Card>
 
       {techniques.length > 0 && (
-        <Card className="p-4 mt-4 flex flex-col sm:flex-row gap-2 sm:items-center">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-4 w-4 accent-current" />
+        <Card className="p-3 mt-3 flex flex-col sm:flex-row gap-2 sm:items-center">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-4 w-4 rounded border-input bg-input accent-current" />
             {t("techniques.selected").replace("{count}", String(selectedIds.size))}
           </label>
           <div className="flex gap-2 sm:ml-auto">
-            <Select className="w-36" value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value as TechniqueStatus)}>
+            <Select size="sm" className="w-32" value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value as TechniqueStatus)}>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {t(`techniques.status.${s}`)}
@@ -273,7 +274,7 @@ export default function Techniques() {
         </Card>
       )}
 
-      <div className="grid gap-3 mt-4">
+      <div className="grid gap-2 mt-3">
         {techniques.map((tech) => (
           <TechniqueRow
             key={tech.id}
@@ -286,7 +287,7 @@ export default function Techniques() {
           />
         ))}
         {techniques.length === 0 && (
-          <Card className="p-6 text-sm text-muted-foreground">{t("techniques.empty")}</Card>
+          <Card className="p-6 text-center text-sm text-muted-foreground border-dashed">{t("techniques.empty")}</Card>
         )}
       </div>
     </div>

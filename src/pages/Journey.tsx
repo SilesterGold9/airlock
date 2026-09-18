@@ -111,15 +111,15 @@ export default function Journey() {
   return (
     <div className="max-w-3xl mx-auto p-6 animate-fade-in">
       <h1 className="text-xl font-semibold">{t("journey.title")}</h1>
-      <p className="text-sm text-muted-foreground mt-1">{t("journey.subtitle")}</p>
+      <p className="text-xs text-muted-foreground mt-1">{t("journey.subtitle")}</p>
 
       {loadError && (
-        <Card className="p-4 mt-4 text-sm text-muted-foreground">{t("journey.loadError")}</Card>
+        <Card className="p-3 mt-3 text-xs text-muted-foreground">{t("journey.loadError")}</Card>
       )}
 
       {rank && activeTheme && (
-        <Card className="p-4 mt-4">
-          <div className="flex items-center gap-3">
+        <Card className="p-3 mt-3">
+          <div className="flex items-center gap-2.5">
             <span
               className="h-4 w-4 rounded-full shrink-0"
               style={{ backgroundColor: tierColor }}
@@ -128,19 +128,19 @@ export default function Journey() {
               <div className="font-medium text-sm truncate">
                 {t("journey.currentTier")}: {tierName}
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
+              <div className="text-xs text-muted-foreground mt-0.5 tabular-nums">
                 {t("journey.stars").replace("{current}", String(currentStars))}
                 {" · "}
                 {activeTheme.system_name}
               </div>
             </div>
-            <Badge variant="outline">
+            <Badge variant="outline" className="tabular-nums">
               {"★".repeat(currentStars) || "—"}
             </Badge>
           </div>
-          <div className="grid gap-1 mt-4">
+          <div className="grid gap-1 mt-3">
             <label className="text-xs font-medium text-muted-foreground">{t("journey.theme")}</label>
-            <Select value={activeTheme.id} onChange={(e) => handleThemeChange(e.target.value)}>
+            <Select size="sm" value={activeTheme.id} onChange={(e) => handleThemeChange(e.target.value)}>
               {themes.map((x) => (
                 <option key={x.id} value={x.id}>
                   {x.system_name}
@@ -152,14 +152,14 @@ export default function Journey() {
       )}
 
       {activeTheme && (
-        <Card className="p-4 mt-4">
-          <div className="text-xs font-semibold mb-3">{t("journey.tiers")}</div>
-          <div className="grid gap-2">
+        <Card className="p-3 mt-3">
+          <div className="text-sm font-semibold mb-1">{t("journey.tiers")}</div>
+          <div className="grid gap-0.5">
             {activeTheme.tier_names.map((name, i) => {
               const achieved = rank?.achieved_at[String(i)];
               const reached = i <= currentStars && currentStars > 0 ? i <= currentStars : i === 0 && currentStars === 0;
               return (
-                <div key={i} className="flex items-center gap-2 text-sm">
+                <div key={i} className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-white/[0.04] transition-colors duration-150">
                   <span
                     className="h-2.5 w-2.5 rounded-full shrink-0"
                     style={{ backgroundColor: activeTheme.tier_colors[i] ?? "#64748b" }}
@@ -167,7 +167,7 @@ export default function Journey() {
                   <span className={reached ? "font-medium" : "text-muted-foreground"}>
                     {i === 0 ? name : `${t("journey.star").replace("{n}", String(i))} · ${name}`}
                   </span>
-                  <span className="ml-auto text-xs text-muted-foreground">
+                  <span className="ml-auto text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                     {achieved
                       ? t("journey.achievedOn").replace("{date}", formatDate(achieved))
                       : t("journey.notYet")}
@@ -179,14 +179,14 @@ export default function Journey() {
         </Card>
       )}
 
-      <Card className="p-4 mt-4">
+      <Card className="p-3 mt-3">
         <Button size="sm" onClick={handleCheck} disabled={checking}>
           {checking ? t("journey.checking") : t("journey.checkSuggestion")}
         </Button>
         {pending != null ? (
-          <div className="mt-4 border-t border-border pt-4">
-            <div className="text-sm font-medium">{t("journey.suggestionTitle")}</div>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="mt-3 rounded-lg border border-border bg-white/[0.02] p-3 animate-fade-in">
+            <div className="text-sm font-semibold">{t("journey.suggestionTitle")}</div>
+            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
               {t("journey.suggestionBody")
                 .replace("{star}", String(pending))
                 .replace("{tier}", pendingTier)}
@@ -199,7 +199,7 @@ export default function Journey() {
                 value={reflectionMd}
                 onChange={(e) => setReflectionMd(e.target.value)}
                 placeholder={t("journey.reflectionPlaceholder")}
-                className="min-h-[100px] font-sans"
+                className="min-h-[80px] font-sans"
               />
             </div>
             <div className="flex items-center gap-2 mt-3">
@@ -224,21 +224,21 @@ export default function Journey() {
         )}
       </Card>
 
-      <h2 className="text-sm font-semibold mt-6">{t("journey.timeline")}</h2>
-      <div className="grid gap-3 mt-3">
+      <h2 className="text-sm font-semibold mt-4">{t("journey.timeline")}</h2>
+      <div className="grid gap-2 mt-2">
         {reflections.map((r) => (
-          <Card key={r.id} className="p-4">
+          <Card key={r.id} className="p-3 hover:bg-white/[0.02] transition-colors duration-150">
             <div className="flex items-center gap-2">
               <Badge variant="outline">
                 {t("journey.star").replace("{n}", String(r.star_level))}
               </Badge>
-              <span className="text-xs text-muted-foreground">{formatDate(r.created_at)}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">{formatDate(r.created_at)}</span>
             </div>
-            <p className="text-sm mt-2 whitespace-pre-wrap break-words">{r.reflection_md}</p>
+            <p className="text-sm mt-2 leading-relaxed whitespace-pre-wrap break-words">{r.reflection_md}</p>
           </Card>
         ))}
         {reflections.length === 0 && (
-          <Card className="p-6 text-sm text-muted-foreground">{t("journey.emptyTimeline")}</Card>
+          <Card className="p-6 text-center text-sm text-muted-foreground border-dashed">{t("journey.emptyTimeline")}</Card>
         )}
       </div>
     </div>

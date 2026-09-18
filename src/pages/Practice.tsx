@@ -119,9 +119,9 @@ export default function Practice() {
                   setCode("");
                 }}
               >
-                <div className="font-medium leading-tight">{p.title}</div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{p.source}</span>
+                <div className="font-medium leading-tight truncate">{p.title}</div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">{p.source}</span>
                   <DifficultyBadge difficulty={p.difficulty} />
                 </div>
               </button>

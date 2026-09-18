@@ -26,17 +26,24 @@ export function Badge({
 
 export function DifficultyBadge({ difficulty }: { difficulty: number }) {
   const t = useT();
-  let variant: BadgeVariant = "medium";
-  let label = `${difficulty}`;
+  let label: string;
+  let color: string;
   if (difficulty < 1000) {
-    variant = "easy";
-    label = `${t("difficulty.easy")} · ${difficulty}`;
+    label = t("difficulty.easy");
+    color = "#00af9b";
   } else if (difficulty < 1600) {
-    variant = "medium";
-    label = `${t("difficulty.medium")} · ${difficulty}`;
+    label = t("difficulty.medium");
+    color = "#ffc01e";
   } else {
-    variant = "hard";
-    label = `${t("difficulty.hard")} · ${difficulty}`;
+    label = t("difficulty.hard");
+    color = "#ff375f";
   }
-  return <Badge variant={variant}>{label}</Badge>;
+  return (
+    <div className="inline-flex items-center gap-1 rounded-sm border-2 border-border bg-card px-2 py-0.5 text-xs font-medium shrink-0 whitespace-nowrap leading-none">
+      <span className="text-muted-foreground">{label} ·</span>
+      <span className="font-mono font-bold tabular-nums" style={{ color }}>
+        {difficulty}
+      </span>
+    </div>
+  );
 }

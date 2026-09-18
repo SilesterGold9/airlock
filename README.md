@@ -1,179 +1,160 @@
 # Airlock
 
 <p align="center">
-  <img src="assets/airlock-logo-wordmark.svg" alt="Airlock — offline-first cp trainer" width="560" />
+  <img src="assets/airlock-logo-wordmark.svg" alt="Airlock logo" width="480" />
 </p>
 
-An offline-first competitive programming trainer: local problem vault, local judge
-(C++ and Java), practice mode, and ICPC-style timed contest mode with penalty
-scoring. Built with Tauri (Rust) + React so the judge runs natively against
-your own `g++`/`javac`, with zero network dependency at practice time.
+<p align="center">
+  <a href="https://github.com/SilesterGold9/airlock/releases"><img src="https://img.shields.io/github/v/release/SilesterGold9/airlock" alt="latest release" /></a>
+  <a href="https://github.com/SilesterGold9/airlock/stargazers"><img src="https://img.shields.io/github/stars/SilesterGold9/airlock?style=flat" alt="stars" /></a>
+  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-lightgrey" alt="platforms" />
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="license: MIT" /></a>
+</p>
 
-> **Rebrand:** This was `CP Trainer` (`cp-trainer`, `com.silvestre.cptrainer`). The app is now **Airlock** (`airlock`, `com.silvestre.airlock`). The product name, window title, and icons now show Airlock. Old data at `~/.local/share/com.silvestre.cptrainer/` is auto-migrated on first run.
+<p align="center">
+  An <strong>offline-first competitive programming trainer</strong> for ICPC-style
+  preparation: a local problem vault, a real local judge (C++ and Java), timed
+  contests with penalty scoring, and a training methodology built in — not bolted on.
+</p>
 
-## Why this exists
+```mermaid
+flowchart LR
+    subgraph vault["Your vault (SQLite, local)"]
+        P[Problems + tests]
+        T[Techniques + status]
+    end
+    E[Monaco editor] --> J[Judge: g++ / javac,\ntimeout, diff]
+    P --> J
+    J --> V[AC / WA / TLE / RE / CE]
+    V --> S[Schedules + stats]
+    S --> T
+```
 
-Official Codeforces test data isn't available offline via any public API —
-only problem statements and *sample* I/O are. So this tool treats the problem
-vault as **yours to curate**:
+## Quick start
 
-- Paste in problems (statement + sample tests) while you have internet.
-- For anything you want fully judged (not just sample-tested), add your own
-  stress tests, or better: write a brute-force reference solution for the
-  problem and use **stress test mode** (already wired into the Rust backend
-  in `judge.rs::run_stress_test`) to fuzz your solution against it. This is
-  a real ICPC skill anyway — building it in is a feature, not a workaround.
-- Good non-CF sources that *do* ship downloadable test data: old ICPC
-  regional/national archives, Kattis problem packages, UVA.
-
-## Setup (Arch Linux)
+Prerequisites per OS are in [Installation](#installation). Then:
 
 ```bash
-# Rust + system deps Tauri needs on Linux
+npm install
+npm run tauri dev
+python3 scripts/seed_problems.py ~/.local/share/com.silvestre.airlock/airlock.sqlite
+```
+
+Restart the app and the two sample problems show up in Practice. That's the
+whole loop: write code, submit, get a verdict, repeat — no account, no network.
+
+## Features
+
+| | |
+|---|---|
+| Practice workspace | LeetCode-style split view: statement tabs, Monaco editor, per-test console with diff viewer on WA |
+| Local judge | Compiles C++ (`g++ -O2 -std=c++17`) and Java against your own toolchain, per-test timeout, whitespace-tolerant diff, partial `passed/total` counts |
+| Contest mode | Timed virtual contests, ICPC penalty scoring, team seats with driver rotation, upsolve tagging, past-contest review |
+| Technique tracker | Assimilated / Learning / Rusty status per technique, one-click reassessment after a break, recall mode (reimplement from memory on a timer) |
+| Training sets | Auto-composed confidence + target + stretch + review picks from your technique status — no cherry-picking |
+| Failure labels | Tag every WA (conceptual, indexing, misread…) so stats tell you *what kind* of miss, not just where |
+| Rank journey | Personal milestone track with written reflections, original theme included |
+| Problem packs | Share curated problem sets as a folder; exports are allowlist-only so submissions and notes never leak |
+| Stress lab | Fuzz your solution against a brute force with a generator |
+| EN + PT | Full Portuguese localization, one toggle |
+
+## Why a local vault
+
+Codeforces doesn't publish official test data — only statements and sample
+I/O. So Airlock treats the vault as **yours to curate**: paste problems in
+while you have internet, then train offline. For anything you want fully
+judged, add your own tests — or write a brute-force reference and fuzz
+against it in the stress lab. Building that habit is an ICPC skill anyway.
+
+Good sources with downloadable test data: old ICPC regional archives,
+Kattis problem packages, UVA.
+
+## Installation
+
+<details>
+<summary><strong>Arch Linux</strong></summary>
+
+```bash
 sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl \
     gtk3 libayatana-appindicator librsvg
 rustup default stable   # if you don't already have rustup
+```
 
-# Node deps
+</details>
+
+<details>
+<summary><strong>Windows</strong></summary>
+
+WebView2 ships with Windows 10/11 (otherwise install it once from
+Microsoft). Then: Visual Studio Build Tools with the C++ workload,
+Rust via `rustup-init.exe`, Node.js LTS. No code changes needed.
+
+</details>
+
+<details>
+<summary><strong>macOS</strong></summary>
+
+```bash
+xcode-select --install
+```
+
+Then Rust via rustup and Node.js LTS. No code changes needed.
+
+</details>
+
+```bash
 npm install
-
-# Run in dev mode (hot reload, opens a native window)
-npm run tauri dev
+npm run tauri dev     # hot reload, opens a native window
+npm run tauri build   # installable binary → src-tauri/target/release/bundle/
 ```
 
 First run creates the SQLite DB at
-`~/.local/share/com.silvestre.airlock/airlock.sqlite` and the schema is
-created automatically (see `src-tauri/src/db.rs`). If you have old data at
-`~/.local/share/com.silvestre.cptrainer/cp-trainer.sqlite` it is copied automatically.
+`~/.local/share/com.silvestre.airlock/airlock.sqlite` (auto-migrates the old
+`com.silvestre.cptrainer` location). Before your first `tauri build`,
+regenerate icons with `npm run tauri icon` (see `assets/`).
 
-### Seed the two sample problems
-
-```bash
-python3 scripts/seed_problems.py ~/.local/share/com.silvestre.airlock/airlock.sqlite
-# legacy path still works if you have not migrated yet:
-# python3 scripts/seed_problems.py ~/.local/share/com.silvestre.cptrainer/cp-trainer.sqlite
-```
-
-Restart the app (or reload) and they'll show up in Practice mode. Use these
-JSON files as the template for pasting in more problems — same shape as the
-`Problem` struct in `src-tauri/src/models.rs`.
-
-### Before your first `tauri build` (not needed for `tauri dev`)
-
-Icons in `src-tauri/icons/` are generated from `assets/airlock-logo-icon.svg`:
+## Sharing packs
 
 ```bash
-magick -background none assets/airlock-logo-icon.svg -resize 512x512 /tmp/airlock-512.png
-npm run tauri icon /tmp/airlock-512.png
-```
-
-### Build a real installable binary
-
-```bash
-npm run tauri build
-```
-
-Output lands in `src-tauri/target/release/bundle/`.
-
-## Setup (Windows)
-
-Tauri v2 needs the WebView2 runtime (ships with Windows 10/11, otherwise
-install it once from Microsoft) plus the Rust MSVC toolchain: install
-Visual Studio Build Tools with the C++ workload, then Rust via `rustup-init.exe`,
-then Node.js LTS. After that `npm install` and `npm run tauri dev` work the
-same as on Linux. No code changes needed.
-
-## Setup (macOS)
-
-Install the Xcode Command Line Tools (`xcode-select --install`), then Rust
-via rustup and Node.js LTS. After that `npm install` and `npm run tauri dev`
-work the same as on Linux. No code changes needed.
-
-## What's already wired up
-
-- **Local judge** (`src-tauri/src/judge.rs`): compiles C++ (`g++ -O2 -std=c++17`)
-  or Java (`javac` + `java -cp`), runs each test with a wall-clock timeout via
-  `wait-timeout`, diffs output with whitespace-tolerant normalization, returns
-  AC / WA / TLE / RE / CE per test. Stops at the first failing test (matches
-  how most judges give you feedback).
-- **Stress test lab** (`src/pages/Stress.tsx`): three editors for candidate, brute force and generator, runs `run_stress_test` and shows first mismatch.
-- **Practice mode** (`src/pages/Practice.tsx`): browse/filter by tag, untimed,
-  Monaco editor, per-test verdict breakdown with diff viewer on WA.
-- **Contest mode** (`src/pages/Contest.tsx`): pick a problem set + duration,
-  countdown timer, ICPC-style penalty tracking (20 min per wrong submission
-  before AC, time-of-solve in minutes), live scoreboard sidebar and past contests history.
-- **Import** (`src/pages/Import.tsx`): form and JSON paste for `Problem`, wired to `api.saveProblem`.
-- **History** (`src/pages/History.tsx`): submissions table and per-tag accuracy from `submissions`.
-- **SQLite persistence** for problems, test cases, submissions, and contests.
-
-## Roadmap — original scaffold (now shipped)
-
-All five items below are done and released. They were the priority for the initial scaffold.
-
-1. **Stress-test UI page** — done in `v0.4.0` `src/pages/Stress.tsx` (`run_stress_test` wired).
-2. **Problem import screen** — done in `v0.4.0` `src/pages/Import.tsx` (`api.saveProblem`).
-3. **Submission history & stats dashboard** — done in `v0.4.0` `src/pages/History.tsx` (`list_submissions`).
-4. **Diff viewer on WA** — done in `v0.6.0` `src/components/DiffViewer.tsx` side-by-side with highlight.
-5. **Multi-contest scoreboard history** — done in `v0.6.0` `src/pages/Contest.tsx` past contests via `list_contests`.
-
-Next is the Airlock feature roadmap for Oct 15 in Luanda, tracked in `PLAN_AIRLOCK_1-3.md` and GitHub milestones.
-
-## Airlock roadmap — next batch (Oct 15)
-
-1. Problem notes (your own editorials)
-2. Partial scoring
-3. Upsolving
-4. Team mode
-5. Portuguese localization
-6. Post-contest polish
-
-## Versions
-
-Track progress on GitHub: [Releases](https://github.com/SilesterGold9/airlock/releases) and [Milestones](https://github.com/SilesterGold9/airlock/milestones).
-
-| Version | Focus | Status | Milestone |
-|---------|-------|--------|-----------|
-| `v0.1.0` | Foundation — local judge, practice/contest, design system, 2 samples | Released [v0.1.0](https://github.com/SilesterGold9/airlock/releases/tag/v0.1.0) `3654803` | — |
-| `v0.2.0` — `v0.4.0` | Stress lab, import, history | Released [v0.4.0](https://github.com/SilesterGold9/airlock/releases/tag/v0.4.0) `171501b` | Milestones 1 to 3 closed |
-| `v0.6.0` | Diff viewer and contest history | Released [v0.6.0](https://github.com/SilesterGold9/airlock/releases/tag/v0.6.0) `2e620ae` | Milestones 4 and 5 closed |
-| `v0.5.0` | — | Merged into `v0.6.0` | — |
-| `v1.0.0` | Polish for Oct 15 — real `contest_id`, limits, tag standard, bundle QA | Planned, due 2026-10-15 | [#6](https://github.com/SilesterGold9/airlock/milestone/6) / [Issue #6](https://github.com/SilesterGold9/airlock/issues/6) |
-| Next | Airlock roadmap 1 to 3 — notes, partial scoring, upsolving | Planned, see `PLAN_AIRLOCK_1-3.md` | — |
-
-Versioning is SemVer. Tags are `vMAJOR.MINOR.PATCH` and each Milestone groups the Issues for that version.
-
-## Known rough edges (scaffold, not finished product)
-
-- `submit_solution`'s `context` param for contest submissions currently uses
-  a placeholder `contest_id: "current"` — wire the real ID returned by
-  `create_contest` through if you want accurate per-contest submission logs.
-- No memory/CPU limit enforcement beyond the wall-clock timeout — fine for
-  personal practice, not fine if you ever let anyone else's code run here.
-- Tags and difficulty are free-form; consider standardizing early (e.g. CF's
-  800–3500 rating scale) so future stats/filtering stay meaningful.
-
-## Problem packs
-
-Share problems without sharing personal data. A pack is a directory with a
-`pack.json` manifest (`pack_name`, `techniques` as `id`+`name` only,
-`problem_files`) plus one JSON per problem. See `packs/week-1-implementation/`.
-
-```bash
-# Import a pack (keeps your local technique status/notes, adds missing techniques as NotStarted)
+# Import a curated set (keeps your technique status and notes)
 python3 scripts/import_pack.py packs/week-1-implementation ~/.local/share/com.silvestre.airlock/airlock.sqlite
 
-# Export your DB into a shareable pack dir
+# Export yours — problems and technique names only, never personal data
 python3 scripts/export_pack.py ~/.local/share/com.silvestre.airlock/airlock.sqlite /tmp/my-pack --name "My Pack"
 ```
 
-Export allowlist — problems: `id`, `title`, `statement_md`, `tags`,
-`difficulty`, `time_limit_ms`, `memory_limit_mb`, `source`, `tests` (`id`,
-`input`, `expected_output`), `brute_force_src`, `brute_force_lang`, `hints`,
-`primary_technique_id`; techniques: `id`, `name` only. Never exported:
-`notes_md`, submissions, contests, reimplementation state, technique
-status/notes/timestamps. The export script prints the allowlist plus counts
-so you can eyeball it before sharing.
+## Project layout
 
-Note: the bundle id / `src-tauri/tauri.conf.json` identifier
-(`com.silvestre.airlock`) is intentionally unchanged — product decision.
-Sharing happens through packs, not through bundle changes.
+```
+src/                 React frontend (pages, components, i18n)
+src-tauri/src/       Rust backend: judge.rs, db.rs (SQLite), commands.rs
+sample-problems/     Problem JSON template (same shape as the Problem struct)
+packs/               Shareable problem packs + manifest
+scripts/             seed_problems.py, import_pack.py, export_pack.py
+ROADMAP_AIRLOCK.md   Feature backlog · DESIGN_SYSTEM.md  UI tokens
+CONTRIBUTING.md      How to work in this repo
+```
+
+## Status
+
+Everything on the original scaffold, the Oct 15 methodology backlog, and the
+v2.0 UI revamp is built and released. Live state lives on GitHub, not in
+this file: [Milestones](https://github.com/SilesterGold9/airlock/milestones)
+· [Releases](https://github.com/SilesterGold9/airlock/releases) · [Issues](https://github.com/SilesterGold9/airlock/issues).
+
+Known limits: wall-clock timeout only (no memory/CPU caps — fine for solo
+practice, don't run strangers' code here); contest timer uses a `"current"`
+placeholder id for live contests.
+
+## Contributing
+
+Issues and PRs welcome. Read [CONTRIBUTING.md](./CONTRIBUTING.md) first —
+one commit per issue, `npm run build` + offline `cargo check` must pass.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
+
+---
+
+[![Star History Chart](https://api.star-history.com/svg?repos=SilesterGold9/airlock&type=Date)](https://star-history.com/#SilesterGold9/airlock&Date)

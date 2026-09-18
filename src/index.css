@@ -18,16 +18,16 @@
     --radius: 8px;
   }
   .dark {
-    --background: 222 84% 5%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --border: 0 0% 100% / 0.08;
-    --input: 0 0% 100% / 0.06;
+    --background: 0 0% 10%;
+    --foreground: 0 0% 93%;
+    --card: 0 0% 15%;
+    --card-foreground: 0 0% 93%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 64%;
+    --border: 0 0% 100% / 0.1;
+    --input: 0 0% 100% / 0.08;
     --ring: 142 76% 36%;
-    --success: 142 76% 36%;
+    --success: 134 61% 46%;
     --destructive: 355 95% 68%;
     color-scheme: dark;
   }
@@ -82,18 +82,29 @@
   }
 }
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted));
+  background: #3a3a3a;
   border-radius: 9999px;
   border: 2px solid hsl(var(--background));
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: #4a4a4a;
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted)) transparent;
+  scrollbar-color: #3a3a3a transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

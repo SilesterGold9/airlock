@@ -39,11 +39,12 @@ export function DifficultyBadge({ difficulty }: { difficulty: number }) {
     color = "#ff375f";
   }
   return (
-    <div className="inline-flex items-center gap-1 rounded-sm border-2 border-border bg-card px-2 py-0.5 text-xs font-medium shrink-0 whitespace-nowrap leading-none">
-      <span className="text-muted-foreground">{label} ·</span>
-      <span className="font-mono font-bold tabular-nums" style={{ color }}>
-        {difficulty}
-      </span>
+    <div
+      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 whitespace-nowrap leading-none border"
+      style={{ color, backgroundColor: `${color}1f`, borderColor: `${color}33` }}
+    >
+      {label}
+      <span className="ml-1.5 font-mono font-bold tabular-nums opacity-90">{difficulty}</span>
     </div>
   );
 }

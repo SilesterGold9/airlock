@@ -42,12 +42,27 @@ export default {
       },
       keyframes: {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "panel-in": {
+          from: { opacity: "0", transform: "translateY(6px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "drawer-in": {
+          from: { opacity: "0.5", transform: "translateX(-12px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "pop": {
+          from: { opacity: "0", transform: "scale(0.95)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
         "slide-up": { from: { transform: "translateY(4px)", opacity: "0" }, to: { transform: "translateY(0)", opacity: "1" } },
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
         "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
       },
       animation: {
         "fade-in": "fade-in 200ms cubic-bezier(0.2,0,0,1)",
+        "panel-in": "panel-in 200ms cubic-bezier(0.2,0,0,1)",
+        "drawer-in": "drawer-in 200ms cubic-bezier(0.2,0,0,1)",
+        "pop": "pop 180ms cubic-bezier(0.2,0,0,1)",
         "slide-up": "slide-up 200ms cubic-bezier(0.2,0,0,1)",
         "accordion-down": "accordion-down 200ms ease-out",
         "accordion-up": "accordion-up 200ms ease-out",

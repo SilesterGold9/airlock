@@ -24,6 +24,9 @@ const sizes: Record<Size, string> = {
   lg: "h-9 px-4",
 };
 
-export function Button({ variant = "primary", size = "md", className = "", ...props }: ButtonProps) {
-  return <button className={`${base} ${variants[variant]} ${sizes[size]} ${className}`} {...props} />;
-}
+export const Button = React.forwardRef<
+  HTMLButtonElement,
+  ButtonProps
+>(function Button({ variant = "primary", size = "md", className = "", ...props }, ref) {
+  return <button ref={ref} className={`${base} ${variants[variant]} ${sizes[size]} ${className}`} {...props} />;
+});

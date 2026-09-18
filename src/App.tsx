@@ -1,5 +1,4 @@
-import { NavLink, Route, Routes } from "react-router-dom";
-import { useState } from "react";
+import { NavLink, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import Practice from "./pages/Practice";
 import Contest from "./pages/Contest";
 import Stress from "./pages/Stress";
@@ -8,81 +7,22 @@ import History from "./pages/History";
 import Techniques from "./pages/Techniques";
 import Recall from "./pages/Recall";
 import Journey from "./pages/Journey";
+import Welcome from "./pages/Welcome";
 import { LogoIcon } from "./components/Logo";
 import { useLocale, useT } from "./lib/i18n";
 import Titlebar from "./components/Titlebar";
-import { Button } from "./components/ui/button";
-import { Card } from "./components/ui/card";
-import { Input } from "./components/ui/input";
-
-function Onboarding({ onDone }: { onDone: () => void }) {
-  const t = useT();
-  const { locale, setLocale } = useLocale();
-  const [name, setName] = useState(() => localStorage.getItem("airlock.displayName") || "");
-
-  function handleStart() {
-    localStorage.setItem("airlock.displayName", name.trim());
-    localStorage.setItem("airlock.onboarded", "1");
-    onDone();
-  }
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 animate-fade-in">
-      <Card className="w-full max-w-md p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <LogoIcon size={32} />
-          <h1 className="text-lg font-semibold">{t("onboard.title")}</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">{t("onboard.subtitle")}</p>
-        <div className="grid gap-1">
-          <label className="text-xs font-medium text-muted-foreground">{t("onboard.name")}</label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("onboard.namePlaceholder")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleStart();
-            }}
-          />
-        </div>
-        <div className="grid gap-1">
-          <label className="text-xs font-medium text-muted-foreground">{t("common.language")}</label>
-          <div className="flex gap-2">
-            <Button
-              variant={locale === "en" ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => setLocale("en")}
-            >
-              English
-            </Button>
-            <Button
-              variant={locale === "pt" ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => setLocale("pt")}
-            >
-              Português
-            </Button>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">{t("onboard.packHint")}</p>
-        <Button onClick={handleStart} className="w-full">
-          {t("onboard.start")}
-        </Button>
-      </Card>
-    </div>
-  );
-}
 
 export default function App() {
   const t = useT();
   const { locale, setLocale } = useLocale();
-  const [onboarded, setOnboarded] = useState(
-    () => localStorage.getItem("airlock.onboarded") === "1"
-  );
+  const location = useLocation();
+  const onboarded = localStorage.getItem("airlock.onboarded") === "1";
+  if (!onboarded && location.pathname !== "/welcome") {
+    return <Navigate to="/welcome" replace />;
+  }
   const displayName = (localStorage.getItem("airlock.displayName") || "").trim();
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
-      {!onboarded && <Onboarding onDone={() => setOnboarded(true)} />}
       <Titlebar />
       <nav className="h-11 flex items-center gap-1 bg-background border-b border-border px-3 shrink-0 overflow-x-auto">
         <div className="flex items-center gap-1.5 mr-1 shrink-0">
@@ -143,6 +83,7 @@ export default function App() {
           <Route path="/import" element={<Import />} />
           <Route path="/history" element={<History />} />
           <Route path="/journey" element={<Journey />} />
+          <Route path="/welcome" element={<Welcome />} />
         </Routes>
       </main>
     </div>

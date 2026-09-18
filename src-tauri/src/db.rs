@@ -754,9 +754,7 @@ pub fn list_rank_reflections(conn: &Connection) -> SqlResult<Vec<RankReflection>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{
-        Contest, FailureCategory, ProblemClaim, SubmissionContext, Technique,
-    };
+    use crate::models::{Contest, FailureCategory, ProblemClaim, SubmissionContext, Technique};
     use std::path::Path;
 
     fn memdb() -> Connection {
@@ -834,7 +832,13 @@ mod tests {
         }
         assert_eq!(list_techniques(&conn).unwrap().len(), 3);
 
-        update_technique_status(&conn, "a", &TechniqueStatus::Learning, "2026-02-01T00:00:00Z").unwrap();
+        update_technique_status(
+            &conn,
+            "a",
+            &TechniqueStatus::Learning,
+            "2026-02-01T00:00:00Z",
+        )
+        .unwrap();
         bulk_update_technique_status(
             &conn,
             &["b".to_string(), "c".to_string()],
@@ -849,7 +853,10 @@ mod tests {
         let a = after.iter().find(|x| x.id == "a").unwrap();
         assert_eq!(a.status, TechniqueStatus::Learning);
         assert_eq!(a.status_updated_at, "2026-04-01T00:00:00Z");
-        let rusty = after.iter().filter(|x| x.status == TechniqueStatus::Rusty).count();
+        let rusty = after
+            .iter()
+            .filter(|x| x.status == TechniqueStatus::Rusty)
+            .count();
         assert_eq!(rusty, 2);
     }
 
@@ -857,9 +864,21 @@ mod tests {
     fn classify_tags_latest_non_ac_only() {
         let conn = memdb();
         insert_problem(&conn, &sample_problem()).unwrap();
-        insert_submission(&conn, &submission("s1", Verdict::WrongAnswer, "2026-01-01T10:00:00Z")).unwrap();
-        insert_submission(&conn, &submission("s2", Verdict::WrongAnswer, "2026-01-01T10:05:00Z")).unwrap();
-        insert_submission(&conn, &submission("s3", Verdict::Accepted, "2026-01-01T10:10:00Z")).unwrap();
+        insert_submission(
+            &conn,
+            &submission("s1", Verdict::WrongAnswer, "2026-01-01T10:00:00Z"),
+        )
+        .unwrap();
+        insert_submission(
+            &conn,
+            &submission("s2", Verdict::WrongAnswer, "2026-01-01T10:05:00Z"),
+        )
+        .unwrap();
+        insert_submission(
+            &conn,
+            &submission("s3", Verdict::Accepted, "2026-01-01T10:10:00Z"),
+        )
+        .unwrap();
 
         classify_latest_submission(&conn, "p1", &FailureCategory::MisreadStatement).unwrap();
 
@@ -869,7 +888,10 @@ mod tests {
         assert_eq!(all[0].id, "s3");
         assert!(all[0].failure_category.is_none());
         assert_eq!(all[1].id, "s2");
-        assert_eq!(all[1].failure_category, Some(FailureCategory::MisreadStatement));
+        assert_eq!(
+            all[1].failure_category,
+            Some(FailureCategory::MisreadStatement)
+        );
         assert!(all[2].failure_category.is_none());
     }
 
@@ -887,7 +909,10 @@ mod tests {
         assert_eq!(back.len(), 1);
         assert!(matches!(back[0].verdict, Verdict::TimeLimitExceeded));
         match &back[0].context {
-            SubmissionContext::Contest { contest_id, upsolve } => {
+            SubmissionContext::Contest {
+                contest_id,
+                upsolve,
+            } => {
                 assert_eq!(contest_id, "c1");
                 assert!(upsolve);
             }
@@ -911,7 +936,9 @@ mod tests {
             .unwrap();
         assert_eq!(completed, 2, "first AC seeds 0, then +1 per reimplement");
         // fresh row is due in the future, not listed
-        assert!(list_due_reimplementations(&conn, "2026-01-01T00:00:00Z").unwrap().is_empty());
+        assert!(list_due_reimplementations(&conn, "2026-01-01T00:00:00Z")
+            .unwrap()
+            .is_empty());
 
         // a crafted past-due row is listed, earliest first
         conn.execute(

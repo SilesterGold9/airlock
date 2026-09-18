@@ -359,15 +359,29 @@ int main() {
 
     #[test]
     fn run_judge_reports_compile_error() {
-        let report = run_judge("cpp", "this is not c++ {{{", &one_test("2 3\n", "5\n"), 2000).unwrap();
+        let report = run_judge(
+            "cpp",
+            "this is not c++ {{{",
+            &one_test("2 3\n", "5\n"),
+            2000,
+        )
+        .unwrap();
         assert!(matches!(report.overall_verdict, Verdict::CompileError));
     }
 
     #[test]
     fn run_judge_counts_partial_passes() {
         let tests = vec![
-            TestCase { id: "t1".to_string(), input: "2 3\n".to_string(), expected_output: "5\n".to_string() },
-            TestCase { id: "t2".to_string(), input: "1 1\n".to_string(), expected_output: "999\n".to_string() },
+            TestCase {
+                id: "t1".to_string(),
+                input: "2 3\n".to_string(),
+                expected_output: "5\n".to_string(),
+            },
+            TestCase {
+                id: "t2".to_string(),
+                input: "1 1\n".to_string(),
+                expected_output: "999\n".to_string(),
+            },
         ];
         let report = run_judge("cpp", ADD, &tests, 2000).unwrap();
         assert!(matches!(report.overall_verdict, Verdict::WrongAnswer));

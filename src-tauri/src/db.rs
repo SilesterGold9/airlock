@@ -1,4 +1,4 @@
-use crate::models::{Contest, Problem, Submission, TestCase, Verdict};
+use crate::models::{Contest, Problem, ProblemClaim, Submission, TestCase, Verdict};
 use rusqlite::{params, Connection, Result as SqlResult};
 use std::path::Path;
 
@@ -43,11 +43,23 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
             problem_ids TEXT NOT NULL,   -- JSON array
             duration_minutes INTEGER NOT NULL,
             started_at TEXT,
-            penalty_minutes INTEGER NOT NULL DEFAULT 20
+            penalty_minutes INTEGER NOT NULL DEFAULT 20,
+            team_members TEXT,             -- JSON array
+            driver TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS problem_claims (
+            contest_id TEXT NOT NULL,
+            problem_id TEXT NOT NULL,
+            claimed_by TEXT NOT NULL,
+            status TEXT NOT NULL,
+            PRIMARY KEY (contest_id, problem_id)
         );
         ",
     )?;
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN notes_md TEXT", []);
+    let _ = conn.execute("ALTER TABLE contests ADD COLUMN team_members TEXT", []);
+    let _ = conn.execute("ALTER TABLE contests ADD COLUMN driver TEXT", []);
     Ok(conn)
 }
 
@@ -144,8 +156,8 @@ pub fn insert_submission(conn: &Connection, s: &Submission) -> SqlResult<()> {
 
 pub fn insert_contest(conn: &Connection, c: &Contest) -> SqlResult<()> {
     conn.execute(
-        "INSERT OR REPLACE INTO contests (id, name, problem_ids, duration_minutes, started_at, penalty_minutes)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT OR REPLACE INTO contests (id, name, problem_ids, duration_minutes, started_at, penalty_minutes, team_members, driver)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             c.id,
             c.name,
@@ -153,6 +165,8 @@ pub fn insert_contest(conn: &Connection, c: &Contest) -> SqlResult<()> {
             c.duration_minutes,
             c.started_at,
             c.penalty_minutes,
+            serde_json::to_string(&c.team_members).unwrap(),
+            c.driver,
         ],
     )?;
     Ok(())
@@ -160,10 +174,11 @@ pub fn insert_contest(conn: &Connection, c: &Contest) -> SqlResult<()> {
 
 pub fn list_contests(conn: &Connection) -> SqlResult<Vec<Contest>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, problem_ids, duration_minutes, started_at, penalty_minutes FROM contests ORDER BY started_at DESC",
+        "SELECT id, name, problem_ids, duration_minutes, started_at, penalty_minutes, team_members, driver FROM contests ORDER BY started_at DESC",
     )?;
     let rows = stmt.query_map([], |row| {
         let ids_json: String = row.get(2)?;
+        let team_json: Option<String> = row.get(6)?;
         Ok(Contest {
             id: row.get(0)?,
             name: row.get(1)?,
@@ -171,9 +186,39 @@ pub fn list_contests(conn: &Connection) -> SqlResult<Vec<Contest>> {
             duration_minutes: row.get::<_, i64>(3)? as u32,
             started_at: row.get(4)?,
             penalty_minutes: row.get::<_, i64>(5)? as u32,
+            team_members: team_json.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default(),
+            driver: row.get(7)?,
         })
     })?;
     rows.collect()
+}
+
+pub fn upsert_claim(conn: &Connection, claim: &ProblemClaim) -> SqlResult<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO problem_claims (contest_id, problem_id, claimed_by, status) VALUES (?1, ?2, ?3, ?4)",
+        params![claim.contest_id, claim.problem_id, claim.claimed_by, claim.status],
+    )?;
+    Ok(())
+}
+
+pub fn list_claims(conn: &Connection, contest_id: &str) -> SqlResult<Vec<ProblemClaim>> {
+    let mut stmt = conn.prepare(
+        "SELECT contest_id, problem_id, claimed_by, status FROM problem_claims WHERE contest_id = ?1",
+    )?;
+    let rows = stmt.query_map(params![contest_id], |row| {
+        Ok(ProblemClaim {
+            contest_id: row.get(0)?,
+            problem_id: row.get(1)?,
+            claimed_by: row.get(2)?,
+            status: row.get(3)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn clear_claims(conn: &Connection, contest_id: &str) -> SqlResult<()> {
+    conn.execute("DELETE FROM problem_claims WHERE contest_id = ?1", params![contest_id])?;
+    Ok(())
 }
 
 pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {

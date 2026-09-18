@@ -1,6 +1,6 @@
 use crate::db;
 use crate::judge;
-use crate::models::{Contest, JudgeReport, Problem, Submission, SubmissionContext, Verdict};
+use crate::models::{Contest, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext, Verdict};
 use chrono::Utc;
 use rusqlite::Connection;
 use std::sync::Mutex;
@@ -91,6 +91,8 @@ pub fn create_contest(
     name: String,
     problem_ids: Vec<String>,
     duration_minutes: u32,
+    team_members: Option<Vec<String>>,
+    driver: Option<String>,
 ) -> Result<Contest, String> {
     let contest = Contest {
         id: Uuid::new_v4().to_string(),
@@ -99,6 +101,8 @@ pub fn create_contest(
         duration_minutes,
         started_at: Some(Utc::now().to_rfc3339()),
         penalty_minutes: 20, // ICPC default
+        team_members: team_members.unwrap_or_default(),
+        driver,
     };
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::insert_contest(&conn, &contest).map_err(|e| e.to_string())?;
@@ -143,6 +147,47 @@ pub fn list_submissions_by_problem(
 pub fn list_contests(state: State<AppState>) -> Result<Vec<Contest>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::list_contests(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn upsert_claim(
+    state: State<AppState>,
+    contest_id: String,
+    problem_id: String,
+    claimed_by: String,
+    status: String,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let claim = ProblemClaim {
+        contest_id,
+        problem_id,
+        claimed_by,
+        status,
+    };
+    db::upsert_claim(&conn, &claim).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn list_claims(state: State<AppState>, contest_id: String) -> Result<Vec<ProblemClaim>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::list_claims(&conn, &contest_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn set_contest_driver(
+    state: State<AppState>,
+    contest_id: String,
+    driver: String,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let mut contests = db::list_contests(&conn).map_err(|e| e.to_string())?;
+    if let Some(c) = contests.iter_mut().find(|x| x.id == contest_id) {
+        c.driver = Some(driver);
+        db::insert_contest(&conn, c).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("contest not found".into())
+    }
 }
 
 #[tauri::command]

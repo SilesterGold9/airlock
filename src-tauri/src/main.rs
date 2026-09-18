@@ -56,6 +56,9 @@ fn main() {
             commands::list_contests,
             commands::clear_submissions,
             commands::clear_all_data,
+            commands::upsert_claim,
+            commands::list_claims,
+            commands::set_contest_driver,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -11,6 +11,9 @@ import { SplitView } from "../components/ui/split-view";
 import { Select } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import DiffViewer from "../components/DiffViewer";
+import Balloons from "../components/Balloons";
+import { getSimilarProblems } from "../lib/rating";
+import { tracks } from "../lib/tracks";
 
 export default function Practice() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -23,6 +26,8 @@ export default function Practice() {
   const [notes, setNotes] = useState("");
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [attempts, setAttempts] = useState<import("../lib/types").Submission[]>([]);
+  const [balloonTrigger, setBalloonTrigger] = useState(0);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
@@ -30,6 +35,11 @@ export default function Practice() {
 
   useEffect(() => {
     setNotes(selected?.notes_md || "");
+    if (selected) {
+      api.listSubmissionsByProblem(selected.id).then(setAttempts).catch(() => setAttempts([]));
+    } else {
+      setAttempts([]);
+    }
   }, [selected?.id]);
 
   useEffect(() => {
@@ -66,6 +76,10 @@ export default function Practice() {
         context: "Practice",
       });
       setReport(result);
+      if (result.overall_verdict === "Accepted") setBalloonTrigger((v) => v + 1);
+      if (selected) {
+        api.listSubmissionsByProblem(selected.id).then(setAttempts).catch(() => {});
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -75,6 +89,7 @@ export default function Practice() {
 
   return (
     <div className="flex h-full bg-background">
+      <Balloons trigger={balloonTrigger} />
       {/* Problem list */}
       <aside className="w-72 border-r border-border overflow-y-auto p-3 shrink-0 bg-background">
         <Select
@@ -160,6 +175,65 @@ export default function Practice() {
                       </div>
                     </div>
                   )}
+                </Card>
+
+                {attempts.length > 0 && (
+                  <Card className="mt-4 p-4">
+                    <div className="text-xs font-semibold mb-2">Last attempts</div>
+                    <div className="space-y-1">
+                      {attempts.slice(0, 3).map((a) => (
+                        <div key={a.id} className="flex items-center gap-2 text-xs">
+                          <VerdictBadge verdict={a.verdict} />
+                          <span className="text-muted-foreground tabular-nums">{new Date(a.submitted_at).toLocaleDateString()}</span>
+                          <span className="ml-auto font-mono text-xs">{a.language}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {(() => {
+                  const similar = getSimilarProblems(selected, problems);
+                  return similar.length > 0 ? (
+                    <Card className="mt-4 p-4">
+                      <div className="text-xs font-semibold mb-2">Similar problems</div>
+                      <div className="space-y-1">
+                        {similar.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => {
+                              setSelected(p);
+                              setReport(null);
+                              setCode("");
+                            }}
+                            className="w-full text-left px-2 py-1.5 rounded hover:bg-white/[0.04] text-sm flex justify-between items-center"
+                          >
+                            <span className="truncate">{p.title}</span>
+                            <DifficultyBadge difficulty={p.difficulty} />
+                          </button>
+                        ))}
+                      </div>
+                    </Card>
+                  ) : null;
+                })()}
+
+                <Card className="mt-4 p-4">
+                  <div className="text-xs font-semibold mb-2">Skill tracks</div>
+                  <div className="space-y-2">
+                    {tracks.slice(0, 2).map((tr) => (
+                      <div key={tr.id} className="border border-border rounded-lg p-2">
+                        <div className="text-xs font-medium">{tr.title}</div>
+                        <div className="text-xs text-muted-foreground">{tr.description}</div>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {tr.steps.map((s) => (
+                            <Badge key={s.title} variant="outline" className="text-xs">
+                              {s.title}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </Card>
               </div>
             }

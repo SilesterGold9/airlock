@@ -5,8 +5,11 @@ import Stress from "./pages/Stress";
 import Import from "./pages/Import";
 import History from "./pages/History";
 import { LogoIcon } from "./components/Logo";
+import { useLocale, useT } from "./lib/i18n";
 
 export default function App() {
+  const t = useT();
+  const { locale, setLocale } = useLocale();
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
       <nav className="sticky top-0 z-50 h-12 flex items-center gap-3 bg-background/80 backdrop-blur-md border-b border-border px-4 shrink-0">
@@ -17,11 +20,11 @@ export default function App() {
         </div>
         <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
         {[
-          { to: "/", label: "Practice" },
-          { to: "/contest", label: "Contest" },
-          { to: "/stress", label: "Stress" },
-          { to: "/import", label: "Import" },
-          { to: "/history", label: "History" },
+          { to: "/", label: t("nav.practice") },
+          { to: "/contest", label: t("nav.contest") },
+          { to: "/stress", label: t("nav.stress") },
+          { to: "/import", label: t("nav.import") },
+          { to: "/history", label: t("nav.history") },
         ].map((item) => (
           <NavLink
             key={item.to}
@@ -38,6 +41,13 @@ export default function App() {
             {item.label}
           </NavLink>
         ))}
+        <button
+          onClick={() => setLocale(locale === "en" ? "pt" : "en")}
+          className="ml-auto text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-white/[0.06] transition-colors"
+          title={locale === "en" ? "Mudar para Português" : "Switch to English"}
+        >
+          {locale === "en" ? "PT" : "EN"}
+        </button>
       </nav>
       <main className="flex-1 min-h-0">
         <Routes>

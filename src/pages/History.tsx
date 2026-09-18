@@ -6,6 +6,7 @@ import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Select } from "../components/ui/select";
 import { Button } from "../components/ui/button";
+import { computeRating } from "../lib/rating";
 
 function formatTime(iso: string) {
   try {
@@ -86,6 +87,8 @@ export default function History() {
 
   const perTag = useMemo(() => groupByTag(problems, visibleSubmissions), [problems, visibleSubmissions]);
 
+  const ratingInfo = useMemo(() => computeRating(problems, visibleSubmissions), [problems, visibleSubmissions]);
+
   async function handleClear() {
     if (submissions.length === 0) return;
     const ok = window.confirm(`Clear all ${submissions.length} submissions? This cannot be undone. Contests and problems will stay.`);
@@ -138,7 +141,7 @@ export default function History() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-3">
+      <div className="grid md:grid-cols-4 gap-3">
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Total submissions</div>
           <div className="text-2xl font-semibold mt-1">{stats.total}</div>
@@ -149,6 +152,19 @@ export default function History() {
           <div className="text-2xl font-semibold mt-1">{stats.rate.toFixed(1)}%</div>
           <div className="w-full h-1.5 bg-white/[0.06] rounded-full mt-2 overflow-hidden">
             <div className="h-full bg-ac transition-all duration-500" style={{ width: `${stats.rate}%` }} />
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-xs text-muted-foreground">Rating</div>
+          <div className="text-2xl font-semibold mt-1">{ratingInfo.rating}</div>
+          <div className="text-xs text-muted-foreground">Elo-like trend</div>
+          <div className="flex items-end gap-0.5 h-8 mt-2">
+            {ratingInfo.history.slice(-10).map((h, i) => {
+              const max = Math.max(...ratingInfo.history.map((x) => x.rating), 1600);
+              const min = Math.min(...ratingInfo.history.map((x) => x.rating), 1000);
+              const range = Math.max(1, max - min);
+              return <div key={i} className="flex-1 bg-brand/60 rounded-sm" style={{ height: `${((h.rating - min) / range) * 24 + 4}px` }} title={`${h.date}: ${h.rating}`} />;
+            })}
           </div>
         </Card>
         <Card className="p-4">

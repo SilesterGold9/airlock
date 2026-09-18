@@ -11,6 +11,7 @@ import { Card } from "../components/ui/card";
 import { SplitView } from "../components/ui/split-view";
 import DiffViewer from "../components/DiffViewer";
 import { Input } from "../components/ui/input";
+import Balloons from "../components/Balloons";
 
 interface ProblemStatus {
   solved: boolean;
@@ -38,6 +39,11 @@ export default function Contest() {
   const [ended, setEnded] = useState(false);
   const [contests, setContests] = useState<ContestModel[]>([]);
   const [viewingHistory, setViewingHistory] = useState<ContestModel | null>(null);
+  const [teamMembersStr, setTeamMembersStr] = useState("");
+  const [driver, setDriver] = useState("");
+  const [claims, setClaims] = useState<import("../lib/types").ProblemClaim[]>([]);
+  const [activeContestId, setActiveContestId] = useState<string | null>(null);
+  const [balloonTrigger, setBalloonTrigger] = useState(0);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
@@ -58,8 +64,41 @@ export default function Contest() {
     setStartTime(c.started_at ? new Date(c.started_at).getTime() : Date.now());
     setViewingHistory(c);
     setDurationMinutes(c.duration_minutes);
+    setActiveContestId(c.id);
     setSetup(false);
     setEnded(true);
+  }
+
+  useEffect(() => {
+    if (activeContestId) {
+      api.listClaims(activeContestId).then(setClaims).catch(console.error);
+    }
+  }, [activeContestId]);
+
+  async function handleClaim(problemId: string, claimedBy: string, status: string) {
+    if (!activeContestId) return;
+    await api.upsertClaim({ contestId: activeContestId, problemId, claimedBy, status });
+    const updated = await api.listClaims(activeContestId);
+    setClaims(updated);
+  }
+
+  async function rotateDriver() {
+    if (!activeContestId || !viewingHistory && active.length === 0) return;
+    const members = viewingHistory ? viewingHistory.team_members : active.length ? [] : [];
+    // fallback to current active contest members from last created contest
+    // if no viewingHistory, use teamMembersStr split
+    const team = viewingHistory?.team_members?.length ? viewingHistory.team_members : teamMembersStr.split(",").map((s) => s.trim()).filter(Boolean);
+    if (team.length === 0) return;
+    const currentDriver = viewingHistory?.driver || driver || team[0];
+    const idx = team.indexOf(currentDriver);
+    const next = team[(idx + 1) % team.length];
+    if (viewingHistory) {
+      await api.setContestDriver(activeContestId!, next);
+      setViewingHistory({ ...viewingHistory, driver: next });
+    } else {
+      setDriver(next);
+      if (activeContestId) await api.setContestDriver(activeContestId, next);
+    }
   }
 
   function toggleSelect(id: string) {
@@ -71,10 +110,16 @@ export default function Contest() {
   async function startContest() {
     const chosen = problems.filter((p) => selectedIds.includes(p.id));
     if (chosen.length === 0) return;
-    await api.createContest({
+    const members = teamMembersStr
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const contest = await api.createContest({
       name: contestName,
       problemIds: chosen.map((p) => p.id),
       durationMinutes,
+      teamMembers: members,
+      driver: driver || (members[0] || null),
     });
     setActive(chosen);
     setStatuses(
@@ -82,6 +127,8 @@ export default function Contest() {
     );
     setCurrent(chosen[0]);
     setStartTime(Date.now());
+    setActiveContestId(contest.id);
+    setClaims([]);
     setSetup(false);
     setEnded(false);
   }
@@ -99,6 +146,7 @@ export default function Contest() {
         context: { Contest: { contest_id: viewingHistory ? viewingHistory.id : "current", upsolve: isUpsolve } },
       });
       setReport(result);
+      if (result.overall_verdict === "Accepted") setBalloonTrigger((v) => v + 1);
 
       if (isUpsolve) return;
 
@@ -138,6 +186,29 @@ export default function Contest() {
           <Input className="mb-4" value={contestName} onChange={(e) => setContestName(e.target.value)} placeholder="My contest" />
           <label className="block text-xs font-medium text-muted-foreground mb-1">Duration (minutes)</label>
           <Input type="number" className="mb-4" value={String(durationMinutes)} onChange={(e) => setDurationMinutes(Number(e.target.value))} />
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Team members comma separated, 3 for ICPC</label>
+          <Input className="mb-2" value={teamMembersStr} onChange={(e) => setTeamMembersStr(e.target.value)} placeholder="Alice, Bob, Carol" />
+          {teamMembersStr.trim() && (
+            <>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Driver to start</label>
+              <select
+                className="w-full mb-4 bg-input border border-input rounded-lg h-9 px-3 text-sm text-foreground"
+                value={driver}
+                onChange={(e) => setDriver(e.target.value)}
+              >
+                <option value="">Auto first member</option>
+                {teamMembersStr
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                  .map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+              </select>
+            </>
+          )}
           <label className="block text-xs font-medium text-muted-foreground mb-2">
             Problems ({selectedIds.length} selected)
           </label>
@@ -198,6 +269,7 @@ export default function Contest() {
 
   return (
     <div className="flex h-full bg-background">
+      <Balloons trigger={balloonTrigger} />
       <aside className="w-64 border-r border-border p-3 flex flex-col shrink-0 bg-background">
         {viewingHistory && (
           <div className="mb-3 p-2 rounded-lg bg-wa/10 border border-wa/20">
@@ -219,9 +291,55 @@ export default function Contest() {
           </div>
         )}
         <Timer durationMinutes={durationMinutes} onExpire={() => setEnded(true)} />
-        <div className="text-xs text-muted-foreground mt-1 mb-4 tabular-nums">
+        <div className="text-xs text-muted-foreground mt-1 mb-2 tabular-nums">
           Solved {solvedCount}/{active.length} · Penalty {totalPenalty}min
         </div>
+        {(viewingHistory?.team_members?.length || teamMembersStr.trim()) && (
+          <Card className="p-2 mb-3 bg-card/50">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold">Team {viewingHistory?.driver || driver ? `· driver ${viewingHistory?.driver || driver}` : ""}</span>
+              <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={rotateDriver}>
+                Rotate
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {(viewingHistory?.team_members || teamMembersStr.split(",").map((s) => s.trim()).filter(Boolean)).join(" · ") || "No team"}
+            </div>
+            <div className="mt-2 space-y-1">
+              {active.map((p) => {
+                const claim = claims.find((c) => c.problem_id === p.id);
+                return (
+                  <div key={p.id} className="flex items-center gap-1 text-xs">
+                    <span className="w-6 font-mono">{String.fromCharCode(65 + active.indexOf(p))}</span>
+                    <span className="flex-1 truncate">{p.title.slice(0, 18)}</span>
+                    <select
+                      className="bg-input border border-input rounded text-xs h-6 px-1"
+                      value={claim?.claimed_by || ""}
+                      onChange={(e) => handleClaim(p.id, e.target.value, claim?.status || "thinking")}
+                    >
+                      <option value="">unclaimed</option>
+                      {(viewingHistory?.team_members || teamMembersStr.split(",").map((s) => s.trim()).filter(Boolean)).map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="bg-input border border-input rounded text-xs h-6 px-1"
+                      value={claim?.status || "thinking"}
+                      onChange={(e) => handleClaim(p.id, claim?.claimed_by || (viewingHistory?.team_members?.[0] || teamMembersStr.split(",")[0]?.trim() || ""), e.target.value)}
+                    >
+                      <option value="thinking">thinking</option>
+                      <option value="coding">coding</option>
+                      <option value="stuck">stuck</option>
+                      <option value="done">done</option>
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
         <ul className="space-y-0 overflow-y-auto">
           {active.map((p, i) => {
             const s = statuses[p.id];

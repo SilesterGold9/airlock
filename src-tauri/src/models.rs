@@ -76,4 +76,15 @@ pub struct Contest {
     pub duration_minutes: u32,
     pub started_at: Option<String>,
     pub penalty_minutes: u32, // ICPC default: 20
+    #[serde(default)]
+    pub team_members: Vec<String>,
+    pub driver: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProblemClaim {
+    pub contest_id: String,
+    pub problem_id: String,
+    pub claimed_by: String,
+    pub status: String, // thinking | coding | stuck | done
 }

@@ -64,4 +64,13 @@ export interface Contest {
   duration_minutes: number;
   started_at?: string | null;
   penalty_minutes: number;
+  team_members: string[];
+  driver?: string | null;
+}
+
+export interface ProblemClaim {
+  contest_id: string;
+  problem_id: string;
+  claimed_by: string;
+  status: "thinking" | "coding" | "stuck" | "done" | string;
 }

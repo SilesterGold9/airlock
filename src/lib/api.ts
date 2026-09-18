@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Contest, JudgeReport, Problem, Submission, SubmissionContext } from "./types";
+import type { Contest, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext } from "./types";
 
 export const api = {
   listProblems: () => invoke<Problem[]>("list_problems"),
@@ -22,11 +22,13 @@ export const api = {
       context: args.context,
     }),
 
-  createContest: (args: { name: string; problemIds: string[]; durationMinutes: number }) =>
+  createContest: (args: { name: string; problemIds: string[]; durationMinutes: number; teamMembers?: string[]; driver?: string | null }) =>
     invoke<Contest>("create_contest", {
       name: args.name,
       problemIds: args.problemIds,
       durationMinutes: args.durationMinutes,
+      teamMembers: args.teamMembers,
+      driver: args.driver,
     }),
 
   runStressTest: (args: {
@@ -52,6 +54,18 @@ export const api = {
     invoke<Submission[]>("list_submissions_by_problem", { problemId }),
 
   listContests: () => invoke<Contest[]>("list_contests"),
+
+  upsertClaim: (args: { contestId: string; problemId: string; claimedBy: string; status: string }) =>
+    invoke<void>("upsert_claim", {
+      contestId: args.contestId,
+      problemId: args.problemId,
+      claimedBy: args.claimedBy,
+      status: args.status,
+    }),
+
+  listClaims: (contestId: string) => invoke<ProblemClaim[]>("list_claims", { contestId }),
+
+  setContestDriver: (contestId: string, driver: string) => invoke<void>("set_contest_driver", { contestId, driver }),
 
   clearSubmissions: () => invoke<number>("clear_submissions"),
 

@@ -292,3 +292,87 @@ fn run_capture_stdin(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::Verdict;
+
+    fn one_test(input: &str, expected: &str) -> Vec<TestCase> {
+        vec![TestCase {
+            id: "t1".to_string(),
+            input: input.to_string(),
+            expected_output: expected.to_string(),
+        }]
+    }
+
+    const ADD: &str = r#"
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    long long a, b;
+    if (!(cin >> a >> b)) return 0;
+    cout << a + b << "\n";
+}
+"#;
+
+    #[test]
+    fn normalize_ignores_trailing_whitespace_and_blank_lines() {
+        assert_eq!(normalize("5  \n"), "5");
+        assert_eq!(normalize("5\n\n\n"), "5");
+        assert_eq!(normalize("1 2\n3   \n"), "1 2\n3");
+        // inner spacing is significant
+        assert_eq!(normalize("1  2\n"), "1  2");
+        assert_eq!(normalize(""), "");
+    }
+
+    #[test]
+    fn truncate_passes_short_strings_through() {
+        assert_eq!(truncate("abc", 10), "abc");
+        assert_eq!(truncate("abc", 3), "abc");
+    }
+
+    #[test]
+    fn truncate_marks_long_strings() {
+        let out = truncate("abcdefghij", 4);
+        assert!(out.starts_with("abcd"), "keeps prefix: {out}");
+        assert!(out.contains("truncated"), "marks truncation: {out}");
+    }
+
+    #[test]
+    fn run_judge_accepts_correct_solution() {
+        let report = run_judge("cpp", ADD, &one_test("2 3\n", "5\n"), 2000).unwrap();
+        assert!(matches!(report.overall_verdict, Verdict::Accepted));
+        assert_eq!(report.tests_passed, 1);
+        assert_eq!(report.tests_total, 1);
+    }
+
+    #[test]
+    fn run_judge_reports_wrong_answer() {
+        let report = run_judge("cpp", ADD, &one_test("2 3\n", "6\n"), 2000).unwrap();
+        assert!(matches!(report.overall_verdict, Verdict::WrongAnswer));
+        assert_eq!(report.tests_passed, 0);
+        assert_eq!(report.tests_total, 1);
+    }
+
+    #[test]
+    fn run_judge_reports_compile_error() {
+        let report = run_judge("cpp", "this is not c++ {{{", &one_test("2 3\n", "5\n"), 2000).unwrap();
+        assert!(matches!(report.overall_verdict, Verdict::CompileError));
+    }
+
+    #[test]
+    fn run_judge_counts_partial_passes() {
+        let tests = vec![
+            TestCase { id: "t1".to_string(), input: "2 3\n".to_string(), expected_output: "5\n".to_string() },
+            TestCase { id: "t2".to_string(), input: "1 1\n".to_string(), expected_output: "999\n".to_string() },
+        ];
+        let report = run_judge("cpp", ADD, &tests, 2000).unwrap();
+        assert!(matches!(report.overall_verdict, Verdict::WrongAnswer));
+        assert_eq!(report.tests_passed, 1);
+        assert_eq!(report.tests_total, 2);
+        assert_eq!(report.results.len(), 2);
+    }
+}

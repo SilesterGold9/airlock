@@ -750,3 +750,228 @@ pub fn list_rank_reflections(conn: &Connection) -> SqlResult<Vec<RankReflection>
     })?;
     rows.collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{
+        Contest, FailureCategory, ProblemClaim, SubmissionContext, Technique,
+    };
+    use std::path::Path;
+
+    fn memdb() -> Connection {
+        init(Path::new(":memory:")).expect("in-memory init")
+    }
+
+    fn sample_problem() -> Problem {
+        Problem {
+            id: "p1".to_string(),
+            title: "A+B".to_string(),
+            statement_md: "sum".to_string(),
+            tags: vec!["implementation".to_string()],
+            difficulty: 800,
+            time_limit_ms: 1000,
+            memory_limit_mb: 256,
+            source: "self-authored".to_string(),
+            tests: vec![TestCase {
+                id: "t1".to_string(),
+                input: "2 3\n".to_string(),
+                expected_output: "5\n".to_string(),
+            }],
+            brute_force_src: None,
+            brute_force_lang: None,
+            notes_md: Some("my editorial".to_string()),
+            primary_technique_id: Some("tech1".to_string()),
+            hints: vec!["restate the ask".to_string(), "try small n".to_string()],
+        }
+    }
+
+    fn submission(id: &str, verdict: Verdict, at: &str) -> Submission {
+        Submission {
+            id: id.to_string(),
+            problem_id: "p1".to_string(),
+            language: "cpp".to_string(),
+            source_code: "code".to_string(),
+            verdict,
+            submitted_at: at.to_string(),
+            context: SubmissionContext::Practice,
+            failure_category: None,
+            hints_revealed: None,
+        }
+    }
+
+    #[test]
+    fn problem_round_trip_with_tests_hints_and_link() {
+        let conn = memdb();
+        insert_problem(&conn, &sample_problem()).unwrap();
+        let listed = list_problems(&conn).unwrap();
+        assert_eq!(listed.len(), 1);
+        // tests are stored separately
+        assert!(listed[0].tests.is_empty());
+        assert_eq!(listed[0].hints.len(), 2);
+        assert_eq!(listed[0].primary_technique_id.as_deref(), Some("tech1"));
+        assert_eq!(listed[0].notes_md.as_deref(), Some("my editorial"));
+        let tests = get_tests(&conn, "p1").unwrap();
+        assert_eq!(tests.len(), 1);
+        assert_eq!(tests[0].expected_output, "5\n");
+    }
+
+    #[test]
+    fn techniques_status_bulk_and_touch() {
+        let conn = memdb();
+        for (id, name) in [("a", "Prefix Sum"), ("b", "Two Pointers"), ("c", "DP")] {
+            upsert_technique(
+                &conn,
+                &Technique {
+                    id: id.to_string(),
+                    name: name.to_string(),
+                    status: TechniqueStatus::NotStarted,
+                    status_updated_at: "2026-01-01T00:00:00Z".to_string(),
+                    notes_md: None,
+                },
+            )
+            .unwrap();
+        }
+        assert_eq!(list_techniques(&conn).unwrap().len(), 3);
+
+        update_technique_status(&conn, "a", &TechniqueStatus::Learning, "2026-02-01T00:00:00Z").unwrap();
+        bulk_update_technique_status(
+            &conn,
+            &["b".to_string(), "c".to_string()],
+            &TechniqueStatus::Rusty,
+            "2026-03-01T00:00:00Z",
+        )
+        .unwrap();
+
+        // touch bumps the timestamp but keeps the status
+        touch_technique(&conn, "a", "2026-04-01T00:00:00Z").unwrap();
+        let after = list_techniques(&conn).unwrap();
+        let a = after.iter().find(|x| x.id == "a").unwrap();
+        assert_eq!(a.status, TechniqueStatus::Learning);
+        assert_eq!(a.status_updated_at, "2026-04-01T00:00:00Z");
+        let rusty = after.iter().filter(|x| x.status == TechniqueStatus::Rusty).count();
+        assert_eq!(rusty, 2);
+    }
+
+    #[test]
+    fn classify_tags_latest_non_ac_only() {
+        let conn = memdb();
+        insert_problem(&conn, &sample_problem()).unwrap();
+        insert_submission(&conn, &submission("s1", Verdict::WrongAnswer, "2026-01-01T10:00:00Z")).unwrap();
+        insert_submission(&conn, &submission("s2", Verdict::WrongAnswer, "2026-01-01T10:05:00Z")).unwrap();
+        insert_submission(&conn, &submission("s3", Verdict::Accepted, "2026-01-01T10:10:00Z")).unwrap();
+
+        classify_latest_submission(&conn, "p1", &FailureCategory::MisreadStatement).unwrap();
+
+        let all = list_submissions_by_problem(&conn, "p1").unwrap();
+        assert_eq!(all.len(), 3);
+        // newest first: s3 (AC, untouched), s2 (tagged), s1 (untouched)
+        assert_eq!(all[0].id, "s3");
+        assert!(all[0].failure_category.is_none());
+        assert_eq!(all[1].id, "s2");
+        assert_eq!(all[1].failure_category, Some(FailureCategory::MisreadStatement));
+        assert!(all[2].failure_category.is_none());
+    }
+
+    #[test]
+    fn submission_round_trips_verdict_context_and_hints() {
+        let conn = memdb();
+        let mut s = submission("s1", Verdict::TimeLimitExceeded, "2026-01-01T10:00:00Z");
+        s.context = SubmissionContext::Contest {
+            contest_id: "c1".to_string(),
+            upsolve: true,
+        };
+        s.hints_revealed = Some(3);
+        insert_submission(&conn, &s).unwrap();
+        let back = list_submissions(&conn).unwrap();
+        assert_eq!(back.len(), 1);
+        assert!(matches!(back[0].verdict, Verdict::TimeLimitExceeded));
+        match &back[0].context {
+            SubmissionContext::Contest { contest_id, upsolve } => {
+                assert_eq!(contest_id, "c1");
+                assert!(upsolve);
+            }
+            _ => panic!("expected contest context"),
+        }
+        assert_eq!(back[0].hints_revealed, Some(3));
+    }
+
+    #[test]
+    fn schedule_intervals_advance_and_due_lists_past_rows() {
+        let conn = memdb();
+        record_ac_for_reimplementation(&conn, "p1").unwrap();
+        record_ac_for_reimplementation(&conn, "p1").unwrap();
+        record_ac_for_reimplementation(&conn, "p1").unwrap();
+        let completed: u32 = conn
+            .query_row(
+                "SELECT completed_reimplementations FROM reimplementation_schedule WHERE problem_id = 'p1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(completed, 2, "first AC seeds 0, then +1 per reimplement");
+        // fresh row is due in the future, not listed
+        assert!(list_due_reimplementations(&conn, "2026-01-01T00:00:00Z").unwrap().is_empty());
+
+        // a crafted past-due row is listed, earliest first
+        conn.execute(
+            "INSERT INTO reimplementation_schedule (problem_id, last_ac_at, next_due_at, completed_reimplementations)
+             VALUES ('p2', '2025-01-01T00:00:00Z', '2025-01-02T00:00:00Z', 0)",
+            [],
+        )
+        .unwrap();
+        let due = list_due_reimplementations(&conn, "2026-01-01T00:00:00Z").unwrap();
+        assert_eq!(due.len(), 1);
+        assert_eq!(due[0].problem_id, "p2");
+    }
+
+    #[test]
+    fn contest_and_claims_round_trip() {
+        let conn = memdb();
+        insert_contest(
+            &conn,
+            &Contest {
+                id: "c1".to_string(),
+                name: "Virtual".to_string(),
+                problem_ids: vec!["p1".to_string()],
+                duration_minutes: 180,
+                started_at: Some("2026-01-01T10:00:00Z".to_string()),
+                penalty_minutes: 20,
+                team_members: vec!["Al".to_string(), "Bo".to_string()],
+                driver: Some("Al".to_string()),
+            },
+        )
+        .unwrap();
+        let contests = list_contests(&conn).unwrap();
+        assert_eq!(contests.len(), 1);
+        assert_eq!(contests[0].team_members.len(), 2);
+
+        upsert_claim(
+            &conn,
+            &ProblemClaim {
+                contest_id: "c1".to_string(),
+                problem_id: "p1".to_string(),
+                claimed_by: "Al".to_string(),
+                status: "coding".to_string(),
+            },
+        )
+        .unwrap();
+        let claims = list_claims(&conn, "c1").unwrap();
+        assert_eq!(claims.len(), 1);
+        assert_eq!(claims[0].status, "coding");
+    }
+
+    #[test]
+    fn rank_tables_seed_sane_defaults() {
+        let conn = memdb();
+        let state = get_rank_state(&conn).unwrap();
+        assert_eq!(state.current_stars, 0);
+        assert!(state.pending_suggestion.is_none());
+        let themes = list_rank_themes(&conn).unwrap();
+        assert!(!themes.is_empty());
+        assert!(themes.iter().any(|x| x.is_default));
+        let def = themes.iter().find(|x| x.is_default).unwrap();
+        assert_eq!(def.tier_names.len(), 8);
+        assert_eq!(def.tier_colors.len(), 8);
+    }
+}

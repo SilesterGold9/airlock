@@ -44,3 +44,6 @@ Thumbs.db
 # Temp
 tmp/
 temp/
+
+# Agent instructions
+AGENTS.md

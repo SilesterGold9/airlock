@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from "react";
 interface TimerProps {
   durationMinutes: number;
   onExpire?: () => void;
+  compact?: boolean;
 }
 
-export default function Timer({ durationMinutes, onExpire }: TimerProps) {
+export default function Timer({ durationMinutes, onExpire, compact = false }: TimerProps) {
   const [secondsLeft, setSecondsLeft] = useState(durationMinutes * 60);
   const expiredRef = useRef(false);
 
@@ -35,8 +36,10 @@ export default function Timer({ durationMinutes, onExpire }: TimerProps) {
 
   return (
     <div
-      className={`text-3xl font-bold tabular-nums tracking-wider ${
-        low ? "text-wa animate-pulse" : "text-slate-100"
+      className={`tabular-nums tracking-wider ${
+        compact
+          ? `text-sm font-semibold ${low ? "text-wa animate-pulse" : "text-foreground"}`
+          : `text-3xl font-bold ${low ? "text-wa animate-pulse" : "text-foreground"}`
       }`}
     >
       {pad(h)}:{pad(m)}:{pad(s)}

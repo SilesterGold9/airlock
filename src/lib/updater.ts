@@ -4,7 +4,8 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { getVersion } from "@tauri-apps/api/app";
 
 export const isTauriApp =
-  typeof window !== "undefined" && "__TAURI__" in window;
+  typeof window !== "undefined" &&
+  ("__TAURI__" in window || "__TAURI_INTERNALS__" in window);
 
 export type UpdateCheck =
   | { kind: "current"; version: string }
@@ -13,7 +14,6 @@ export type UpdateCheck =
 let pendingUpdate: Update | null = null;
 
 export async function getAppVersion(): Promise<string> {
-  if (!isTauriApp) return "dev";
   try {
     return await getVersion();
   } catch {

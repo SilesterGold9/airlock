@@ -58,6 +58,22 @@ whole loop: write code, submit, get a verdict, repeat — no account, no network
 | Stress lab | Fuzz your solution against a brute force with a generator |
 | EN + PT | Full Portuguese localization, one toggle |
 
+## Fork it
+
+It's open-source — take it, tweak it, use it. MIT licensed, no strings
+attached. If Airlock fits your training but not your setup:
+
+- **Rename it**: `productName` + `identifier` in
+  `src-tauri/tauri.conf.json`. Your data dir follows the identifier, so
+  decide once — old installs don't follow renames.
+- **Restyle it**: tokens live in `tailwind.config.js` + `src/index.css`;
+  the rank journey ships an original theme and accepts custom ones.
+- **Reseed it**: swap `sample-problems/` or ship a `packs/` folder.
+  Exports are allowlist-only, so sharing never leaks submissions or notes.
+- **Extend it**: `CONTRIBUTING.md` has the map — commands, migrations,
+  verify loop. PRs back upstream are welcome, never owed. That's the
+  point of MIT.
+
 ## Why a local vault
 
 Codeforces doesn't publish official test data — only statements and sample

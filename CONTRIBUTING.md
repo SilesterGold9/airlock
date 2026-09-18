@@ -52,6 +52,8 @@ per verdict, keyboard-only walk (focus rings), PT toggle.
 
 - Work lands on `dev` (the default branch). `main` is releases only.
 - One commit per issue, message `type: short description (#NN)`.
+- To sync prod: `npm run ship` (merges `dev` into `main`, pushes both,
+  returns to `dev`; refuses on a dirty tree).
 - To release: merge `dev` into `main`, bump `package.json` +
   `src-tauri/Cargo.toml` + `src-tauri/tauri.conf.json` together, then
   `git tag vX.Y.Z && git push origin main vX.Y.Z`. The tag opens a draft

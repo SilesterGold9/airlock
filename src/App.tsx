@@ -6,12 +6,14 @@ import Import from "./pages/Import";
 import History from "./pages/History";
 import { LogoIcon } from "./components/Logo";
 import { useLocale, useT } from "./lib/i18n";
+import Titlebar from "./components/Titlebar";
 
 export default function App() {
   const t = useT();
   const { locale, setLocale } = useLocale();
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
+      <Titlebar />
       <nav className="sticky top-0 z-50 h-12 flex items-center gap-3 bg-background/80 backdrop-blur-md border-b border-border px-4 shrink-0">
         <div className="flex items-center gap-2 mr-2">
           <LogoIcon size={28} />

@@ -283,3 +283,27 @@ Use Tailwind utilities: `transition-colors duration-150 ease-[cubic-bezier(0.2,0
 * LeetCode problem, problemset, contest pages (Cloudflare limited, used clones for pixel values)
 * Current CP Trainer `tailwind.config.js:1`, `src/index.css:5`, `src/App.tsx:8`
 
+## As-built (v2.0 workspace revamp)
+
+What actually shipped, where it differs from the proposal above:
+
+* Dark theme went neutral warm-black (`--background 0 0% 10%`, `--card 0 0%
+  15%`, white/10 borders) instead of slate. Accent is green (`--success
+  134 61% 46%`); orange survives only in the wordmark/logo and prose links.
+  `Button primary` is a green-ghost CTA, `success` is solid green.
+* App shell is a slim `h-11` nav (compact tabs + avatar chip), not the
+  `h-12` blurred bar. Titlebar unchanged.
+* Practice is a true workspace: toolbar (list drawer, prev/next/shuffle,
+  centered Submit, console toggle), `PanelTabs` (Description/Notes/Similar/
+  Submissions), drawer-held problem list (filter + training set + due),
+  editor card with `airlock-dark` Monaco theme + Ln/Col footer, collapsible
+  Testcase/Test Result console.
+* Contest mirrors the workspace (letter pills, compact timer, team chip,
+  Description/Team/Standings tabs, same console).
+* Motion: `panel-in`, `pop`, `drawer-in` keyframes added; global
+  `button:focus-visible` ring in `index.css`; `prefers-reduced-motion`
+  disables non-essential animation.
+* Deliberately NOT built: theme-creation UI for rank themes, in-app pack
+  import button (CLI scripts only), skeleton loaders (local SQLite is
+  near-instant), axe contrast audit (manual QA).
+

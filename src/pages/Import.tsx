@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { Problem, Technique } from "../lib/types";
+import { MAX_HINTS } from "../components/HintLadder";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -25,6 +26,7 @@ const SAMPLE: Problem = {
   ],
   brute_force_src: null,
   brute_force_lang: null,
+  hints: [],
 };
 
 type TestDraft = { input: string; expected_output: string };
@@ -73,6 +75,7 @@ export default function Import() {
   const [bruteLang, setBruteLang] = useState<"cpp" | "java">("cpp");
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [primaryTechniqueId, setPrimaryTechniqueId] = useState("");
+  const [hints, setHints] = useState<string[]>([]);
 
   useEffect(() => {
     api.listTechniques().then(setTechniques).catch(() => setTechniques([]));
@@ -107,6 +110,7 @@ export default function Import() {
         brute_force_src: bruteSrc.trim() || null,
         brute_force_lang: bruteSrc.trim() ? bruteLang : null,
         primary_technique_id: primaryTechniqueId || null,
+        hints: hints.map((h) => h.trim()).filter(Boolean).slice(0, MAX_HINTS),
       };
       const saved = await api.saveProblem(problem);
       setResult({ ok: true, msg: t("import.savedWithTests").replace("{title}", saved.title).replace("{count}", String(saved.tests.length)) });
@@ -141,6 +145,9 @@ export default function Import() {
         brute_force_src: parsed.brute_force_src || null,
         brute_force_lang: parsed.brute_force_lang || null,
         primary_technique_id: parsed.primary_technique_id || null,
+        hints: Array.isArray(parsed.hints)
+          ? parsed.hints.map((h: unknown) => String(h ?? "").trim()).filter(Boolean).slice(0, MAX_HINTS)
+          : [],
       };
       const saved = await api.saveProblem(problem);
       setResult({ ok: true, msg: t("import.importedCheck").replace("{title}", saved.title).replace("{id}", saved.id.slice(0, 8)) });
@@ -201,6 +208,29 @@ export default function Import() {
                 </option>
               ))}
             </Select>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-muted-foreground">{t("import.hintsLabel")}</label>
+              {hints.length < MAX_HINTS && (
+                <Button variant="secondary" size="sm" onClick={() => setHints([...hints, ""])}>
+                  {t("import.addHint")}
+                </Button>
+              )}
+            </div>
+            {hints.map((h, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <Textarea
+                  className="min-h-[56px] font-sans text-xs"
+                  value={h}
+                  onChange={(e) => setHints(hints.map((x, idx) => (idx === i ? e.target.value : x)))}
+                  placeholder={t("import.hintPlaceholder").replace("{n}", String(i + 1))}
+                />
+                <Button variant="ghost" size="sm" onClick={() => setHints(hints.filter((_, idx) => idx !== i))}>
+                  {t("common.remove")}
+                </Button>
+              </div>
+            ))}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="grid gap-1">

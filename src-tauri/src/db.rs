@@ -20,7 +20,8 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
             source TEXT NOT NULL,
             brute_force_src TEXT,
             brute_force_lang TEXT,
-            notes_md TEXT
+            notes_md TEXT,
+            hints TEXT NOT NULL DEFAULT '[]'   -- JSON array, up to 7
         );
 
         CREATE TABLE IF NOT EXISTS test_cases (
@@ -70,7 +71,9 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
     )?;
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN notes_md TEXT", []);
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN primary_technique_id TEXT", []);
+    let _ = conn.execute("ALTER TABLE problems ADD COLUMN hints TEXT", []);
     let _ = conn.execute("ALTER TABLE submissions ADD COLUMN failure_category TEXT", []);
+    let _ = conn.execute("ALTER TABLE submissions ADD COLUMN hints_revealed INTEGER", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN team_members TEXT", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN driver TEXT", []);
     Ok(conn)
@@ -79,8 +82,8 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
 pub fn insert_problem(conn: &Connection, p: &Problem) -> SqlResult<()> {
     conn.execute(
         "INSERT OR REPLACE INTO problems
-         (id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md, primary_technique_id)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+         (id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md, primary_technique_id, hints)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
         params![
             p.id,
             p.title,
@@ -94,6 +97,7 @@ pub fn insert_problem(conn: &Connection, p: &Problem) -> SqlResult<()> {
             p.brute_force_lang,
             p.notes_md,
             p.primary_technique_id,
+            serde_json::to_string(&p.hints).unwrap(),
         ],
     )?;
     conn.execute("DELETE FROM test_cases WHERE problem_id = ?1", params![p.id])?;
@@ -212,10 +216,11 @@ fn technique_status_to_str(s: &TechniqueStatus) -> &'static str {
 
 pub fn list_problems(conn: &Connection) -> SqlResult<Vec<Problem>> {
     let mut stmt = conn.prepare(
-        "SELECT id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md, primary_technique_id FROM problems",
+        "SELECT id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md, primary_technique_id, hints FROM problems",
     )?;
     let rows = stmt.query_map([], |row| {
         let tags_json: String = row.get(3)?;
+        let hints_json: Option<String> = row.get(12).ok().flatten();
         Ok(Problem {
             id: row.get(0)?,
             title: row.get(1)?,
@@ -229,6 +234,7 @@ pub fn list_problems(conn: &Connection) -> SqlResult<Vec<Problem>> {
             brute_force_lang: row.get(9)?,
             notes_md: row.get(10)?,
             primary_technique_id: row.get(11).ok().flatten(),
+            hints: hints_json.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default(),
             tests: vec![], // populated separately via get_tests
         })
     })?;
@@ -250,8 +256,8 @@ pub fn get_tests(conn: &Connection, problem_id: &str) -> SqlResult<Vec<TestCase>
 
 pub fn insert_submission(conn: &Connection, s: &Submission) -> SqlResult<()> {
     conn.execute(
-        "INSERT INTO submissions (id, problem_id, language, source_code, verdict, submitted_at, context, failure_category)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        "INSERT INTO submissions (id, problem_id, language, source_code, verdict, submitted_at, context, failure_category, hints_revealed)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         params![
             s.id,
             s.problem_id,
@@ -261,6 +267,7 @@ pub fn insert_submission(conn: &Connection, s: &Submission) -> SqlResult<()> {
             s.submitted_at,
             serde_json::to_string(&s.context).unwrap(),
             s.failure_category.as_ref().map(failure_category_to_str),
+            s.hints_revealed,
         ],
     )?;
     Ok(())
@@ -352,12 +359,13 @@ pub fn clear_claims(conn: &Connection, contest_id: &str) -> SqlResult<()> {
 
 pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
     let mut stmt = conn.prepare(
-        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context, failure_category FROM submissions ORDER BY submitted_at DESC",
+        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context, failure_category, hints_revealed FROM submissions ORDER BY submitted_at DESC",
     )?;
     let rows = stmt.query_map([], |row| {
         let verdict_str: String = row.get(4)?;
         let context_json: String = row.get(6)?;
         let failure_str: Option<String> = row.get(7).ok().flatten();
+        let hints_revealed: Option<u8> = row.get(8).ok().flatten();
         Ok(Submission {
             id: row.get(0)?,
             problem_id: row.get(1)?,
@@ -367,6 +375,7 @@ pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
             submitted_at: row.get(5)?,
             context: serde_json::from_str(&context_json).unwrap_or(crate::models::SubmissionContext::Practice),
             failure_category: failure_str.map(|s| str_to_failure_category(&s)),
+            hints_revealed,
         })
     })?;
     rows.collect()
@@ -374,12 +383,13 @@ pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
 
 pub fn list_submissions_by_problem(conn: &Connection, problem_id: &str) -> SqlResult<Vec<Submission>> {
     let mut stmt = conn.prepare(
-        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context, failure_category FROM submissions WHERE problem_id = ?1 ORDER BY submitted_at DESC",
+        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context, failure_category, hints_revealed FROM submissions WHERE problem_id = ?1 ORDER BY submitted_at DESC",
     )?;
     let rows = stmt.query_map(params![problem_id], |row| {
         let verdict_str: String = row.get(4)?;
         let context_json: String = row.get(6)?;
         let failure_str: Option<String> = row.get(7).ok().flatten();
+        let hints_revealed: Option<u8> = row.get(8).ok().flatten();
         Ok(Submission {
             id: row.get(0)?,
             problem_id: row.get(1)?,
@@ -389,6 +399,7 @@ pub fn list_submissions_by_problem(conn: &Connection, problem_id: &str) -> SqlRe
             submitted_at: row.get(5)?,
             context: serde_json::from_str(&context_json).unwrap_or(crate::models::SubmissionContext::Practice),
             failure_category: failure_str.map(|s| str_to_failure_category(&s)),
+            hints_revealed,
         })
     })?;
     rows.collect()

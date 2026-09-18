@@ -150,6 +150,7 @@ export default function Contest() {
         language,
         sourceCode: code,
         context: { Contest: { contest_id: viewingHistory ? viewingHistory.id : "current", upsolve: isUpsolve } },
+        hintsRevealed: null,
       });
       setReport(result);
       if (result.overall_verdict === "Accepted") setBalloonTrigger((v) => v + 1);

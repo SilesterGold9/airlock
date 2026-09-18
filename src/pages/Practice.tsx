@@ -12,6 +12,7 @@ import { Select } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import DiffViewer from "../components/DiffViewer";
 import FailureChips from "../components/FailureChips";
+import HintLadder from "../components/HintLadder";
 import Balloons from "../components/Balloons";
 import ProblemStatement from "../components/ProblemStatement";
 import { getSimilarProblems } from "../lib/rating";
@@ -33,6 +34,7 @@ export default function Practice() {
   const [attempts, setAttempts] = useState<import("../lib/types").Submission[]>([]);
   const [balloonTrigger, setBalloonTrigger] = useState(0);
   const [submitSeq, setSubmitSeq] = useState(0);
+  const [hintsRevealed, setHintsRevealed] = useState(0);
   const [techniques, setTechniques] = useState<Technique[]>([]);
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export default function Practice() {
 
   useEffect(() => {
     setNotes(selected?.notes_md || "");
+    setHintsRevealed(0);
     if (selected) {
       api.listSubmissionsByProblem(selected.id).then(setAttempts).catch(() => setAttempts([]));
     } else {
@@ -82,6 +85,7 @@ export default function Practice() {
         language,
         sourceCode: code,
         context: "Practice",
+        hintsRevealed: hintsRevealed > 0 ? hintsRevealed : null,
       });
       setReport(result);
       if (result.overall_verdict === "Accepted") setBalloonTrigger((v) => v + 1);
@@ -178,6 +182,15 @@ export default function Practice() {
                 <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-5 backdrop-blur-sm">
                   <ProblemStatement content={selected.statement_md} />
                 </div>
+
+                {selected.hints && selected.hints.length > 0 && (
+                  <HintLadder
+                    key={selected.id}
+                    hints={selected.hints}
+                    revealed={hintsRevealed}
+                    onReveal={setHintsRevealed}
+                  />
+                )}
 
                 <Card className="mt-6">
                   <button

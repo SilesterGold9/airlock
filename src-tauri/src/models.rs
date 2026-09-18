@@ -26,6 +26,9 @@ pub struct Problem {
     // technique this problem targets (drives the structured set generator)
     #[serde(default)]
     pub primary_technique_id: Option<String>,
+    // ordered hint ladder, index 0 = level 1, up to 7 (level 7 may contain code)
+    #[serde(default)]
+    pub hints: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -66,6 +69,9 @@ pub struct Submission {
     // set after a non-AC verdict via classify_submission; None = unclassified
     #[serde(default)]
     pub failure_category: Option<FailureCategory>,
+    // hints revealed before this attempt; None = none (or contest mode)
+    #[serde(default)]
+    pub hints_revealed: Option<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]

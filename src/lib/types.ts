@@ -25,6 +25,7 @@ export interface Problem {
   brute_force_lang?: string | null;
   notes_md?: string | null;
   primary_technique_id?: string | null;
+  hints: string[];
 }
 
 export interface TestResult {
@@ -57,6 +58,7 @@ export interface Submission {
   submitted_at: string;
   context: SubmissionContext;
   failure_category?: FailureCategory | null;
+  hints_revealed?: number | null;
 }
 
 export interface Contest {

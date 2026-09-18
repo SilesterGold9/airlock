@@ -58,6 +58,7 @@ pub fn submit_solution(
     language: String,
     source_code: String,
     context: SubmissionContext,
+    hints_revealed: Option<u8>,
 ) -> Result<JudgeReport, String> {
     let (tests, time_limit_ms) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -82,6 +83,7 @@ pub fn submit_solution(
         submitted_at: Utc::now().to_rfc3339(),
         context,
         failure_category: None,
+        hints_revealed,
     };
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::insert_submission(&conn, &submission).map_err(|e| e.to_string())?;

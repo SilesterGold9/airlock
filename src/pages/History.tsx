@@ -279,6 +279,11 @@ export default function History() {
                             {t(`failure.${s.failure_category}`)}
                           </div>
                         )}
+                        {s.hints_revealed != null && s.hints_revealed > 0 && (
+                          <div className="text-[10px] text-muted-foreground mt-1">
+                            {t("history.hintsUsed").replace("{count}", String(s.hints_revealed))}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">

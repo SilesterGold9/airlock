@@ -14,12 +14,14 @@ export const api = {
     language: "cpp" | "java";
     sourceCode: string;
     context: SubmissionContext;
+    hintsRevealed?: number | null;
   }) =>
     invoke<JudgeReport>("submit_solution", {
       problemId: args.problemId,
       language: args.language,
       sourceCode: args.sourceCode,
       context: args.context,
+      hintsRevealed: args.hintsRevealed ?? null,
     }),
 
   createContest: (args: { name: string; problemIds: string[]; durationMinutes: number; teamMembers?: string[]; driver?: string | null }) =>

@@ -270,6 +270,7 @@ export default function Practice() {
                     value={code}
                     onChange={setCode}
                     onLanguageChange={setLanguage}
+                    templateSet="analysis"
                   />
                 </div>
                 <Button onClick={handleSubmit} disabled={judging} variant="primary" size="md" className="w-full">

@@ -118,7 +118,9 @@ export default function Stress() {
   const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [selectedProblemId, setSelectedProblemId] = useState<string>("");
-  const [language, setLanguage] = useState<"cpp" | "java">("cpp");
+  const [language, setLanguage] = useState<"cpp" | "java">(() =>
+    localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp"
+  );
   const [candidate, setCandidate] = useState(CANDIDATE_TEMPLATES["cpp"]);
   const [brute, setBrute] = useState(BRUTE_TEMPLATES["cpp"]);
   const [generator, setGenerator] = useState(GEN_TEMPLATES["cpp"]);

@@ -68,7 +68,9 @@ export default function Practice() {
   const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [selected, setSelected] = useState<Problem | null>(null);
-  const [language, setLanguage] = useState<"cpp" | "java">("cpp");
+  const [language, setLanguage] = useState<"cpp" | "java">(() =>
+    localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp"
+  );
   const [code, setCode] = useState("");
   const [report, setReport] = useState<JudgeReport | null>(null);
   const [judging, setJudging] = useState(false);
@@ -687,7 +689,11 @@ export default function Practice() {
                     value={code}
                     onChange={setCode}
                     onLanguageChange={setLanguage}
-                    templateSet="analysis"
+                    templateSet={
+                      localStorage.getItem("airlock.practiceTemplate") === "standard"
+                        ? "standard"
+                        : "analysis"
+                    }
                   />
                 </div>
                 <div

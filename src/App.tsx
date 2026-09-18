@@ -8,6 +8,7 @@ import Techniques from "./pages/Techniques";
 import Recall from "./pages/Recall";
 import Journey from "./pages/Journey";
 import Welcome from "./pages/Welcome";
+import Settings from "./pages/Settings";
 import { LogoIcon } from "./components/Logo";
 import { useLocale, useT } from "./lib/i18n";
 import Titlebar from "./components/Titlebar";
@@ -39,6 +40,7 @@ export default function App() {
           { to: "/import", label: t("nav.import") },
           { to: "/history", label: t("nav.history") },
           { to: "/journey", label: t("nav.journey") },
+          { to: "/settings", label: t("nav.settings") },
         ].map((item) => (
           <NavLink
             key={item.to}
@@ -84,6 +86,7 @@ export default function App() {
           <Route path="/history" element={<History />} />
           <Route path="/journey" element={<Journey />} />
           <Route path="/welcome" element={<Welcome />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
     </div>

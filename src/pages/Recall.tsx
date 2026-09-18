@@ -25,7 +25,9 @@ export default function Recall() {
   const t = useT();
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [techniqueId, setTechniqueId] = useState("");
-  const [language, setLanguage] = useState<"cpp" | "java">("cpp");
+  const [language, setLanguage] = useState<"cpp" | "java">(() =>
+    localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp"
+  );
   const [minutes, setMinutes] = useState(10);
   const [phase, setPhase] = useState<Phase>("setup");
   const [remaining, setRemaining] = useState(0);

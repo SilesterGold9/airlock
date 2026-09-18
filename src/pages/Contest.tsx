@@ -38,7 +38,9 @@ export default function Contest() {
   const [active, setActive] = useState<Problem[]>([]);
   const [statuses, setStatuses] = useState<Record<string, ProblemStatus>>({});
   const [current, setCurrent] = useState<Problem | null>(null);
-  const [language, setLanguage] = useState<"cpp" | "java">("cpp");
+  const [language, setLanguage] = useState<"cpp" | "java">(() =>
+    localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp"
+  );
   const [code, setCode] = useState("");
   const [report, setReport] = useState<JudgeReport | null>(null);
   const [judging, setJudging] = useState(false);

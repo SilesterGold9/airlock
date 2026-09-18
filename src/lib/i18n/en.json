@@ -307,5 +307,11 @@
   "journey.timeline": "Reflections",
   "journey.emptyTimeline": "No reflections recorded yet.",
   "journey.loadError": "Could not load journey data.",
-  "journey.recordError": "Could not record. Try again."
+  "journey.recordError": "Could not record. Try again.",
+  "onboard.title": "Welcome to Airlock",
+  "onboard.subtitle": "Local-first CP training. Your data never leaves this machine.",
+  "onboard.name": "Display name",
+  "onboard.namePlaceholder": "Your name",
+  "onboard.packHint": "New here? Ask whoever invited you for a starter pack and import it on the Import tab. Or add problems yourself.",
+  "onboard.start": "Start training"
 }

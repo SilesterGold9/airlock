@@ -307,5 +307,11 @@
   "journey.timeline": "Reflexões",
   "journey.emptyTimeline": "Nenhuma reflexão registrada ainda.",
   "journey.loadError": "Não foi possível carregar os dados da jornada.",
-  "journey.recordError": "Não foi possível registrar. Tente de novo."
+  "journey.recordError": "Não foi possível registrar. Tente de novo.",
+  "onboard.title": "Bem-vindo ao Airlock",
+  "onboard.subtitle": "Treino de CP local. Seus dados nunca saem desta máquina.",
+  "onboard.name": "Nome de exibição",
+  "onboard.namePlaceholder": "Seu nome",
+  "onboard.packHint": "Novo por aqui? Peça um pack inicial a quem te convidou e importe na aba Importar. Ou adicione problemas você mesmo.",
+  "onboard.start": "Começar a treinar"
 }

@@ -31,11 +31,18 @@ violating them caused real rework before.
 
 ## Verify loop (two commands, no GUI needed)
 
+Prerequisite: Node 24+ (see `.nvmrc`, enforced as `engines`).
+
 ```bash
 npm run build            # tsc + vite, must pass
-# Rust (plain `cargo` shim is broken in some envs — use the toolchain binary):
+npm test                 # vitest unit specs (pure lib logic)
+```
+
+Rust (`src-tauri/` — plain `cargo` shim is broken in some envs, use the toolchain binary):
+```bash
 export RUSTUP_OFFLINE=true
-~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo check --offline  # in src-tauri/
+~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo check --offline
+~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo test --offline
 ```
 
 Manual QA that automation can't cover: `npm run tauri dev`, one submit
@@ -50,8 +57,8 @@ per verdict, keyboard-only walk (focus rings), PT toggle.
   `git tag vX.Y.Z && git push origin main vX.Y.Z`. The tag opens a draft
   release with signed installers — publish it and installed apps update
   themselves.
-- CI (`ci.yml`) runs frontend build, `cargo check`, `cargo fmt --check`
-  and script compile on every push/PR. Keep it green; run `cargo fmt`
-  before pushing Rust changes.
+- CI (`ci.yml`) runs frontend build + vitest, `cargo check` + `cargo test`,
+  `cargo fmt --check` and script compile on every push/PR. Keep it green;
+  run `cargo fmt` before pushing Rust changes.
 - No new dependencies without discussion in the issue first.
 - Never commit secrets, `__pycache__`, or `dist/`.

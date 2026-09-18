@@ -14,11 +14,14 @@ jobs:
       - name: setup node
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 24
           cache: npm
 
       - name: install frontend dependencies
         run: npm install
+
+      - name: test frontend
+        run: npm test
 
       - name: build frontend
         run: npm run build
@@ -44,6 +47,10 @@ jobs:
       - name: check backend
         working-directory: src-tauri
         run: cargo check --locked
+
+      - name: test backend
+        working-directory: src-tauri
+        run: cargo test --locked
 
       - name: rustfmt check
         working-directory: src-tauri

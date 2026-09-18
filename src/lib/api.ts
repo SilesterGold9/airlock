@@ -9,6 +9,13 @@ export const api = {
   updateProblemNotes: (problemId: string, notesMd: string) =>
     invoke<void>("update_problem_notes", { problemId, notesMd }),
 
+  runSolution: (args: { problemId: string; language: "cpp" | "java"; sourceCode: string }) =>
+    invoke<JudgeReport>("run_solution", {
+      problemId: args.problemId,
+      language: args.language,
+      sourceCode: args.sourceCode,
+    }),
+
   submitSolution: (args: {
     problemId: string;
     language: "cpp" | "java";

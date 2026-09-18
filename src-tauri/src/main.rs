@@ -49,6 +49,7 @@ fn main() {
             commands::save_problem,
             commands::update_problem_notes,
             commands::submit_solution,
+            commands::run_solution,
             commands::create_contest,
             commands::run_stress_test,
             commands::list_submissions,

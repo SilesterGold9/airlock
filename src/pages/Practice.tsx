@@ -81,6 +81,8 @@ export default function Practice() {
   const [balloonTrigger, setBalloonTrigger] = useState(0);
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [submitSeq, setSubmitSeq] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [lastWasSubmit, setLastWasSubmit] = useState(true);
   const [hintsRevealed, setHintsRevealed] = useState(0);
   const [setMode, setSetMode] = useState(false);
   const [setPicks, setSetPicks] = useState<TrainingSet | null>(null);
@@ -167,9 +169,10 @@ export default function Practice() {
     : 0;
 
   async function handleSubmit() {
-    if (!selected || judging) return;
+    if (!selected || judging || running) return;
     setJudging(true);
     setReport(null);
+    setLastWasSubmit(true);
     setSubmitSeq((v) => v + 1);
     try {
       const result = await api.submitSolution({
@@ -192,6 +195,27 @@ export default function Practice() {
       setJudging(false);
       setReimplHideNotesFor(null);
       void refreshDue();
+    }
+  }
+
+  async function handleRun() {
+    if (!selected || judging || running) return;
+    setRunning(true);
+    setReport(null);
+    try {
+      const result = await api.runSolution({
+        problemId: selected.id,
+        language,
+        sourceCode: code,
+      });
+      setReport(result);
+      setLastWasSubmit(false);
+      setConsoleTab("result");
+      setConsoleOpen(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRunning(false);
     }
   }
 
@@ -320,10 +344,29 @@ export default function Practice() {
         <ToolButton title={t("workspace.shuffle")} onClick={shuffleProblem} disabled={problems.length < 2}>
           <Icon d={ICONS.shuffle} />
         </ToolButton>
-        <div className="absolute left-1/2 -translate-x-1/2">
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+          <Button
+            onClick={handleRun}
+            disabled={judging || running || !selected}
+            variant="ghost"
+            size="md"
+            className="h-8 px-3 gap-1.5"
+            title={t("workspace.runHint")}
+          >
+            {running ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
+                <path d="M21 12a9 9 0 1 1-6.2-8.56" />
+              </svg>
+            ) : (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+            {t("workspace.run")}
+          </Button>
           <Button
             onClick={handleSubmit}
-            disabled={judging || !selected}
+            disabled={judging || running || !selected}
             variant="success"
             size="md"
             className="h-8 px-5 gap-1.5"
@@ -809,9 +852,9 @@ export default function Practice() {
                                         </div>
                                       </div>
                                     </div>
-                                    {!isAC && (
-                                      <FailureChips problemId={selected.id} attemptKey={submitSeq} />
-                                    )}
+                            {!isAC && lastWasSubmit && (
+                              <FailureChips problemId={selected.id} attemptKey={submitSeq} />
+                            )}
                                     {isCE ? (
                                       <div className="mt-3">
                                         <div className="text-xs font-semibold text-foreground mb-1">

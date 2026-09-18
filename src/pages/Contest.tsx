@@ -54,6 +54,8 @@ export default function Contest() {
   const [activeContestId, setActiveContestId] = useState<string | null>(null);
   const [balloonTrigger, setBalloonTrigger] = useState(0);
   const [submitSeq, setSubmitSeq] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [lastWasSubmit, setLastWasSubmit] = useState(true);
   const [panelTab, setPanelTab] = useState<ContestTabId>("description");
   const [consoleOpen, setConsoleOpen] = useState(true);
   const [consoleTab, setConsoleTab] = useState<"testcase" | "result">("testcase");
@@ -169,9 +171,10 @@ export default function Contest() {
   }
 
   async function handleSubmit() {
-    if (!current || judging) return;
+    if (!current || judging || running) return;
     setJudging(true);
     setReport(null);
+    setLastWasSubmit(true);
     setSubmitSeq((v) => v + 1);
     const isUpsolve = ended && !viewingHistory;
     try {
@@ -203,6 +206,27 @@ export default function Contest() {
       console.error(e);
     } finally {
       setJudging(false);
+    }
+  }
+
+  async function handleRun() {
+    if (!current || judging || running) return;
+    setRunning(true);
+    setReport(null);
+    try {
+      const result = await api.runSolution({
+        problemId: current.id,
+        language,
+        sourceCode: code,
+      });
+      setReport(result);
+      setLastWasSubmit(false);
+      setConsoleTab("result");
+      setConsoleOpen(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRunning(false);
     }
   }
 
@@ -290,7 +314,7 @@ export default function Contest() {
               {contests.map((c) => {
                 const started = c.started_at ? new Date(c.started_at).toLocaleString() : "unknown";
                 return (
-                  <li key={c.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card hover:bg-white/[0.04] transition-colors">
+                  <li key={c.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-white/[0.04] transition-colors">
                     <div className="min-w-0">
                       <div className="text-sm font-medium truncate">{c.name}</div>
                       <div className="text-xs text-muted-foreground">
@@ -352,12 +376,31 @@ export default function Contest() {
             );
           })}
         </div>
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+          <Button
+            onClick={handleRun}
+            disabled={judging || running || !current}
+            variant="ghost"
+            size="md"
+            className="h-8 px-3 gap-1.5 hidden sm:inline-flex"
+            title={t("workspace.runHint")}
+          >
+            {running ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
+                <path d="M21 12a9 9 0 1 1-6.2-8.56" />
+              </svg>
+            ) : (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+            {t("workspace.run")}
+          </Button>
           <Timer durationMinutes={durationMinutes} onExpire={() => setEnded(true)} compact />
           {ended && <span className="text-xs text-tle font-medium hidden sm:inline">{t("contest.timesUp")}</span>}
           <Button
             onClick={handleSubmit}
-            disabled={judging || !current}
+            disabled={judging || running || !current}
             variant="success"
             size="md"
             className="h-8 px-5 gap-1.5"
@@ -694,7 +737,7 @@ export default function Contest() {
                                         </div>
                                       </div>
                                     </div>
-                                    {!isAC && (
+                                    {!isAC && lastWasSubmit && (
                                       <FailureChips problemId={current.id} attemptKey={submitSeq} />
                                     )}
                                     {isCE ? (

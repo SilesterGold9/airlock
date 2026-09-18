@@ -15,6 +15,34 @@ pub struct AppState {
     pub conn: Mutex<Connection>,
 }
 
+fn load_tests_for_judge(
+    state: &State<AppState>,
+    problem_id: &str,
+) -> Result<(Vec<crate::models::TestCase>, u64), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let tests = db::get_tests(&conn, problem_id).map_err(|e| e.to_string())?;
+    let problems = db::list_problems(&conn).map_err(|e| e.to_string())?;
+    let tl = problems
+        .iter()
+        .find(|p| p.id == problem_id)
+        .map(|p| p.time_limit_ms)
+        .unwrap_or(2000);
+    Ok((tests, tl))
+}
+
+/// Same as submit_solution but logs nothing: quick check against the tests
+/// without touching submission history, statuses, or schedules.
+#[tauri::command]
+pub fn run_solution(
+    state: State<AppState>,
+    problem_id: String,
+    language: String,
+    source_code: String,
+) -> Result<JudgeReport, String> {
+    let (tests, time_limit_ms) = load_tests_for_judge(&state, &problem_id)?;
+    judge::run_judge(&language, &source_code, &tests, time_limit_ms)
+}
+
 #[tauri::command]
 pub fn list_problems(state: State<AppState>) -> Result<Vec<Problem>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -61,17 +89,7 @@ pub fn submit_solution(
     context: SubmissionContext,
     hints_revealed: Option<u8>,
 ) -> Result<JudgeReport, String> {
-    let (tests, time_limit_ms) = {
-        let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        let tests = db::get_tests(&conn, &problem_id).map_err(|e| e.to_string())?;
-        let problems = db::list_problems(&conn).map_err(|e| e.to_string())?;
-        let tl = problems
-            .iter()
-            .find(|p| p.id == problem_id)
-            .map(|p| p.time_limit_ms)
-            .unwrap_or(2000);
-        (tests, tl)
-    };
+    let (tests, time_limit_ms) = load_tests_for_judge(&state, &problem_id)?;
 
     let report = judge::run_judge(&language, &source_code, &tests, time_limit_ms)?;
 

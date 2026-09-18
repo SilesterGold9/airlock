@@ -333,6 +333,8 @@
   "workspace.notesHidden": "Notas ocultas enquanto você reimplementa de memória. Voltam após submeter.",
   "workspace.collapseConsole": "Recolher console",
   "workspace.expandConsole": "Expandir console",
+  "workspace.run": "Executar",
+  "workspace.runHint": "Roda nos testes sem registrar submission",
   "welcome.stepOf": "Passo {n} de {total}",
   "welcome.pathTitle": "Como você está chegando?",
   "welcome.pathSub": "Dois caminhos, mesmo app. Escolha o que parece você.",

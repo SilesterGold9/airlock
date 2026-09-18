@@ -333,6 +333,8 @@
   "workspace.notesHidden": "Notes stay hidden while you reimplement from memory. They return after you submit.",
   "workspace.collapseConsole": "Collapse console",
   "workspace.expandConsole": "Expand console",
+  "workspace.run": "Run",
+  "workspace.runHint": "Run against the tests without logging a submission",
   "welcome.stepOf": "Step {n} of {total}",
   "welcome.pathTitle": "How are you arriving?",
   "welcome.pathSub": "Two paths, same app. Pick the one that looks like you.",

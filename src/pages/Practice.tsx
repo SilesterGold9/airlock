@@ -164,9 +164,9 @@ export default function Practice() {
                 <div className="text-xs text-muted-foreground mb-4 tabular-nums">
                   {t("practice.timeLimit")}: {selected.time_limit_ms}ms · {t("practice.memory")}: {selected.memory_limit_mb}MB
                 </div>
-                <Card className="p-5 bg-card/50 backdrop-blur-sm border-border/50">
+                <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-5 backdrop-blur-sm">
                   <ProblemStatement content={selected.statement_md} />
-                </Card>
+                </div>
 
                 <Card className="mt-6">
                   <button

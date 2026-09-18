@@ -386,9 +386,9 @@ export default function Contest() {
                 <div className="text-xs text-muted-foreground mb-4 tabular-nums">
                   {t("practice.timeLimit")}: {current.time_limit_ms}ms · {t("practice.memory")}: {current.memory_limit_mb}MB
                 </div>
-                <Card className="p-5 bg-card/50 backdrop-blur-sm border-border/50">
+                <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-5 backdrop-blur-sm">
                   <ProblemStatement content={current.statement_md} />
-                </Card>
+                </div>
               </div>
             }
             right={

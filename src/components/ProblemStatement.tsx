@@ -26,11 +26,37 @@ function preprocess(content: string): string {
   return s;
 }
 
+function isInputOutput(text: string) {
+  const t = text.trim().toLowerCase();
+  return t === "input" || t === "output";
+}
+
 export default function ProblemStatement({ content }: Props) {
   const processed = preprocess(content);
   return (
-    <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-p:text-foreground/90 prose-p:text-sm prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground prose-strong:text-foreground prose-strong:font-semibold prose-a:text-brand prose-a:no-underline hover:prose-a:underline prose-code:text-brand prose-code:bg-white/[0.06] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:font-medium prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#0a0f1f] prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto prose-pre:text-xs prose-blockquote:border-l-2 prose-blockquote:border-brand/50 prose-blockquote:bg-brand/5 prose-blockquote:px-4 prose-blockquote:py-2 prose-blockquote:rounded-r-lg prose-blockquote:text-muted-foreground prose-ul:list-disc prose-ol:list-decimal prose-li:marker:text-muted-foreground prose-li:text-sm prose-table:border-collapse prose-th:bg-white/[0.04] prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-xs prose-th:font-semibold prose-th:border prose-th:border-border prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-border prose-td:text-sm prose-hr:border-white/[0.06]">
-      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+    <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-p:text-foreground/80 prose-p:text-sm prose-p:mb-3 prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground prose-strong:text-foreground prose-strong:font-semibold prose-a:text-brand prose-a:no-underline hover:prose-a:underline prose-code:text-brand prose-code:bg-white/[0.06] prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:font-medium prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#0a0f1f] prose-pre:border prose-pre:border-white/[0.06] prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto prose-pre:text-xs prose-blockquote:border-l-2 prose-blockquote:border-brand/50 prose-blockquote:bg-brand/5 prose-blockquote:px-4 prose-blockquote:py-2 prose-blockquote:rounded-r-lg prose-blockquote:text-muted-foreground prose-ul:list-disc prose-ol:list-decimal prose-li:marker:text-muted-foreground prose-li:text-sm prose-li:mb-1 prose-table:border-collapse prose-th:bg-white/[0.04] prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-xs prose-th:font-semibold prose-th:border prose-th:border-white/[0.06] prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-white/[0.06] prose-td:text-sm prose-hr:border-white/[0.06] prose-h3:mt-6 prose-h3:mb-3">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          h3({ children }) {
+            const text = String(children);
+            if (isInputOutput(text)) {
+              const isInput = text.toLowerCase() === "input";
+              return (
+                <div className="not-prose flex items-center gap-2 mt-6 mb-3 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] border-l-2 border-l-brand/60">
+                  <span className={`w-6 h-6 rounded flex items-center justify-center text-xs ${isInput ? "bg-sky-500/20 text-sky-400" : "bg-emerald-500/20 text-emerald-400"}`}>
+                    {isInput ? "→" : "←"}
+                  </span>
+                  <span className="text-sm font-semibold tracking-tight">{text}</span>
+                  <span className="text-xs text-muted-foreground ml-1">{isInput ? "data to read" : "data to print"}</span>
+                </div>
+              );
+            }
+            return <h3>{children}</h3>;
+          },
+        }}
+      >
         {processed}
       </ReactMarkdown>
     </div>

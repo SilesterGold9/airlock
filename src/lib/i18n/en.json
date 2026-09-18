@@ -389,5 +389,18 @@
   "settings.tierNamesRequired": "Name all 8 tiers.",
   "settings.danger": "Danger zone",
   "settings.dataDir": "Database location",
-  "settings.dataDirHint": "Linux path shown — equivalent OS app-data folder on Windows/macOS. Back it up by copying the file."
+  "settings.dataDirHint": "Linux path shown — equivalent OS app-data folder on Windows/macOS. Back it up by copying the file.",
+  "settings.updates": "Updates",
+  "settings.currentVersion": "Current version",
+  "settings.check": "Check for updates",
+  "settings.checking": "Checking…",
+  "settings.upToDate": "You're up to date.",
+  "settings.available": "Version {v} available",
+  "settings.download": "Download and install",
+  "settings.downloading": "Downloading…",
+  "settings.ready": "Ready — restart to apply {v}",
+  "settings.restart": "Restart now",
+  "settings.failed": "Check failed. Try again later.",
+  "settings.devNote": "Updates work in the installed app, not in dev.",
+  "settings.lastCheck": "Last checked {date}"
 }

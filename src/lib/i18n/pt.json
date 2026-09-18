@@ -389,5 +389,18 @@
   "settings.tierNamesRequired": "Nomeie os 8 tiers.",
   "settings.danger": "Zona de perigo",
   "settings.dataDir": "Local do banco",
-  "settings.dataDirHint": "Caminho Linux mostrado — pasta app-data equivalente no Windows/macOS. Faça backup copiando o arquivo."
+  "settings.dataDirHint": "Caminho Linux mostrado — pasta app-data equivalente no Windows/macOS. Faça backup copiando o arquivo.",
+  "settings.updates": "Atualizações",
+  "settings.currentVersion": "Versão atual",
+  "settings.check": "Verificar atualizações",
+  "settings.checking": "Verificando…",
+  "settings.upToDate": "Você está atualizado.",
+  "settings.available": "Versão {v} disponível",
+  "settings.download": "Baixar e instalar",
+  "settings.downloading": "Baixando…",
+  "settings.ready": "Pronto — reinicie para aplicar {v}",
+  "settings.restart": "Reiniciar agora",
+  "settings.failed": "Falha ao verificar. Tente depois.",
+  "settings.devNote": "Atualizações funcionam no app instalado, não em dev.",
+  "settings.lastCheck": "Verificado {date}"
 }

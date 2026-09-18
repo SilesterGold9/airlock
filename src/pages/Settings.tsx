@@ -8,9 +8,26 @@ import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import { PanelTabs } from "../components/PanelTabs";
+import {
+  checkForUpdates,
+  downloadAndInstall,
+  formatBytes,
+  getAppVersion,
+  isTauriApp,
+  restartApp,
+} from "../lib/updater";
 import { useLocale, useT } from "../lib/i18n";
 
-type SettingsTab = "general" | "themes" | "data";
+type SettingsTab = "general" | "themes" | "data" | "updates";
+
+type UpdateUi =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "current" }
+  | { kind: "available"; version: string; notes: string | null }
+  | { kind: "downloading"; version: string; downloaded: number; total?: number }
+  | { kind: "ready"; version: string }
+  | { kind: "error" };
 
 const DEFAULT_TIER_NAMES = ["0", "1", "2", "3", "4", "5", "6", "7"];
 const DEFAULT_TIER_COLORS = ["#64748b", "#60a5fa", "#34d399", "#a3e635", "#facc15", "#fb923c", "#c084fc", "#eab308"];
@@ -40,6 +57,46 @@ export default function Settings() {
   const [subCount, setSubCount] = useState(0);
   const [clearing, setClearing] = useState(false);
 
+  const [appVersion, setAppVersion] = useState("");
+  const [lastCheck, setLastCheck] = useState<string | null>(() =>
+    localStorage.getItem("airlock.update.lastCheck")
+  );
+  const [updateUi, setUpdateUi] = useState<UpdateUi>({ kind: "idle" });
+
+  async function runUpdateCheck() {
+    setUpdateUi({ kind: "checking" });
+    try {
+      const result = await checkForUpdates();
+      const now = new Date().toISOString();
+      localStorage.setItem("airlock.update.lastCheck", now);
+      setLastCheck(now);
+      if (result.kind === "current") {
+        setAppVersion(result.version);
+        setUpdateUi({ kind: "current" });
+      } else {
+        setUpdateUi({ kind: "available", version: result.version, notes: result.notes });
+      }
+    } catch (e) {
+      console.error(e);
+      setUpdateUi({ kind: "error" });
+    }
+  }
+
+  async function runDownload() {
+    const current = updateUi;
+    if (current.kind !== "available") return;
+    setUpdateUi({ kind: "downloading", version: current.version, downloaded: 0 });
+    try {
+      await downloadAndInstall((downloaded, total) =>
+        setUpdateUi({ kind: "downloading", version: current.version, downloaded, total })
+      );
+      setUpdateUi({ kind: "ready", version: current.version });
+    } catch (e) {
+      console.error(e);
+      setUpdateUi({ kind: "error" });
+    }
+  }
+
   async function refreshThemes() {
     try {
       const [all, state] = await Promise.all([api.listRankThemes(), api.getRankState()]);
@@ -56,6 +113,13 @@ export default function Settings() {
       .listSubmissions()
       .then((s) => setSubCount(s.length))
       .catch(() => {});
+    void getAppVersion().then(setAppVersion).catch(() => setAppVersion("dev"));
+    if (isTauriApp) {
+      const last = localStorage.getItem("airlock.update.lastCheck");
+      if (!last || Date.now() - new Date(last).getTime() > 86400000) {
+        void runUpdateCheck();
+      }
+    }
   }, []);
 
   function handleSaveName() {
@@ -159,6 +223,7 @@ export default function Settings() {
             { id: "general", label: t("settings.general") },
             { id: "themes", label: t("settings.themes") },
             { id: "data", label: t("settings.data") },
+            { id: "updates", label: t("settings.updates") },
           ]}
         />
         <div className="p-5 space-y-5">
@@ -304,6 +369,83 @@ export default function Settings() {
                     </Button>
                   </div>
                 </Card>
+              )}
+            </div>
+          )}
+
+          {tab === "updates" && (
+            <div key="updates" className="space-y-4 animate-panel-in">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t("settings.currentVersion")}
+                </span>
+                <span className="text-sm font-mono tabular-nums">v{appVersion}</span>
+              </div>
+              {!isTauriApp ? (
+                <p className="text-xs text-muted-foreground leading-relaxed">{t("settings.devNote")}</p>
+              ) : updateUi.kind === "idle" || updateUi.kind === "checking" ? (
+                <Button size="sm" variant="secondary" disabled onClick={() => void runUpdateCheck()}>
+                  {updateUi.kind === "checking" ? t("settings.checking") : t("settings.check")}
+                </Button>
+              ) : updateUi.kind === "current" ? (
+                <div className="space-y-3">
+                  <div className="text-sm text-ac">{t("settings.upToDate")}</div>
+                  <Button size="sm" variant="secondary" onClick={() => void runUpdateCheck()}>
+                    {t("settings.check")}
+                  </Button>
+                </div>
+              ) : updateUi.kind === "available" ? (
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold">
+                    {t("settings.available").replace("{v}", updateUi.version)}
+                  </div>
+                  {updateUi.notes && (
+                    <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs whitespace-pre-wrap break-words max-h-40 overflow-auto">
+                      {updateUi.notes}
+                    </pre>
+                  )}
+                  <Button size="sm" onClick={() => void runDownload()}>
+                    {t("settings.download")}
+                  </Button>
+                </div>
+              ) : updateUi.kind === "downloading" ? (
+                <div className="space-y-2">
+                  <div className="text-sm tabular-nums">
+                    {t("settings.downloading")} {formatBytes(updateUi.downloaded)}
+                    {updateUi.total ? ` / ${formatBytes(updateUi.total)}` : ""}
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                      className="h-full bg-ac transition-all duration-200"
+                      style={{
+                        width: updateUi.total
+                          ? `${Math.min(100, (updateUi.downloaded / updateUi.total) * 100)}%`
+                          : "30%",
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : updateUi.kind === "ready" ? (
+                <div className="space-y-3">
+                  <div className="text-sm text-ac">
+                    {t("settings.ready").replace("{v}", updateUi.version)}
+                  </div>
+                  <Button size="sm" onClick={() => void restartApp()}>
+                    {t("settings.restart")}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-xs text-muted-foreground">{t("settings.failed")}</div>
+                  <Button size="sm" variant="secondary" onClick={() => void runUpdateCheck()}>
+                    {t("settings.check")}
+                  </Button>
+                </div>
+              )}
+              {lastCheck && (
+                <div className="text-[11px] text-muted-foreground tabular-nums">
+                  {t("settings.lastCheck").replace("{date}", new Date(lastCheck).toLocaleString())}
+                </div>
               )}
             </div>
           )}

@@ -92,42 +92,56 @@ export default function Practice() {
   return (
     <div className="flex h-full bg-background">
       <Balloons trigger={balloonTrigger} />
-      {/* Problem list */}
-      <aside className="w-72 border-r border-border overflow-y-auto p-3 shrink-0 bg-background">
-        <Select
-          className="w-full mb-3"
-          value={tagFilter}
-          onChange={(e) => setTagFilter(e.target.value)}
-        >
-          <option value="all">{t("practice.allTags")}</option>
-          {allTags.map((tag) => (
-            <option key={tag} value={tag}>
-              {tag}
-            </option>
-          ))}
-        </Select>
-        <ul className="space-y-0">
-          {visible.map((p) => (
-            <li key={p.id}>
-              <button
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm flex flex-col gap-1 border-b border-white/[0.04] last:border-0 transition-colors duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
-                  selected?.id === p.id ? "bg-white/[0.08] text-foreground" : "hover:bg-white/[0.04] text-foreground"
-                }`}
-                onClick={() => {
-                  setSelected(p);
-                  setReport(null);
-                  setCode("");
-                }}
-              >
-                <div className="font-medium leading-tight truncate">{p.title}</div>
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">{p.source}</span>
+      {/* Problem list — LeetCode table treatment */}
+      <aside className="w-80 border-r border-border overflow-y-auto shrink-0 bg-background flex flex-col">
+        <div className="p-3 border-b border-border/50 bg-card/20 backdrop-blur-sm sticky top-0 z-10">
+          <Select
+            className="w-full"
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
+          >
+            <option value="all">{t("practice.allTags")}</option>
+            {allTags.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </Select>
+          <div className="flex items-center justify-between mt-3 px-1">
+            <span className="text-xs font-medium text-muted-foreground tracking-wide uppercase">{visible.length} problems</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{problems.length} total</span>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-3 py-2 flex items-center text-xs font-medium text-muted-foreground tracking-wide uppercase border-b border-white/[0.04]">
+            <span className="flex-1">Title</span>
+            <span className="w-24 text-right">Difficulty</span>
+          </div>
+          <ul className="divide-y divide-white/[0.04]">
+            {visible.map((p) => (
+              <li key={p.id}>
+                <button
+                  className={`w-full text-left px-3 py-3 flex items-center gap-3 transition-all duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:translate-x-0.5 group ${
+                    selected?.id === p.id
+                      ? "bg-white/[0.06] border-l-2 border-l-brand"
+                      : "hover:bg-white/[0.03] border-l-2 border-l-transparent hover:border-l-white/[0.08]"
+                  }`}
+                  onClick={() => {
+                    setSelected(p);
+                    setReport(null);
+                    setCode("");
+                  }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm leading-tight truncate group-hover:text-foreground transition-colors">{p.title}</div>
+                    <div className="text-xs text-muted-foreground truncate mt-0.5">{p.source}</div>
+                  </div>
                   <DifficultyBadge difficulty={p.difficulty} />
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </aside>
 
       {/* Statement + editor */}

@@ -75,6 +75,20 @@ npm run tauri build
 
 Output lands in `src-tauri/target/release/bundle/`.
 
+## Setup (Windows)
+
+Tauri v2 needs the WebView2 runtime (ships with Windows 10/11, otherwise
+install it once from Microsoft) plus the Rust MSVC toolchain: install
+Visual Studio Build Tools with the C++ workload, then Rust via `rustup-init.exe`,
+then Node.js LTS. After that `npm install` and `npm run tauri dev` work the
+same as on Linux. No code changes needed.
+
+## Setup (macOS)
+
+Install the Xcode Command Line Tools (`xcode-select --install`), then Rust
+via rustup and Node.js LTS. After that `npm install` and `npm run tauri dev`
+work the same as on Linux. No code changes needed.
+
 ## What's already wired up
 
 - **Local judge** (`src-tauri/src/judge.rs`): compiles C++ (`g++ -O2 -std=c++17`)
@@ -137,3 +151,29 @@ Versioning is SemVer. Tags are `vMAJOR.MINOR.PATCH` and each Milestone groups th
   personal practice, not fine if you ever let anyone else's code run here.
 - Tags and difficulty are free-form; consider standardizing early (e.g. CF's
   800–3500 rating scale) so future stats/filtering stay meaningful.
+
+## Problem packs
+
+Share problems without sharing personal data. A pack is a directory with a
+`pack.json` manifest (`pack_name`, `techniques` as `id`+`name` only,
+`problem_files`) plus one JSON per problem. See `packs/week-1-implementation/`.
+
+```bash
+# Import a pack (keeps your local technique status/notes, adds missing techniques as NotStarted)
+python3 scripts/import_pack.py packs/week-1-implementation ~/.local/share/com.silvestre.airlock/airlock.sqlite
+
+# Export your DB into a shareable pack dir
+python3 scripts/export_pack.py ~/.local/share/com.silvestre.airlock/airlock.sqlite /tmp/my-pack --name "My Pack"
+```
+
+Export allowlist — problems: `id`, `title`, `statement_md`, `tags`,
+`difficulty`, `time_limit_ms`, `memory_limit_mb`, `source`, `tests` (`id`,
+`input`, `expected_output`), `brute_force_src`, `brute_force_lang`, `hints`,
+`primary_technique_id`; techniques: `id`, `name` only. Never exported:
+`notes_md`, submissions, contests, reimplementation state, technique
+status/notes/timestamps. The export script prints the allowlist plus counts
+so you can eyeball it before sharing.
+
+Note: the bundle id / `src-tauri/tauri.conf.json` identifier
+(`com.silvestre.airlock`) is intentionally unchanged — product decision.
+Sharing happens through packs, not through bundle changes.

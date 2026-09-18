@@ -1,0 +1,23 @@
+{
+  "id": "ab-sum",
+  "title": "A+B (sanity check)",
+  "statement_md": "Given two integers A and B on a single line, print their sum.\n\n**Input**\nOne line: `A B` (-10^9 <= A, B <= 10^9)\n\n**Output**\nA single integer: A + B.",
+  "tags": ["implementation", "warmup"],
+  "difficulty": 800,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "self-authored",
+  "tests": [
+    { "id": "ab-sum-1", "input": "2 3\n", "expected_output": "5\n" },
+    { "id": "ab-sum-2", "input": "-5 10\n", "expected_output": "5\n" },
+    { "id": "ab-sum-3", "input": "1000000000 1000000000\n", "expected_output": "2000000000\n" }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null,
+  "primary_technique_id": "implementation",
+  "hints": [
+    "Read two integers from a single line.",
+    "Print their sum followed by a newline.",
+    "Use 64-bit integers: values up to 1e9 fit in 32-bit, but their sum can overflow it in some languages."
+  ]
+}

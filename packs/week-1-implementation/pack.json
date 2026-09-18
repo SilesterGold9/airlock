@@ -1,0 +1,14 @@
+{
+  "pack_name": "Newbie Week 1 — Implementation Basics",
+  "techniques": [
+    {
+      "id": "implementation",
+      "name": "Implementation Basics"
+    },
+    {
+      "id": "prefix-sum",
+      "name": "Prefix Sum"
+    }
+  ],
+  "problem_files": ["ab-sum.json", "max-subarray-sum.json"]
+}

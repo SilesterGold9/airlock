@@ -41,6 +41,7 @@ export default function Titlebar() {
               onClick={minimize}
               className="w-8 h-8 flex items-center justify-center hover:bg-white/[0.06] rounded text-muted-foreground hover:text-foreground transition-colors"
               aria-label={t("titlebar.minimize")}
+              style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path d="M2 6H10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -50,6 +51,7 @@ export default function Titlebar() {
               onClick={maximize}
               className="w-8 h-8 flex items-center justify-center hover:bg-white/[0.06] rounded text-muted-foreground hover:text-foreground transition-colors"
               aria-label={t("titlebar.maximize")}
+              style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <rect x="2" y="2" width="8" height="8" stroke="currentColor" strokeWidth="1.2" rx="0.5" />
@@ -59,6 +61,7 @@ export default function Titlebar() {
               onClick={close}
               className="w-8 h-8 flex items-center justify-center hover:bg-wa/20 hover:text-wa rounded text-muted-foreground transition-colors"
               aria-label={t("titlebar.close")}
+              style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />

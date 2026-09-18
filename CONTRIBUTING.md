@@ -43,6 +43,15 @@ per verdict, keyboard-only walk (focus rings), PT toggle.
 
 ## Process
 
+- Work lands on `dev` (the default branch). `main` is releases only.
 - One commit per issue, message `type: short description (#NN)`.
+- To release: merge `dev` into `main`, bump `package.json` +
+  `src-tauri/Cargo.toml` + `src-tauri/tauri.conf.json` together, then
+  `git tag vX.Y.Z && git push origin main vX.Y.Z`. The tag opens a draft
+  release with signed installers — publish it and installed apps update
+  themselves.
+- CI (`ci.yml`) runs frontend build, `cargo check`, `cargo fmt --check`
+  and script compile on every push/PR. Keep it green; run `cargo fmt`
+  before pushing Rust changes.
 - No new dependencies without discussion in the issue first.
 - Never commit secrets, `__pycache__`, or `dist/`.

@@ -89,7 +89,11 @@ pub enum FailureCategory {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum SubmissionContext {
     Practice,
-    Contest { contest_id: String, #[serde(default)] upsolve: bool },
+    Contest {
+        contest_id: String,
+        #[serde(default)]
+        upsolve: bool,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -142,7 +146,7 @@ pub struct Technique {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ReimplementationSchedule {
     pub problem_id: String,
-    pub last_ac_at: String, // ISO 8601
+    pub last_ac_at: String,  // ISO 8601
     pub next_due_at: String, // ISO 8601
     pub completed_reimplementations: u32,
 }

@@ -2,8 +2,8 @@ use crate::db;
 use crate::judge;
 use crate::models::{
     Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, RankReflection, RankState,
-    RankTheme, ReimplementationSchedule, Submission, SubmissionContext, Technique,
-    TechniqueStatus, Verdict,
+    RankTheme, ReimplementationSchedule, Submission, SubmissionContext, Technique, TechniqueStatus,
+    Verdict,
 };
 use chrono::Utc;
 use rusqlite::Connection;
@@ -197,7 +197,10 @@ pub fn upsert_claim(
 }
 
 #[tauri::command]
-pub fn list_claims(state: State<AppState>, contest_id: String) -> Result<Vec<ProblemClaim>, String> {
+pub fn list_claims(
+    state: State<AppState>,
+    contest_id: String,
+) -> Result<Vec<ProblemClaim>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::list_claims(&conn, &contest_id).map_err(|e| e.to_string())
 }

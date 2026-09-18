@@ -23,7 +23,12 @@ fn main() {
             let db_path = app_dir.join("airlock.sqlite");
             // migrate from old identifier com.silvestre.cptrainer if needed
             if !db_path.exists() {
-                if let Some(old_dir) = app.path().app_data_dir().ok().and_then(|p| p.parent().map(|pp| pp.join("com.silvestre.cptrainer"))) {
+                if let Some(old_dir) = app
+                    .path()
+                    .app_data_dir()
+                    .ok()
+                    .and_then(|p| p.parent().map(|pp| pp.join("com.silvestre.cptrainer")))
+                {
                     let old_path = old_dir.join("cp-trainer.sqlite");
                     if old_path.exists() {
                         let _ = std::fs::create_dir_all(old_dir.parent().unwrap_or(&app_dir));

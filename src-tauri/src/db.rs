@@ -101,10 +101,19 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
         ",
     )?;
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN notes_md TEXT", []);
-    let _ = conn.execute("ALTER TABLE problems ADD COLUMN primary_technique_id TEXT", []);
+    let _ = conn.execute(
+        "ALTER TABLE problems ADD COLUMN primary_technique_id TEXT",
+        [],
+    );
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN hints TEXT", []);
-    let _ = conn.execute("ALTER TABLE submissions ADD COLUMN failure_category TEXT", []);
-    let _ = conn.execute("ALTER TABLE submissions ADD COLUMN hints_revealed INTEGER", []);
+    let _ = conn.execute(
+        "ALTER TABLE submissions ADD COLUMN failure_category TEXT",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE submissions ADD COLUMN hints_revealed INTEGER",
+        [],
+    );
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN team_members TEXT", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN driver TEXT", []);
     seed_rank_tables(&conn).ok();
@@ -132,7 +141,10 @@ pub fn insert_problem(conn: &Connection, p: &Problem) -> SqlResult<()> {
             serde_json::to_string(&p.hints).unwrap(),
         ],
     )?;
-    conn.execute("DELETE FROM test_cases WHERE problem_id = ?1", params![p.id])?;
+    conn.execute(
+        "DELETE FROM test_cases WHERE problem_id = ?1",
+        params![p.id],
+    )?;
     for t in &p.tests {
         conn.execute(
             "INSERT INTO test_cases (id, problem_id, input, expected_output) VALUES (?1, ?2, ?3, ?4)",
@@ -194,7 +206,11 @@ pub fn update_technique_status(
     )? as usize)
 }
 
-pub fn update_technique_notes(conn: &Connection, technique_id: &str, notes_md: &str) -> SqlResult<()> {
+pub fn update_technique_notes(
+    conn: &Connection,
+    technique_id: &str,
+    notes_md: &str,
+) -> SqlResult<()> {
     conn.execute(
         "UPDATE techniques SET notes_md = ?1 WHERE id = ?2",
         params![notes_md, technique_id],
@@ -204,7 +220,11 @@ pub fn update_technique_notes(conn: &Connection, technique_id: &str, notes_md: &
 
 /// Records that a reassessment happened (e.g. a recall session) without
 /// changing the status itself.
-pub fn touch_technique(conn: &Connection, technique_id: &str, updated_at: &str) -> SqlResult<usize> {
+pub fn touch_technique(
+    conn: &Connection,
+    technique_id: &str,
+    updated_at: &str,
+) -> SqlResult<usize> {
     Ok(conn.execute(
         "UPDATE techniques SET status_updated_at = ?1 WHERE id = ?2",
         params![updated_at, technique_id],
@@ -312,7 +332,9 @@ pub fn list_problems(conn: &Connection) -> SqlResult<Vec<Problem>> {
             brute_force_lang: row.get(9)?,
             notes_md: row.get(10)?,
             primary_technique_id: row.get(11).ok().flatten(),
-            hints: hints_json.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default(),
+            hints: hints_json
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .unwrap_or_default(),
             tests: vec![], // populated separately via get_tests
         })
     })?;
@@ -400,7 +422,9 @@ pub fn list_contests(conn: &Connection) -> SqlResult<Vec<Contest>> {
             duration_minutes: row.get::<_, i64>(3)? as u32,
             started_at: row.get(4)?,
             penalty_minutes: row.get::<_, i64>(5)? as u32,
-            team_members: team_json.and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default(),
+            team_members: team_json
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .unwrap_or_default(),
             driver: row.get(7)?,
         })
     })?;
@@ -431,7 +455,10 @@ pub fn list_claims(conn: &Connection, contest_id: &str) -> SqlResult<Vec<Problem
 }
 
 pub fn clear_claims(conn: &Connection, contest_id: &str) -> SqlResult<()> {
-    conn.execute("DELETE FROM problem_claims WHERE contest_id = ?1", params![contest_id])?;
+    conn.execute(
+        "DELETE FROM problem_claims WHERE contest_id = ?1",
+        params![contest_id],
+    )?;
     Ok(())
 }
 
@@ -451,7 +478,8 @@ pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
             source_code: row.get(3)?,
             verdict: str_to_verdict(&verdict_str),
             submitted_at: row.get(5)?,
-            context: serde_json::from_str(&context_json).unwrap_or(crate::models::SubmissionContext::Practice),
+            context: serde_json::from_str(&context_json)
+                .unwrap_or(crate::models::SubmissionContext::Practice),
             failure_category: failure_str.map(|s| str_to_failure_category(&s)),
             hints_revealed,
         })
@@ -459,7 +487,10 @@ pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
     rows.collect()
 }
 
-pub fn list_submissions_by_problem(conn: &Connection, problem_id: &str) -> SqlResult<Vec<Submission>> {
+pub fn list_submissions_by_problem(
+    conn: &Connection,
+    problem_id: &str,
+) -> SqlResult<Vec<Submission>> {
     let mut stmt = conn.prepare(
         "SELECT id, problem_id, language, source_code, verdict, submitted_at, context, failure_category, hints_revealed FROM submissions WHERE problem_id = ?1 ORDER BY submitted_at DESC",
     )?;
@@ -475,7 +506,8 @@ pub fn list_submissions_by_problem(conn: &Connection, problem_id: &str) -> SqlRe
             source_code: row.get(3)?,
             verdict: str_to_verdict(&verdict_str),
             submitted_at: row.get(5)?,
-            context: serde_json::from_str(&context_json).unwrap_or(crate::models::SubmissionContext::Practice),
+            context: serde_json::from_str(&context_json)
+                .unwrap_or(crate::models::SubmissionContext::Practice),
             failure_category: failure_str.map(|s| str_to_failure_category(&s)),
             hints_revealed,
         })

@@ -13,6 +13,8 @@
     "@monaco-editor/react": "^4.6.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.11.0",
     "katex": "^0.18.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

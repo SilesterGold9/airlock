@@ -310,24 +310,24 @@ export default function Practice() {
                                   <details
                                     key={r.test_id}
                                     open={isFail}
-                                    className="bg-background rounded-lg border border-border open:border-border animate-fade-in"
+                                    className="bg-white/[0.015] rounded-lg border border-white/[0.04] open:border-white/[0.06] open:bg-white/[0.02] animate-fade-in"
                                   >
                                     <summary className="flex items-center justify-between px-3 py-2 cursor-pointer list-none">
-                                      <span className="text-sm font-medium">{t("practice.test")} {i + 1}</span>
+                                      <span className="text-xs font-medium tracking-wide uppercase text-muted-foreground">{t("practice.test")} {i + 1}</span>
                                       <span className="flex items-center gap-2">
                                         <span className="text-xs text-muted-foreground tabular-nums">{r.time_ms}ms</span>
                                         <VerdictBadge verdict={r.verdict} />
                                       </span>
                                     </summary>
-                                    <div className="px-3 pb-3 pt-2 border-t border-border">
+                                    <div className="px-3 pb-3 pt-2 border-t border-white/[0.04]">
                                       <div className="text-xs text-muted-foreground mb-1">
                                         {t(infoR.long)}: {t(infoR.description)}
                                       </div>
                                       {test && (
                                         <div className="grid gap-3 mt-2">
                                           <div>
-                                            <div className="text-xs font-semibold text-foreground mb-1">{t("common.input")}</div>
-                                            <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-border font-mono">
+                                            <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">{t("common.input")}</div>
+                                            <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
                                               {test.input || t("common.empty")}
                                             </pre>
                                           </div>
@@ -336,17 +336,17 @@ export default function Practice() {
                                           ) : (
                                             <>
                                               <div>
-                                                <div className="text-xs font-semibold text-foreground mb-1">{t("common.expectedOutput")}</div>
-                                                <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-border font-mono">
+                                                <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">{t("common.expectedOutput")}</div>
+                                                <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
                                                   {test.expected_output || t("common.empty")}
                                                 </pre>
                                               </div>
                                               {r.actual_output != null && (
                                                 <div>
-                                                  <div className="text-xs font-semibold text-foreground mb-1">{t("common.yourOutput")}</div>
+                                                  <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">{t("common.yourOutput")}</div>
                                                   <pre
                                                     className={`rounded-md p-2 text-xs whitespace-pre-wrap break-words border font-mono ${
-                                                      isFail ? "bg-wa/10 border-wa/30" : "bg-black/40 border-border"
+                                                      isFail ? "bg-wa/[0.04] border-wa/20" : "bg-white/[0.02] border-white/[0.04]"
                                                     }`}
                                                   >
                                                     {r.actual_output || t("common.noOutput")}
@@ -357,8 +357,8 @@ export default function Practice() {
                                           )}
                                           {r.message && (
                                             <div>
-                                              <div className="text-xs font-semibold text-foreground mb-1">{t("practice.runtimeOutput")}</div>
-                                              <pre className="bg-re/10 border border-re/30 rounded-md p-2 text-xs whitespace-pre-wrap break-words font-mono">
+                                              <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">{t("practice.runtimeOutput")}</div>
+                                              <pre className="bg-re/[0.04] border border-re/20 rounded-md p-2 text-xs whitespace-pre-wrap break-words font-mono">
                                                 {r.message}
                                               </pre>
                                             </div>

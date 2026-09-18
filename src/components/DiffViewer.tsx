@@ -29,7 +29,7 @@ function highlightLine(line: string, other: string, isExpected: boolean, t: (k: 
   return (
     <span>
       <span>{before}</span>
-      <span className={isExpected ? "bg-wa/20 text-wa" : "bg-ac/20 text-ac"}>{middle || "∅"}</span>
+      <span className={isExpected ? "bg-wa/[0.08] text-wa" : "bg-ac/[0.08] text-ac"}>{middle || "∅"}</span>
       <span>{after}</span>
       {line.length === 0 && <span className="text-muted-foreground italic">{t("diff.emptyLine")}</span>}
     </span>
@@ -44,28 +44,28 @@ export default function DiffViewer({ expected, actual }: DiffViewerProps) {
   const hasDiff = expected !== actual;
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <div className="grid grid-cols-2 text-xs font-semibold bg-card border-b border-border">
-        <div className="px-3 py-1.5 border-r border-border flex items-center gap-2">
-          <span>{t("diff.expected")}</span>
-          <span className="text-muted-foreground font-normal">{expLines.length} {t("diff.lines")}</span>
+    <div className="border border-white/[0.04] rounded-lg overflow-hidden bg-white/[0.015]">
+      <div className="grid grid-cols-2 text-xs font-medium tracking-wide uppercase bg-white/[0.02] border-b border-white/[0.04]">
+        <div className="px-3 py-1.5 border-r border-white/[0.04] flex items-center gap-2">
+          <span className="text-muted-foreground">{t("diff.expected")}</span>
+          <span className="text-muted-foreground/60 font-normal normal-case">{expLines.length} {t("diff.lines")}</span>
         </div>
         <div className="px-3 py-1.5 flex items-center gap-2">
-          <span>{t("diff.yourOutput")}</span>
-          <span className="text-muted-foreground font-normal">{actLines.length} {t("diff.lines")}</span>
-          {hasDiff && <span className="ml-auto text-wa">{t("diff.diffBadge")}</span>}
+          <span className="text-muted-foreground">{t("diff.yourOutput")}</span>
+          <span className="text-muted-foreground/60 font-normal normal-case">{actLines.length} {t("diff.lines")}</span>
+          {hasDiff && <span className="ml-auto text-wa/70 normal-case">{t("diff.diffBadge")}</span>}
         </div>
       </div>
-      <div className="grid grid-cols-2 max-h-64 overflow-auto text-xs font-mono">
-        <div className="border-r border-border">
+      <div className="grid grid-cols-2 max-h-64 overflow-auto text-xs font-mono divide-x divide-white/[0.04]">
+        <div>
           {Array.from({ length: maxLines }).map((_, i) => {
             const exp = expLines[i] ?? "";
             const act = actLines[i] ?? "";
             const isDiff = exp !== act;
             const exists = i < expLines.length;
             return (
-              <div key={i} className={`flex px-2 py-0.5 ${isDiff ? "bg-wa/10" : ""} ${!exists ? "opacity-30" : ""}`}>
-                <span className="w-6 text-muted-foreground select-none text-right mr-2">{i + 1}</span>
+              <div key={i} className={`flex px-2 py-0.5 ${isDiff ? "bg-wa/[0.04]" : ""} ${!exists ? "opacity-30" : ""}`}>
+                <span className="w-6 text-muted-foreground/60 select-none text-right mr-2 text-xs">{i + 1}</span>
                 <span className="flex-1 whitespace-pre-wrap break-words">
                   {exists ? (isDiff ? highlightLine(exp, act, true, t) : <span>{exp || " "}</span>) : <span className="text-muted-foreground italic">{t("diff.noLine")}</span>}
                 </span>
@@ -80,8 +80,8 @@ export default function DiffViewer({ expected, actual }: DiffViewerProps) {
             const isDiff = exp !== act;
             const exists = i < actLines.length;
             return (
-              <div key={i} className={`flex px-2 py-0.5 ${isDiff ? "bg-ac/10" : ""} ${!exists ? "opacity-30" : ""}`}>
-                <span className="w-6 text-muted-foreground select-none text-right mr-2">{i + 1}</span>
+              <div key={i} className={`flex px-2 py-0.5 ${isDiff ? "bg-ac/[0.04]" : ""} ${!exists ? "opacity-30" : ""}`}>
+                <span className="w-6 text-muted-foreground/60 select-none text-right mr-2 text-xs">{i + 1}</span>
                 <span className="flex-1 whitespace-pre-wrap break-words">
                   {exists ? (isDiff ? highlightLine(act, exp, false, t) : <span>{act || " "}</span>) : <span className="text-muted-foreground italic">{t("diff.noLine")}</span>}
                 </span>
@@ -90,7 +90,7 @@ export default function DiffViewer({ expected, actual }: DiffViewerProps) {
           })}
         </div>
       </div>
-      <div className="px-3 py-2 bg-card/50 border-t border-border text-xs text-muted-foreground">
+      <div className="px-3 py-2 bg-white/[0.02] border-t border-white/[0.04] text-xs text-muted-foreground/70">
         {t("diff.comparisonHint")}
       </div>
     </div>

@@ -42,14 +42,13 @@ export default function ProblemStatement({ content }: Props) {
           h3({ children }) {
             const text = String(children);
             if (isInputOutput(text)) {
-              const isInput = text.toLowerCase() === "input";
               return (
-                <div className="not-prose flex items-center gap-2 mt-6 mb-3 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] border-l-2 border-l-brand/60">
-                  <span className={`w-6 h-6 rounded flex items-center justify-center text-xs ${isInput ? "bg-sky-500/20 text-sky-400" : "bg-emerald-500/20 text-emerald-400"}`}>
-                    {isInput ? "→" : "←"}
+                <div className="not-prose flex items-center gap-2 mt-6 mb-2 px-3 py-1.5 rounded-md bg-white/[0.015] border border-white/[0.04]">
+                  <span className="w-5 h-5 rounded flex items-center justify-center text-xs bg-white/[0.04] text-muted-foreground">
+                    {text.toLowerCase() === "input" ? "→" : "←"}
                   </span>
-                  <span className="text-sm font-semibold tracking-tight">{text}</span>
-                  <span className="text-xs text-muted-foreground ml-1">{isInput ? "data to read" : "data to print"}</span>
+                  <span className="text-xs font-medium tracking-wide uppercase text-muted-foreground">{text}</span>
+                  <span className="text-xs text-muted-foreground/60 ml-1">{text.toLowerCase() === "input" ? "· stdin" : "· stdout"}</span>
                 </div>
               );
             }

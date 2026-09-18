@@ -1,6 +1,7 @@
 {
   "nav.practice": "Practice",
   "nav.techniques": "Techniques",
+  "nav.recall": "Recall",
   "nav.contest": "Contest",
   "nav.stress": "Stress",
   "nav.import": "Import",
@@ -239,5 +240,23 @@
   "techniques.status.NotStarted": "Not started",
   "techniques.status.Learning": "Learning",
   "techniques.status.Assimilated": "Assimilated",
-  "techniques.status.Rusty": "Rusty"
+  "techniques.status.Rusty": "Rusty",
+  "recall.title": "Recall mode",
+  "recall.subtitle": "Reimplement a technique from memory. No statement, no hints, no notes until you finish.",
+  "recall.technique": "Technique",
+  "recall.duration": "Timer (minutes)",
+  "recall.start": "Start recall",
+  "recall.empty": "No techniques yet. Add some in",
+  "recall.finish": "Finish",
+  "recall.compareHint": "Compare against your own notes, then grade yourself honestly.",
+  "recall.yourCode": "Your reconstruction",
+  "recall.yourNotes": "Your notes",
+  "recall.noNotes": "No notes written for this technique.",
+  "recall.reconstructed": "Reconstructed it",
+  "recall.partial": "Partially",
+  "recall.blocked": "Blocked",
+  "recall.recorded": "Recorded.",
+  "recall.markAssimilated": "Mark as Assimilated again?",
+  "recall.confirmAssimilated": "Mark Assimilated",
+  "recall.again": "Recall another"
 }

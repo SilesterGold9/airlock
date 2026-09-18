@@ -1,6 +1,7 @@
 {
   "nav.practice": "Praticar",
   "nav.techniques": "Técnicas",
+  "nav.recall": "Relembrar",
   "nav.contest": "Contest",
   "nav.stress": "Stress",
   "nav.import": "Importar",
@@ -239,5 +240,23 @@
   "techniques.status.NotStarted": "Não iniciada",
   "techniques.status.Learning": "Aprendendo",
   "techniques.status.Assimilated": "Assimilada",
-  "techniques.status.Rusty": "Enferrujada"
+  "techniques.status.Rusty": "Enferrujada",
+  "recall.title": "Modo relembrar",
+  "recall.subtitle": "Reimplemente uma técnica de memória. Sem enunciado, sem dicas, sem notas até terminar.",
+  "recall.technique": "Técnica",
+  "recall.duration": "Timer (minutos)",
+  "recall.start": "Começar",
+  "recall.empty": "Sem técnicas ainda. Adicione em",
+  "recall.finish": "Terminar",
+  "recall.compareHint": "Compare com suas notas e se avalie com honestidade.",
+  "recall.yourCode": "Sua reconstrução",
+  "recall.yourNotes": "Suas notas",
+  "recall.noNotes": "Sem notas para essa técnica.",
+  "recall.reconstructed": "Reconstruí",
+  "recall.partial": "Parcialmente",
+  "recall.blocked": "Travei",
+  "recall.recorded": "Registrado.",
+  "recall.markAssimilated": "Marcar como Assimilada de novo?",
+  "recall.confirmAssimilated": "Marcar assimilada",
+  "recall.again": "Relembrar outra"
 }

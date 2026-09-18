@@ -166,6 +166,15 @@ pub fn update_technique_notes(conn: &Connection, technique_id: &str, notes_md: &
     Ok(())
 }
 
+/// Records that a reassessment happened (e.g. a recall session) without
+/// changing the status itself.
+pub fn touch_technique(conn: &Connection, technique_id: &str, updated_at: &str) -> SqlResult<usize> {
+    Ok(conn.execute(
+        "UPDATE techniques SET status_updated_at = ?1 WHERE id = ?2",
+        params![updated_at, technique_id],
+    )? as usize)
+}
+
 pub fn bulk_update_technique_status(
     conn: &Connection,
     technique_ids: &[String],

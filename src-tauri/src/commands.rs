@@ -271,7 +271,19 @@ pub fn classify_submission(
 }
 
 #[tauri::command]
-pub fn clear_submissions(state: State<AppState>) -> Result<usize, String> {    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+pub fn touch_technique(state: State<AppState>, technique_id: String) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let updated = db::touch_technique(&conn, &technique_id, &Utc::now().to_rfc3339())
+        .map_err(|e| e.to_string())?;
+    if updated == 0 {
+        return Err("technique not found".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn clear_submissions(state: State<AppState>) -> Result<usize, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::clear_submissions(&conn).map_err(|e| e.to_string())
 }
 

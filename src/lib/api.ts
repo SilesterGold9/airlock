@@ -86,4 +86,7 @@ export const api = {
 
   classifySubmission: (problemId: string, failureCategory: FailureCategory) =>
     invoke<void>("classify_submission", { problemId, failureCategory }),
+
+  touchTechnique: (techniqueId: string) =>
+    invoke<void>("touch_technique", { techniqueId }),
 };

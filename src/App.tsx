@@ -5,6 +5,7 @@ import Stress from "./pages/Stress";
 import Import from "./pages/Import";
 import History from "./pages/History";
 import Techniques from "./pages/Techniques";
+import Recall from "./pages/Recall";
 import { LogoIcon } from "./components/Logo";
 import { useLocale, useT } from "./lib/i18n";
 import Titlebar from "./components/Titlebar";
@@ -25,6 +26,7 @@ export default function App() {
         {[
           { to: "/", label: t("nav.practice") },
           { to: "/techniques", label: t("nav.techniques") },
+          { to: "/recall", label: t("nav.recall") },
           { to: "/contest", label: t("nav.contest") },
           { to: "/stress", label: t("nav.stress") },
           { to: "/import", label: t("nav.import") },
@@ -57,6 +59,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Practice />} />
           <Route path="/techniques" element={<Techniques />} />
+          <Route path="/recall" element={<Recall />} />
           <Route path="/contest" element={<Contest />} />
           <Route path="/stress" element={<Stress />} />
           <Route path="/import" element={<Import />} />

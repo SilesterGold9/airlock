@@ -135,3 +135,13 @@ pub struct Technique {
     pub status_updated_at: String, // ISO 8601
     pub notes_md: Option<String>,
 }
+
+// Same-problem spaced repetition: created on first AC, advanced on each
+// reimplement-AC. Intervals are +1 day, then +3, then +7 (capped there).
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ReimplementationSchedule {
+    pub problem_id: String,
+    pub last_ac_at: String, // ISO 8601
+    pub next_due_at: String, // ISO 8601
+    pub completed_reimplementations: u32,
+}

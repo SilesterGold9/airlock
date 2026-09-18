@@ -1,7 +1,8 @@
 use crate::models::{
-    Contest, FailureCategory, Problem, ProblemClaim, Submission, Technique, TechniqueStatus,
-    TestCase, Verdict,
+    Contest, FailureCategory, Problem, ProblemClaim, ReimplementationSchedule, Submission,
+    Technique, TechniqueStatus, TestCase, Verdict,
 };
+use chrono::Utc;
 use rusqlite::{params, Connection, Result as SqlResult};
 use std::path::Path;
 
@@ -66,6 +67,13 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
             status TEXT NOT NULL DEFAULT 'NotStarted',
             status_updated_at TEXT NOT NULL,
             notes_md TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS reimplementation_schedule (
+            problem_id TEXT PRIMARY KEY,
+            last_ac_at TEXT NOT NULL,
+            next_due_at TEXT NOT NULL,
+            completed_reimplementations INTEGER NOT NULL DEFAULT 0
         );
         ",
     )?;
@@ -194,6 +202,52 @@ pub fn bulk_update_technique_status(
         )? as usize;
     }
     Ok(updated)
+}
+
+/// Advances the reimplementation schedule after an AC. First AC creates the
+/// row due in 1 day; each following AC extends the interval (+3, then +7 days).
+pub fn record_ac_for_reimplementation(conn: &Connection, problem_id: &str) -> SqlResult<()> {
+    let existing: Option<u32> = match conn.query_row(
+        "SELECT completed_reimplementations FROM reimplementation_schedule WHERE problem_id = ?1",
+        params![problem_id],
+        |row| row.get(0),
+    ) {
+        Ok(c) => Some(c),
+        Err(rusqlite::Error::QueryReturnedNoRows) => None,
+        Err(e) => return Err(e),
+    };
+    let (completed, interval_days) = match existing {
+        None => (0, 1),
+        Some(k) => (k + 1, if k + 1 == 1 { 3 } else { 7 }),
+    };
+    let now = Utc::now();
+    let next_due = (now + chrono::Duration::days(interval_days)).to_rfc3339();
+    conn.execute(
+        "INSERT OR REPLACE INTO reimplementation_schedule
+         (problem_id, last_ac_at, next_due_at, completed_reimplementations)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![problem_id, now.to_rfc3339(), next_due, completed],
+    )?;
+    Ok(())
+}
+
+pub fn list_due_reimplementations(
+    conn: &Connection,
+    now_iso: &str,
+) -> SqlResult<Vec<ReimplementationSchedule>> {
+    let mut stmt = conn.prepare(
+        "SELECT problem_id, last_ac_at, next_due_at, completed_reimplementations
+         FROM reimplementation_schedule WHERE next_due_at <= ?1 ORDER BY next_due_at",
+    )?;
+    let rows = stmt.query_map(params![now_iso], |row| {
+        Ok(ReimplementationSchedule {
+            problem_id: row.get(0)?,
+            last_ac_at: row.get(1)?,
+            next_due_at: row.get(2)?,
+            completed_reimplementations: row.get::<_, i64>(3)? as u32,
+        })
+    })?;
+    rows.collect()
 }
 
 fn str_to_technique_status(s: &str) -> TechniqueStatus {

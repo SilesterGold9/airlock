@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext, Technique, TechniqueStatus } from "./types";
+import type { Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, ReimplementationSchedule, Submission, SubmissionContext, Technique, TechniqueStatus } from "./types";
 
 export const api = {
   listProblems: () => invoke<Problem[]>("list_problems"),
@@ -91,4 +91,7 @@ export const api = {
 
   touchTechnique: (techniqueId: string) =>
     invoke<void>("touch_technique", { techniqueId }),
+
+  listDueReimplementations: () =>
+    invoke<ReimplementationSchedule[]>("list_due_reimplementations"),
 };

@@ -97,3 +97,10 @@ export interface Technique {
   status_updated_at: string;
   notes_md?: string | null;
 }
+
+export interface ReimplementationSchedule {
+  problem_id: string;
+  last_ac_at: string;
+  next_due_at: string;
+  completed_reimplementations: number;
+}

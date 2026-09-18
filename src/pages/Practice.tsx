@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
-import type { JudgeReport, Problem, Submission, Technique } from "../lib/types";
+import type { JudgeReport, Problem, ReimplementationSchedule, Submission, Technique } from "../lib/types";
 import { getVerdictInfo } from "../lib/verdict";
 import CodeEditor from "../components/CodeEditor";
 import VerdictBadge from "../components/VerdictBadge";
@@ -50,11 +50,16 @@ export default function Practice() {
   const [reviewDays, setReviewDays] = useState(() =>
     Number(localStorage.getItem("airlock.reviewDays") || 10)
   );
+  const [dueReimpl, setDueReimpl] = useState<ReimplementationSchedule[]>([]);
+  // Problem opened from the due list: notes stay hidden until a submit lands,
+  // so the reimplementation is genuinely from memory.
+  const [reimplHideNotesFor, setReimplHideNotesFor] = useState<string | null>(null);
   const [techniques, setTechniques] = useState<Technique[]>([]);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
     api.listTechniques().then(setTechniques).catch(() => setTechniques([]));
+    void refreshDue();
   }, []);
 
   useEffect(() => {
@@ -91,6 +96,22 @@ export default function Practice() {
 
   const typical = useMemo(() => typicalDifficulty(problems), [problems]);
   const latestAttempt = useMemo(() => latestAttemptByProblem(setSubs), [setSubs]);
+
+  async function refreshDue() {
+    try {
+      setDueReimpl(await api.listDueReimplementations());
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  const dueWithTitles = useMemo(() => {
+    const byId = new Map(problems.map((p) => [p.id, p]));
+    return dueReimpl.flatMap((schedule) => {
+      const problem = byId.get(schedule.problem_id);
+      return problem ? [{ schedule, problem }] : [];
+    });
+  }, [dueReimpl, problems]);
 
   async function handleEnterSetMode() {
     setSetMode(true);
@@ -140,6 +161,21 @@ export default function Practice() {
     setSelected(p);
     setReport(null);
     setCode("");
+    setReimplHideNotesFor(null);
+  }
+
+  function openDueProblem(p: Problem) {
+    setSelected(p);
+    setReport(null);
+    setCode("");
+    setHintsRevealed(0);
+    setReimplHideNotesFor(p.id);
+  }
+
+  function overdueText(nextDueAt: string): string {
+    const days = Math.floor((Date.now() - new Date(nextDueAt).getTime()) / 86400000);
+    if (days <= 0) return t("reimpl.dueToday");
+    return t("reimpl.overdue").replace("{days}", String(days));
   }
 
   function slotReason(slot: SlotKind, problem: Problem): string {
@@ -185,6 +221,8 @@ export default function Practice() {
       console.error(e);
     } finally {
       setJudging(false);
+      setReimplHideNotesFor(null);
+      void refreshDue();
     }
   }
 
@@ -274,6 +312,30 @@ export default function Practice() {
             </div>
           ) : (
           <>
+          {dueWithTitles.length > 0 && (
+            <div className="px-3 py-2 border-b border-white/[0.04]">
+              <div className="text-xs font-medium text-muted-foreground tracking-wide uppercase mb-1">
+                {t("reimpl.title")}
+              </div>
+              <ul className="space-y-0.5">
+                {dueWithTitles.map(({ schedule, problem }) => (
+                  <li key={schedule.problem_id}>
+                    <button
+                      onClick={() => openDueProblem(problem)}
+                      className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.03] flex items-center gap-2 transition-colors"
+                    >
+                      <span className="flex-1 min-w-0 text-xs font-medium truncate">
+                        {problem.title}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                        {overdueText(schedule.next_due_at)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="px-3 py-2 flex items-center text-xs font-medium text-muted-foreground tracking-wide uppercase border-b border-white/[0.04]">
             <span className="flex-1">Title</span>
             <span className="w-24 text-right">Difficulty</span>
@@ -291,6 +353,7 @@ export default function Practice() {
                     setSelected(p);
                     setReport(null);
                     setCode("");
+                    setReimplHideNotesFor(null);
                   }}
                 >
                   <div className="flex-1 min-w-0">
@@ -345,7 +408,7 @@ export default function Practice() {
                   />
                 )}
 
-                <Card className="mt-6">
+                <Card className={reimplHideNotesFor === selected.id ? "hidden" : "mt-6"}>
                   <button
                     onClick={() => setNotesOpen((v) => !v)}
                     className="w-full flex items-center justify-between px-4 py-3 text-left"

@@ -281,5 +281,8 @@
   "set.reasonTarget": "Alvo — {technique} em aprendizado",
   "set.reasonStretch": "Desafio — {difficulty} acima do seu {typical}",
   "set.reasonReview": "Revisão — sem tocar há {days}d",
-  "set.emptySlot": "Nada encaixa — adicione problemas ou atualize Técnicas."
+  "set.emptySlot": "Nada encaixa — adicione problemas ou atualize Técnicas.",
+  "reimpl.title": "Para reimplementar",
+  "reimpl.overdue": "{days}d em atraso",
+  "reimpl.dueToday": "vence hoje"
 }

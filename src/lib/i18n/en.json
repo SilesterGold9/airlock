@@ -281,5 +281,8 @@
   "set.reasonTarget": "Target — {technique} is Learning",
   "set.reasonStretch": "Stretch — {difficulty} above your {typical}",
   "set.reasonReview": "Review — untouched for {days}d",
-  "set.emptySlot": "Nothing fits — add problems or update Techniques."
+  "set.emptySlot": "Nothing fits — add problems or update Techniques.",
+  "reimpl.title": "Due for reimplementation",
+  "reimpl.overdue": "{days}d overdue",
+  "reimpl.dueToday": "due today"
 }

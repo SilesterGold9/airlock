@@ -1,8 +1,8 @@
 use crate::db;
 use crate::judge;
 use crate::models::{
-    Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext,
-    Technique, TechniqueStatus,
+    Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, ReimplementationSchedule,
+    Submission, SubmissionContext, Technique, TechniqueStatus, Verdict,
 };
 use chrono::Utc;
 use rusqlite::Connection;
@@ -87,6 +87,10 @@ pub fn submit_solution(
     };
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::insert_submission(&conn, &submission).map_err(|e| e.to_string())?;
+    if matches!(report.overall_verdict, Verdict::Accepted) {
+        db::record_ac_for_reimplementation(&conn, &submission.problem_id)
+            .map_err(|e| e.to_string())?;
+    }
 
     Ok(report)
 }
@@ -281,6 +285,14 @@ pub fn touch_technique(state: State<AppState>, technique_id: String) -> Result<(
         return Err("technique not found".into());
     }
     Ok(())
+}
+
+#[tauri::command]
+pub fn list_due_reimplementations(
+    state: State<AppState>,
+) -> Result<Vec<ReimplementationSchedule>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::list_due_reimplementations(&conn, &Utc::now().to_rfc3339()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

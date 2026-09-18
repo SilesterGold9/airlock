@@ -82,6 +82,7 @@ fn main() {
             commands::check_rank_suggestion,
             commands::confirm_rank_up,
             commands::list_rank_reflections,
+            commands::seed_sample_problems,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

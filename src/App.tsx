@@ -1,4 +1,5 @@
 import { NavLink, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Practice from "./pages/Practice";
 import Contest from "./pages/Contest";
 import Stress from "./pages/Stress";
@@ -12,6 +13,7 @@ import Settings from "./pages/Settings";
 import { LogoIcon } from "./components/Logo";
 import { useLocale, useT } from "./lib/i18n";
 import Titlebar from "./components/Titlebar";
+import { api } from "./lib/api";
 
 export default function App() {
   const t = useT();
@@ -22,6 +24,20 @@ export default function App() {
     return <Navigate to="/welcome" replace />;
   }
   const displayName = (localStorage.getItem("airlock.displayName") || "").trim();
+
+  useEffect(() => {
+    const seeded = localStorage.getItem("airlock.seededSamples") === "1";
+    if (!seeded) {
+      api.seedSampleProblems()
+        .then((count) => {
+          if (count > 0) console.log(`Seeded ${count} sample problems`);
+          localStorage.setItem("airlock.seededSamples", "1");
+        })
+        .catch(() => {
+          localStorage.setItem("airlock.seededSamples", "1");
+        });
+    }
+  }, []);
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
       <Titlebar />

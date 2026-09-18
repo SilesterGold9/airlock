@@ -7,6 +7,7 @@ use crate::models::{
 };
 use chrono::Utc;
 use rusqlite::Connection;
+use serde_json::Value;
 use std::sync::Mutex;
 use tauri::State;
 use uuid::Uuid;
@@ -470,4 +471,79 @@ pub fn confirm_rank_up(
 pub fn list_rank_reflections(state: State<AppState>) -> Result<Vec<RankReflection>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::list_rank_reflections(&conn).map_err(|e| e.to_string())
+}
+
+fn sample_problems_json() -> Value {
+    serde_json::json!([
+        {
+            "id": "",
+            "title": "A+B (sanity check)",
+            "statement_md": "Given two integers A and B on a single line, print their sum.\n\n**Input**\nOne line: `A B` (-10^9 <= A, B <= 10^9)\n\n**Output**\nA single integer: A + B.",
+            "tags": ["implementation", "warmup"],
+            "difficulty": 800,
+            "time_limit_ms": 1000,
+            "memory_limit_mb": 256,
+            "source": "self-authored",
+            "tests": [
+                { "id": "", "input": "2 3\n", "expected_output": "5\n" },
+                { "id": "", "input": "-5 10\n", "expected_output": "5\n" },
+                { "id": "", "input": "1000000000 1000000000\n", "expected_output": "2000000000\n" }
+            ],
+            "brute_force_src": null,
+            "brute_force_lang": null,
+            "notes_md": null,
+            "primary_technique_id": null,
+            "hints": []
+        },
+        {
+            "id": "",
+            "title": "Maximum Subarray Sum",
+            "statement_md": "Given an array of integers, find the contiguous subarray with the largest sum.\n\n**Input**\nFirst line: `n` (1 <= n <= 2*10^5)\nSecond line: `n` integers `a_i` (-10^9 <= a_i <= 10^9)\n\n**Output**\nA single integer: the maximum subarray sum.",
+            "tags": ["dp", "kadane"],
+            "difficulty": 1200,
+            "time_limit_ms": 1000,
+            "memory_limit_mb": 256,
+            "source": "self-authored",
+            "tests": [
+                { "id": "", "input": "5\n-2 1 -3 4 -1\n", "expected_output": "4\n" },
+                { "id": "", "input": "3\n-5 -2 -3\n", "expected_output": "-2\n" },
+                { "id": "", "input": "4\n1 2 3 4\n", "expected_output": "10\n" }
+            ],
+            "brute_force_src": null,
+            "brute_force_lang": null,
+            "notes_md": null,
+            "primary_technique_id": null,
+            "hints": [
+                "Consider the best subarray ending at each position.",
+                "If the best sum ending at i-1 is negative, start fresh at i.",
+                "Track the global maximum as you go."
+            ]
+        }
+    ])
+}
+
+#[tauri::command]
+pub fn seed_sample_problems(state: State<AppState>) -> Result<usize, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let count = db::count_problems(&conn).map_err(|e| e.to_string())?;
+    if count > 0 {
+        return Ok(0);
+    }
+    let problems = sample_problems_json();
+    let mut seeded = 0;
+    for problem_data in problems.as_array().unwrap() {
+        let mut problem: Problem =
+            serde_json::from_value(problem_data.clone()).map_err(|e| e.to_string())?;
+        if problem.id.is_empty() {
+            problem.id = Uuid::new_v4().to_string();
+        }
+        for t in problem.tests.iter_mut() {
+            if t.id.is_empty() {
+                t.id = Uuid::new_v4().to_string();
+            }
+        }
+        db::insert_problem(&conn, &problem).map_err(|e| e.to_string())?;
+        seeded += 1;
+    }
+    Ok(seeded)
 }

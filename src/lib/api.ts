@@ -122,4 +122,6 @@ export const api = {
     invoke<RankState>("confirm_rank_up", { starLevel, reflectionMd }),
 
   listRankReflections: () => invoke<RankReflection[]>("list_rank_reflections"),
+
+  seedSampleProblems: () => invoke<number>("seed_sample_problems"),
 };

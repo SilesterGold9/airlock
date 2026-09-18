@@ -341,6 +341,11 @@ pub fn list_problems(conn: &Connection) -> SqlResult<Vec<Problem>> {
     rows.collect()
 }
 
+pub fn count_problems(conn: &Connection) -> SqlResult<usize> {
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM problems", [], |row| row.get(0))?;
+    Ok(count as usize)
+}
+
 pub fn get_tests(conn: &Connection, problem_id: &str) -> SqlResult<Vec<TestCase>> {
     let mut stmt =
         conn.prepare("SELECT id, input, expected_output FROM test_cases WHERE problem_id = ?1")?;

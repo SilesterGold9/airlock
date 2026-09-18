@@ -14,8 +14,10 @@ import DiffViewer from "../components/DiffViewer";
 import Balloons from "../components/Balloons";
 import { getSimilarProblems } from "../lib/rating";
 import { tracks } from "../lib/tracks";
+import { useT } from "../lib/i18n";
 
 export default function Practice() {
+  const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [selected, setSelected] = useState<Problem | null>(null);
   const [language, setLanguage] = useState<"cpp" | "java">("cpp");
@@ -46,7 +48,7 @@ export default function Practice() {
     if (!selected) return;
     if (notes === (selected.notes_md || "")) return;
     setNotesSaving(true);
-    const t = setTimeout(async () => {
+    const timeout = setTimeout(async () => {
       try {
         await api.updateProblemNotes(selected.id, notes);
         setProblems((prev) => prev.map((p) => (p.id === selected.id ? { ...p, notes_md: notes } : p)));
@@ -57,7 +59,7 @@ export default function Practice() {
         setNotesSaving(false);
       }
     }, 900);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timeout);
   }, [notes]);
 
   const allTags = Array.from(new Set(problems.flatMap((p) => p.tags))).sort();
@@ -97,10 +99,10 @@ export default function Practice() {
           value={tagFilter}
           onChange={(e) => setTagFilter(e.target.value)}
         >
-          <option value="all">All tags</option>
-          {allTags.map((t) => (
-            <option key={t} value={t}>
-              {t}
+          <option value="all">{t("practice.allTags")}</option>
+          {allTags.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
             </option>
           ))}
         </Select>
@@ -137,15 +139,15 @@ export default function Practice() {
               <div className="overflow-y-auto p-6 h-full animate-fade-in">
                 <h1 className="text-[15px] font-semibold mb-3 leading-tight">{selected.title}</h1>
                 <div className="flex gap-1.5 mb-4 flex-wrap">
-                  {selected.tags.map((t) => (
-                    <Badge key={t} variant="outline">
-                      {t}
+                  {selected.tags.map((tag) => (
+                    <Badge key={tag} variant="outline">
+                      {tag}
                     </Badge>
                   ))}
                   <DifficultyBadge difficulty={selected.difficulty} />
                 </div>
                 <div className="text-xs text-muted-foreground mb-4 tabular-nums">
-                  Time limit: {selected.time_limit_ms}ms · Memory: {selected.memory_limit_mb}MB
+                  {t("practice.timeLimit")}: {selected.time_limit_ms}ms · {t("practice.memory")}: {selected.memory_limit_mb}MB
                 </div>
                 <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground/90">
                   {selected.statement_md}
@@ -156,9 +158,9 @@ export default function Practice() {
                     onClick={() => setNotesOpen((v) => !v)}
                     className="w-full flex items-center justify-between px-4 py-3 text-left"
                   >
-                    <span className="text-sm font-semibold">My notes</span>
+                    <span className="text-sm font-semibold">{t("practice.myNotes")}</span>
                     <span className="text-xs text-muted-foreground flex items-center gap-2">
-                      {notesSaving ? "Saving…" : notes ? "Saved" : "No notes"}
+                      {notesSaving ? t("practice.saving") : notes ? t("practice.saved") : t("practice.noNotes")}
                       <span className={`transition-transform ${notesOpen ? "rotate-180" : ""}`}>▾</span>
                     </span>
                   </button>
@@ -167,11 +169,11 @@ export default function Practice() {
                       <Textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Write your approach after solving. It sticks for your juniors and for you."
+                        placeholder={t("practice.notesPlaceholder")}
                         className="min-h-[140px] font-sans text-sm"
                       />
                       <div className="text-xs text-muted-foreground mt-2">
-                        Autosaved to the problem. Visible next time you open it.
+                        {t("practice.autosavedHint")}
                       </div>
                     </div>
                   )}
@@ -179,7 +181,7 @@ export default function Practice() {
 
                 {attempts.length > 0 && (
                   <Card className="mt-4 p-4">
-                    <div className="text-xs font-semibold mb-2">Last attempts</div>
+                    <div className="text-xs font-semibold mb-2">{t("practice.lastAttempts")}</div>
                     <div className="space-y-1">
                       {attempts.slice(0, 3).map((a) => (
                         <div key={a.id} className="flex items-center gap-2 text-xs">
@@ -196,7 +198,7 @@ export default function Practice() {
                   const similar = getSimilarProblems(selected, problems);
                   return similar.length > 0 ? (
                     <Card className="mt-4 p-4">
-                      <div className="text-xs font-semibold mb-2">Similar problems</div>
+                      <div className="text-xs font-semibold mb-2">{t("practice.similarProblems")}</div>
                       <div className="space-y-1">
                         {similar.map((p) => (
                           <button
@@ -218,12 +220,12 @@ export default function Practice() {
                 })()}
 
                 <Card className="mt-4 p-4">
-                  <div className="text-xs font-semibold mb-2">Skill tracks</div>
+                  <div className="text-xs font-semibold mb-2">{t("practice.skillTracks")}</div>
                   <div className="space-y-2">
                     {tracks.slice(0, 2).map((tr) => (
                       <div key={tr.id} className="border border-border rounded-lg p-2">
-                        <div className="text-xs font-medium">{tr.title}</div>
-                        <div className="text-xs text-muted-foreground">{tr.description}</div>
+                        <div className="text-xs font-medium">{t(`tracks.${tr.id}.title`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`tracks.${tr.id}.description`)}</div>
                         <div className="flex gap-1 mt-1 flex-wrap">
                           {tr.steps.map((s) => (
                             <Badge key={s.title} variant="outline" className="text-xs">
@@ -248,7 +250,7 @@ export default function Practice() {
                   />
                 </div>
                 <Button onClick={handleSubmit} disabled={judging} variant="primary" size="md" className="w-full">
-                  {judging ? "Judging..." : "Submit"}
+                  {judging ? t("practice.judging") : t("practice.submit")}
                 </Button>
 
                 {report && (
@@ -262,32 +264,32 @@ export default function Practice() {
                           <div className="flex items-start gap-3 mb-3">
                             <VerdictBadge verdict={report.overall_verdict} size="lg" showLong />
                             <div className="flex-1">
-                              <div className="font-semibold text-sm">{info.description}</div>
-                              <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{info.hint}</div>
+                              <div className="font-semibold text-sm">{t(info.description)}</div>
+                              <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{t(info.hint)}</div>
                             </div>
                           </div>
 
                           {isCE ? (
                             <div className="mt-3">
-                              <div className="text-xs font-semibold text-foreground mb-1">Compiler says:</div>
+                              <div className="text-xs font-semibold text-foreground mb-1">{t("practice.compilerSays")}</div>
                               <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto font-mono">
-                                {report.results[0]?.message || "No details. You can try compiling locally with g++ -O2 -std=c++17."}
+                                {report.results[0]?.message || t("practice.noCompilerDetails")}
                               </pre>
                               <div className="text-xs text-muted-foreground mt-2">
-                                For C++ make sure you include bits and use correct syntax. For Java the file must contain{" "}
+                                {t("practice.compileHint")}{" "}
                                 <span className="text-foreground font-mono">public class Main</span>.
                               </div>
                             </div>
                           ) : (
                             <div className="space-y-2 mt-3">
                               <div className="text-xs font-semibold text-foreground">
-                                {report.tests_passed}/{report.tests_total} tests passed
-                                <span className="font-normal text-muted-foreground ml-2">limit {selected.time_limit_ms}ms</span>
-                                {!isAC && <span className="ml-2 text-wa">• {report.tests_total - report.tests_passed} failed</span>}
+                                {report.tests_passed}/{report.tests_total} {t("practice.testsPassed")}
+                                <span className="font-normal text-muted-foreground ml-2">{t("practice.limit")} {selected.time_limit_ms}ms</span>
+                                {!isAC && <span className="ml-2 text-wa">• {report.tests_total - report.tests_passed} {t("practice.failedCount")}</span>}
                               </div>
                               {report.results.map((r, i) => {
                                 const infoR = getVerdictInfo(r.verdict);
-                                const test = selected.tests.find((t) => t.id === r.test_id) ?? selected.tests[i];
+                                const test = selected.tests.find((tt) => tt.id === r.test_id) ?? selected.tests[i];
                                 const isFail = r.verdict !== "Accepted";
                                 return (
                                   <details
@@ -296,7 +298,7 @@ export default function Practice() {
                                     className="bg-background rounded-lg border border-border open:border-border animate-fade-in"
                                   >
                                     <summary className="flex items-center justify-between px-3 py-2 cursor-pointer list-none">
-                                      <span className="text-sm font-medium">Test {i + 1}</span>
+                                      <span className="text-sm font-medium">{t("practice.test")} {i + 1}</span>
                                       <span className="flex items-center gap-2">
                                         <span className="text-xs text-muted-foreground tabular-nums">{r.time_ms}ms</span>
                                         <VerdictBadge verdict={r.verdict} />
@@ -304,14 +306,14 @@ export default function Practice() {
                                     </summary>
                                     <div className="px-3 pb-3 pt-2 border-t border-border">
                                       <div className="text-xs text-muted-foreground mb-1">
-                                        {infoR.long}: {infoR.description}
+                                        {t(infoR.long)}: {t(infoR.description)}
                                       </div>
                                       {test && (
                                         <div className="grid gap-3 mt-2">
                                           <div>
-                                            <div className="text-xs font-semibold text-foreground mb-1">Input</div>
+                                            <div className="text-xs font-semibold text-foreground mb-1">{t("common.input")}</div>
                                             <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-border font-mono">
-                                              {test.input || "(empty)"}
+                                              {test.input || t("common.empty")}
                                             </pre>
                                           </div>
                                           {r.verdict === "WrongAnswer" && r.actual_output != null ? (
@@ -319,20 +321,20 @@ export default function Practice() {
                                           ) : (
                                             <>
                                               <div>
-                                                <div className="text-xs font-semibold text-foreground mb-1">Expected output</div>
+                                                <div className="text-xs font-semibold text-foreground mb-1">{t("common.expectedOutput")}</div>
                                                 <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-border font-mono">
-                                                  {test.expected_output || "(empty)"}
+                                                  {test.expected_output || t("common.empty")}
                                                 </pre>
                                               </div>
                                               {r.actual_output != null && (
                                                 <div>
-                                                  <div className="text-xs font-semibold text-foreground mb-1">Your output</div>
+                                                  <div className="text-xs font-semibold text-foreground mb-1">{t("common.yourOutput")}</div>
                                                   <pre
                                                     className={`rounded-md p-2 text-xs whitespace-pre-wrap break-words border font-mono ${
                                                       isFail ? "bg-wa/10 border-wa/30" : "bg-black/40 border-border"
                                                     }`}
                                                   >
-                                                    {r.actual_output || "(no output)"}
+                                                    {r.actual_output || t("common.noOutput")}
                                                   </pre>
                                                 </div>
                                               )}
@@ -340,7 +342,7 @@ export default function Practice() {
                                           )}
                                           {r.message && (
                                             <div>
-                                              <div className="text-xs font-semibold text-foreground mb-1">Runtime output</div>
+                                              <div className="text-xs font-semibold text-foreground mb-1">{t("practice.runtimeOutput")}</div>
                                               <pre className="bg-re/10 border border-re/30 rounded-md p-2 text-xs whitespace-pre-wrap break-words font-mono">
                                                 {r.message}
                                               </pre>
@@ -348,12 +350,12 @@ export default function Practice() {
                                           )}
                                           {r.verdict === "WrongAnswer" && r.actual_output != null && test && (
                                             <div className="text-xs text-muted-foreground">
-                                              Hint: comparison ignores trailing spaces per line. Check newlines.
+                                              {t("practice.whitespaceHint")}
                                             </div>
                                           )}
                                           {r.verdict === "TimeLimitExceeded" && (
                                             <div className="text-xs text-tle">
-                                              Did not finish in {selected.time_limit_ms}ms. Look for infinite loops or O(n²).
+                                              {t("practice.tleHint")}
                                             </div>
                                           )}
                                         </div>
@@ -362,7 +364,7 @@ export default function Practice() {
                                   </details>
                                 );
                               })}
-                              {isAC && <div className="text-xs text-ac mt-2">Submitted and logged. Keep going.</div>}
+                              {isAC && <div className="text-xs text-ac mt-2">{t("practice.submittedHint")}</div>}
                             </div>
                           )}
                         </>
@@ -375,7 +377,7 @@ export default function Practice() {
           />
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">Select a problem to start</div>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">{t("practice.selectProblem")}</div>
       )}
     </div>
   );

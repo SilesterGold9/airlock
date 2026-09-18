@@ -12,6 +12,7 @@ import { SplitView } from "../components/ui/split-view";
 import DiffViewer from "../components/DiffViewer";
 import { Input } from "../components/ui/input";
 import Balloons from "../components/Balloons";
+import { useT } from "../lib/i18n";
 
 interface ProblemStatus {
   solved: boolean;
@@ -22,6 +23,7 @@ interface ProblemStatus {
 const PENALTY_MINUTES = 20;
 
 export default function Contest() {
+  const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [setup, setSetup] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -180,23 +182,23 @@ export default function Contest() {
   if (setup) {
     return (
       <div className="p-6 max-w-2xl mx-auto animate-fade-in">
-        <h1 className="text-xl font-semibold mb-6">Set up a virtual contest</h1>
+        <h1 className="text-xl font-semibold mb-6">{t("contest.setup")}</h1>
         <Card className="p-6">
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Contest name</label>
-          <Input className="mb-4" value={contestName} onChange={(e) => setContestName(e.target.value)} placeholder="My contest" />
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Duration (minutes)</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.name")}</label>
+          <Input className="mb-4" value={contestName} onChange={(e) => setContestName(e.target.value)} placeholder={t("contest.namePlaceholder")} />
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.duration")}</label>
           <Input type="number" className="mb-4" value={String(durationMinutes)} onChange={(e) => setDurationMinutes(Number(e.target.value))} />
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Team members comma separated, 3 for ICPC</label>
-          <Input className="mb-2" value={teamMembersStr} onChange={(e) => setTeamMembersStr(e.target.value)} placeholder="Alice, Bob, Carol" />
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.teamMembersLabel")}</label>
+          <Input className="mb-2" value={teamMembersStr} onChange={(e) => setTeamMembersStr(e.target.value)} placeholder={t("contest.teamPlaceholder")} />
           {teamMembersStr.trim() && (
             <>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Driver to start</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.driverLabel")}</label>
               <select
                 className="w-full mb-4 bg-input border border-input rounded-lg h-9 px-3 text-sm text-foreground"
                 value={driver}
                 onChange={(e) => setDriver(e.target.value)}
               >
-                <option value="">Auto first member</option>
+                <option value="">{t("contest.autoFirstMember")}</option>
                 {teamMembersStr
                   .split(",")
                   .map((s) => s.trim())
@@ -210,7 +212,7 @@ export default function Contest() {
             </>
           )}
           <label className="block text-xs font-medium text-muted-foreground mb-2">
-            Problems ({selectedIds.length} selected)
+            {t("contest.problemsCount").replace("{count}", String(selectedIds.length))}
           </label>
           <ul className="space-y-0 mb-6 max-h-80 overflow-y-auto border border-border rounded-lg">
             {problems.map((p) => (
@@ -229,18 +231,18 @@ export default function Contest() {
             ))}
           </ul>
           <Button onClick={startContest} disabled={selectedIds.length === 0} variant="primary" className="w-full">
-            Start contest
+            {t("contest.start")}
           </Button>
         </Card>
 
         <Card className="p-4 mt-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold">Past contests</h2>
-            <span className="text-xs text-muted-foreground">{contests.length} saved</span>
+            <h2 className="text-sm font-semibold">{t("contest.pastContests")}</h2>
+            <span className="text-xs text-muted-foreground">{contests.length} {t("contest.savedCount")}</span>
           </div>
           {contests.length === 0 ? (
             <div className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg bg-white/[0.02]">
-              No past contests yet. Run one and it will appear here.
+              {t("contest.noPastContests")}
             </div>
           ) : (
             <ul className="space-y-2 max-h-64 overflow-y-auto">
@@ -251,11 +253,11 @@ export default function Contest() {
                     <div className="min-w-0">
                       <div className="text-sm font-medium truncate">{c.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {c.problem_ids.length} problems · {c.duration_minutes} min · {started}
+                        {c.problem_ids.length} {t("contest.problems").toLowerCase()} · {c.duration_minutes} min · {started}
                       </div>
                     </div>
                     <Button size="sm" variant="secondary" onClick={() => reviewContest(c)}>
-                      Review
+                      {t("contest.review")}
                     </Button>
                   </li>
                 );
@@ -273,7 +275,7 @@ export default function Contest() {
       <aside className="w-64 border-r border-border p-3 flex flex-col shrink-0 bg-background">
         {viewingHistory && (
           <div className="mb-3 p-2 rounded-lg bg-wa/10 border border-wa/20">
-            <div className="text-xs font-semibold text-wa">Viewing past contest</div>
+            <div className="text-xs font-semibold text-wa">{t("contest.viewingPast")}</div>
             <div className="text-xs text-muted-foreground truncate">{viewingHistory.name}</div>
             <Button
               size="sm"
@@ -286,24 +288,24 @@ export default function Contest() {
                 setCurrent(null);
               }}
             >
-              Back to setup
+              {t("contest.backToSetup")}
             </Button>
           </div>
         )}
         <Timer durationMinutes={durationMinutes} onExpire={() => setEnded(true)} />
         <div className="text-xs text-muted-foreground mt-1 mb-2 tabular-nums">
-          Solved {solvedCount}/{active.length} · Penalty {totalPenalty}min
+          {t("contest.solved")} {solvedCount}/{active.length} · {t("contest.penalty")} {totalPenalty}min
         </div>
         {(viewingHistory?.team_members?.length || teamMembersStr.trim()) && (
           <Card className="p-2 mb-3 bg-card/50">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold">Team {viewingHistory?.driver || driver ? `· driver ${viewingHistory?.driver || driver}` : ""}</span>
+              <span className="text-xs font-semibold">{t("contest.team")} {viewingHistory?.driver || driver ? `· ${t("contest.driver")} ${viewingHistory?.driver || driver}` : ""}</span>
               <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={rotateDriver}>
-                Rotate
+                {t("contest.rotate")}
               </Button>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {(viewingHistory?.team_members || teamMembersStr.split(",").map((s) => s.trim()).filter(Boolean)).join(" · ") || "No team"}
+              {(viewingHistory?.team_members || teamMembersStr.split(",").map((s) => s.trim()).filter(Boolean)).join(" · ") || t("contest.noTeam")}
             </div>
             <div className="mt-2 space-y-1">
               {active.map((p) => {
@@ -317,7 +319,7 @@ export default function Contest() {
                       value={claim?.claimed_by || ""}
                       onChange={(e) => handleClaim(p.id, e.target.value, claim?.status || "thinking")}
                     >
-                      <option value="">unclaimed</option>
+                      <option value="">{t("contest.unclaimed")}</option>
                       {(viewingHistory?.team_members || teamMembersStr.split(",").map((s) => s.trim()).filter(Boolean)).map((m) => (
                         <option key={m} value={m}>
                           {m}
@@ -329,10 +331,10 @@ export default function Contest() {
                       value={claim?.status || "thinking"}
                       onChange={(e) => handleClaim(p.id, claim?.claimed_by || (viewingHistory?.team_members?.[0] || teamMembersStr.split(",")[0]?.trim() || ""), e.target.value)}
                     >
-                      <option value="thinking">thinking</option>
-                      <option value="coding">coding</option>
-                      <option value="stuck">stuck</option>
-                      <option value="done">done</option>
+                      <option value="thinking">{t("contest.status.thinking")}</option>
+                      <option value="coding">{t("contest.status.coding")}</option>
+                      <option value="stuck">{t("contest.status.stuck")}</option>
+                      <option value="done">{t("contest.status.done")}</option>
                     </select>
                   </div>
                 );
@@ -370,7 +372,7 @@ export default function Contest() {
             );
           })}
         </ul>
-        {ended && <div className="mt-4 text-sm text-tle font-semibold">Time's up!</div>}
+        {ended && <div className="mt-4 text-sm text-tle font-semibold">{t("contest.timesUp")}</div>}
       </aside>
 
       {current ? (
@@ -381,7 +383,7 @@ export default function Contest() {
               <div className="overflow-y-auto p-6 h-full animate-fade-in">
                 <h1 className="text-[15px] font-semibold mb-3">{current.title}</h1>
                 <div className="text-xs text-muted-foreground mb-4 tabular-nums">
-                  Time limit: {current.time_limit_ms}ms · Memory: {current.memory_limit_mb}MB
+                  {t("practice.timeLimit")}: {current.time_limit_ms}ms · {t("practice.memory")}: {current.memory_limit_mb}MB
                 </div>
                 <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground/90">
                   {current.statement_md}
@@ -399,11 +401,11 @@ export default function Contest() {
                   />
                 </div>
                 <Button onClick={handleSubmit} disabled={judging} variant="primary" className="w-full">
-                  {judging ? "Judging..." : ended && !viewingHistory ? "Submit (upsolve)" : "Submit"}
+                  {judging ? t("practice.judging") : ended && !viewingHistory ? t("contest.submitUpsolve") : t("practice.submit")}
                 </Button>
                 {ended && !viewingHistory && (
                   <div className="text-xs text-tle border border-tle/30 bg-tle/10 rounded-md px-3 py-2">
-                    Time is up. You are now upsolving. Submissions are tagged as upsolve and do not affect the live scoreboard.
+                    {t("contest.upsolveBanner")}
                   </div>
                 )}
                 {report && (
@@ -417,23 +419,23 @@ export default function Contest() {
                           <div className="flex items-start gap-3 mb-3">
                             <VerdictBadge verdict={report.overall_verdict} size="lg" showLong />
                             <div className="flex-1">
-                              <div className="font-semibold text-sm">{info.description}</div>
-                              <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{info.hint}</div>
+                              <div className="font-semibold text-sm">{t(info.description)}</div>
+                              <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{t(info.hint)}</div>
                             </div>
                           </div>
                           {isCE ? (
                             <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs whitespace-pre-wrap break-words max-h-48 overflow-auto font-mono">
-                              {report.results[0]?.message || "No compiler output."}
+                              {report.results[0]?.message || t("contest.noCompilerOutput")}
                             </pre>
                           ) : (
                             <div className="space-y-2 mt-2">
                               <div className="text-xs text-muted-foreground">
-                                {report.tests_passed}/{report.tests_total} tests passed
-                                {!isAC && <span className="ml-2 text-wa">{report.tests_total - report.tests_passed} failed</span>}
-                                <span className="ml-2">limit {current.time_limit_ms}ms</span>
+                                {report.tests_passed}/{report.tests_total} {t("practice.testsPassed")}
+                                {!isAC && <span className="ml-2 text-wa">{report.tests_total - report.tests_passed} {t("practice.failedCount")}</span>}
+                                <span className="ml-2">{t("practice.limit")} {current.time_limit_ms}ms</span>
                               </div>
                               {report.results.map((r, i) => {
-                                const test = current.tests.find((t) => t.id === r.test_id) ?? current.tests[i];
+                                const test = current.tests.find((tt) => tt.id === r.test_id) ?? current.tests[i];
                                 const isFail = r.verdict !== "Accepted";
                                 return (
                                   <details
@@ -442,7 +444,7 @@ export default function Contest() {
                                     className="bg-background rounded-lg border border-border"
                                   >
                                     <summary className="flex items-center justify-between px-3 py-2 cursor-pointer list-none">
-                                      <span className="text-sm font-medium">Test {i + 1}</span>
+                                      <span className="text-sm font-medium">{t("practice.test")} {i + 1}</span>
                                       <span className="flex items-center gap-2">
                                         <span className="text-xs text-muted-foreground tabular-nums">{r.time_ms}ms</span>
                                         <VerdictBadge verdict={r.verdict} />
@@ -451,7 +453,7 @@ export default function Contest() {
                                     <div className="px-3 pb-3 border-t border-border pt-2">
                                       {test && (
                                         <>
-                                          <div className="text-xs font-semibold text-foreground mb-1">Input</div>
+                                          <div className="text-xs font-semibold text-foreground mb-1">{t("common.input")}</div>
                                           <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap border border-border mb-2 font-mono">
                                             {test.input}
                                           </pre>
@@ -459,19 +461,19 @@ export default function Contest() {
                                             <DiffViewer expected={test.expected_output || ""} actual={r.actual_output || ""} />
                                           ) : (
                                             <>
-                                              <div className="text-xs font-semibold text-foreground mb-1">Expected</div>
+                                              <div className="text-xs font-semibold text-foreground mb-1">{t("common.expected")}</div>
                                               <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap border border-border mb-2 font-mono">
                                                 {test.expected_output}
                                               </pre>
                                               {r.actual_output != null && (
                                                 <>
-                                                  <div className="text-xs font-semibold text-foreground mb-1">Your output</div>
+                                                  <div className="text-xs font-semibold text-foreground mb-1">{t("common.yourOutput")}</div>
                                                   <pre
                                                     className={`rounded-md p-2 text-xs whitespace-pre-wrap border mb-2 font-mono ${
                                                       isFail ? "bg-wa/10 border-wa/30" : "bg-black/40 border-border"
                                                     }`}
                                                   >
-                                                    {r.actual_output || "(empty)"}
+                                                    {r.actual_output || t("common.empty")}
                                                   </pre>
                                                 </>
                                               )}
@@ -481,19 +483,19 @@ export default function Contest() {
                                       )}
                                       {r.actual_output != null && !test && (
                                         <>
-                                          <div className="text-xs font-semibold text-foreground mb-1">Your output</div>
+                                          <div className="text-xs font-semibold text-foreground mb-1">{t("common.yourOutput")}</div>
                                           <pre
                                             className={`rounded-md p-2 text-xs whitespace-pre-wrap border mb-2 font-mono ${
                                               isFail ? "bg-wa/10 border-wa/30" : "bg-black/40 border-border"
                                             }`}
                                           >
-                                            {r.actual_output || "(empty)"}
+                                            {r.actual_output || t("common.empty")}
                                           </pre>
                                         </>
                                       )}
                                       {r.message && (
                                         <>
-                                          <div className="text-xs font-semibold text-foreground mb-1">Error</div>
+                                          <div className="text-xs font-semibold text-foreground mb-1">{t("common.error")}</div>
                                           <pre className="bg-re/10 border border-re/30 rounded-md p-2 text-xs whitespace-pre-wrap font-mono">
                                             {r.message}
                                           </pre>
@@ -515,7 +517,7 @@ export default function Contest() {
           />
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">Pick a problem from the sidebar</div>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">{t("contest.pickProblem")}</div>
       )}
     </div>
   );

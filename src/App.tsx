@@ -18,7 +18,7 @@ export default function App() {
         <div className="flex items-center gap-2 mr-2">
           <LogoIcon size={28} />
           <span className="font-mono font-bold text-sm tracking-tight">Airlock</span>
-          <span className="hidden sm:inline text-xs text-muted-foreground ml-1">offline-first cp trainer</span>
+          <span className="hidden sm:inline text-xs text-muted-foreground ml-1">{t("app.tagline")}</span>
         </div>
         <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
         {[
@@ -46,7 +46,7 @@ export default function App() {
         <button
           onClick={() => setLocale(locale === "en" ? "pt" : "en")}
           className="ml-auto text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-white/[0.06] transition-colors"
-          title={locale === "en" ? "Mudar para Português" : "Switch to English"}
+          title={locale === "en" ? t("app.switchToPt") : t("app.switchToEn")}
         >
           {locale === "en" ? "PT" : "EN"}
         </button>

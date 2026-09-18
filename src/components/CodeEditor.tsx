@@ -1,5 +1,6 @@
 import Editor from "@monaco-editor/react";
 import { Select } from "./ui/select";
+import { useT } from "../lib/i18n";
 
 interface CodeEditorProps {
   language: "cpp" | "java";
@@ -40,6 +41,7 @@ export default function CodeEditor({
   onChange,
   onLanguageChange,
 }: CodeEditorProps) {
+  const t = useT();
   return (
     <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden bg-card">
       <div className="flex items-center justify-between bg-card px-3 h-9 border-b border-border shrink-0">
@@ -61,7 +63,7 @@ export default function CodeEditor({
           className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
           onClick={() => onChange(TEMPLATES[language])}
         >
-          Reset template
+          {t("editor.resetTemplate")}
         </button>
       </div>
       <div className="flex-1">

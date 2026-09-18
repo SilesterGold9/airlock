@@ -7,6 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Select } from "../components/ui/select";
 import { Button } from "../components/ui/button";
 import { computeRating } from "../lib/rating";
+import { useT } from "../lib/i18n";
 
 function formatTime(iso: string) {
   try {
@@ -36,6 +37,7 @@ function groupByTag(problems: Problem[], submissions: Submission[]) {
 }
 
 export default function History() {
+  const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [filterTag, setFilterTag] = useState<string>("all");
@@ -91,7 +93,7 @@ export default function History() {
 
   async function handleClear() {
     if (submissions.length === 0) return;
-    const ok = window.confirm(`Clear all ${submissions.length} submissions? This cannot be undone. Contests and problems will stay.`);
+    const ok = window.confirm(t("history.confirmClear").replace("{count}", String(submissions.length)));
     if (!ok) return;
     setClearing(true);
     try {
@@ -107,7 +109,7 @@ export default function History() {
   }
 
   async function handleResetAll() {
-    const ok = window.confirm("Reset all data? This will delete all submissions and contests but keep problems. This cannot be undone.");
+    const ok = window.confirm(t("history.confirmReset"));
     if (!ok) return;
     setClearing(true);
     try {
@@ -126,38 +128,38 @@ export default function History() {
     <div className="max-w-5xl mx-auto p-6 space-y-6 animate-fade-in">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">History and stats</h1>
+          <h1 className="text-xl font-semibold">{t("history.title")}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Every Practice and Contest submission is logged. Filter by tag or verdict, inspect code, track accuracy.
+            {t("history.subtitle")}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button variant="secondary" size="sm" onClick={handleClear} disabled={clearing || submissions.length === 0}>
-            {clearing ? "Clearing..." : "Clear history"}
+            {clearing ? t("common.clearing") : t("common.clearHistory")}
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleResetAll} disabled={clearing} title="Delete submissions and contests">
-            Reset all
+          <Button variant="ghost" size="sm" onClick={handleResetAll} disabled={clearing} title={t("history.resetTooltip")}>
+            {t("common.resetAll")}
           </Button>
         </div>
       </div>
 
       <div className="grid md:grid-cols-4 gap-3">
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Total submissions</div>
+          <div className="text-xs text-muted-foreground">{t("history.totalSubs")}</div>
           <div className="text-2xl font-semibold mt-1">{stats.total}</div>
-          <div className="text-xs text-muted-foreground">{stats.ac} accepted</div>
+          <div className="text-xs text-muted-foreground">{stats.ac} {t("history.acceptedCount")}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Accuracy</div>
+          <div className="text-xs text-muted-foreground">{t("history.accuracy")}</div>
           <div className="text-2xl font-semibold mt-1">{stats.rate.toFixed(1)}%</div>
           <div className="w-full h-1.5 bg-white/[0.06] rounded-full mt-2 overflow-hidden">
             <div className="h-full bg-ac transition-all duration-500" style={{ width: `${stats.rate}%` }} />
           </div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Rating</div>
+          <div className="text-xs text-muted-foreground">{t("history.rating")}</div>
           <div className="text-2xl font-semibold mt-1">{ratingInfo.rating}</div>
-          <div className="text-xs text-muted-foreground">Elo-like trend</div>
+          <div className="text-xs text-muted-foreground">{t("history.eloTrend")}</div>
           <div className="flex items-end gap-0.5 h-8 mt-2">
             {ratingInfo.history.slice(-10).map((h, i) => {
               const max = Math.max(...ratingInfo.history.map((x) => x.rating), 1600);
@@ -168,10 +170,10 @@ export default function History() {
           </div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Last 14 days</div>
+          <div className="text-xs text-muted-foreground">{t("history.last14Days")}</div>
           <div className="flex items-end gap-1 h-10 mt-2">
             {stats.days.length === 0 ? (
-              <span className="text-xs text-muted-foreground">No data yet</span>
+              <span className="text-xs text-muted-foreground">{t("history.noData")}</span>
             ) : (
               stats.days.map(([day, count]) => {
                 const max = Math.max(...stats.days.map(([, c]) => c), 1);
@@ -188,21 +190,21 @@ export default function History() {
       </div>
 
       <Card className="p-4">
-        <div className="text-sm font-semibold mb-3">Per-tag accuracy</div>
+        <div className="text-sm font-semibold mb-3">{t("history.perTag")}</div>
         {perTag.length === 0 ? (
-          <div className="text-xs text-muted-foreground">No tagged submissions yet. Submit in Practice to see breakdown.</div>
+          <div className="text-xs text-muted-foreground">{t("history.noTagged")}</div>
         ) : (
           <div className="space-y-2">
-            {perTag.map((t) => (
-              <div key={t.tag} className="flex items-center gap-3">
+            {perTag.map((pt) => (
+              <div key={pt.tag} className="flex items-center gap-3">
                 <span className="text-xs w-24 truncate">
-                  <Badge variant="outline">{t.tag}</Badge>
+                  <Badge variant="outline">{pt.tag}</Badge>
                 </span>
                 <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
-                  <div className="h-full bg-ac transition-all duration-500" style={{ width: `${t.rate * 100}%` }} />
+                  <div className="h-full bg-ac transition-all duration-500" style={{ width: `${pt.rate * 100}%` }} />
                 </div>
                 <span className="text-xs tabular-nums w-20 text-right">
-                  {t.ac}/{t.total} {(t.rate * 100).toFixed(0)}%
+                  {pt.ac}/{pt.total} {(pt.rate * 100).toFixed(0)}%
                 </span>
               </div>
             ))}
@@ -212,20 +214,20 @@ export default function History() {
 
       <Card className="p-0 overflow-hidden">
         <div className="p-4 border-b border-border flex flex-wrap gap-3 items-center">
-          <span className="text-sm font-medium">Submissions</span>
+          <span className="text-sm font-medium">{t("history.submissions")}</span>
           <div className="w-36">
             <Select value={filterTag} onChange={(e) => setFilterTag(e.target.value)} className="h-8 text-xs">
-              <option value="all">All tags</option>
-              {allTags.map((t) => (
-                <option key={t} value={t}>{t}</option>
+              <option value="all">{t("practice.allTags")}</option>
+              {allTags.map((tg) => (
+                <option key={tg} value={tg}>{tg}</option>
               ))}
             </Select>
           </div>
           <div className="w-40">
             <Select value={filterVerdict} onChange={(e) => setFilterVerdict(e.target.value)} className="h-8 text-xs">
-              <option value="all">All verdicts</option>
-              <option value="Accepted">Accepted</option>
-              <option value="WrongAnswer">WrongAnswer</option>
+              <option value="all">{t("history.allVerdicts")}</option>
+              <option value="Accepted">{t("verdict.Accepted")}</option>
+              <option value="WrongAnswer">{t("verdict.WrongAnswer")}</option>
               <option value="TimeLimitExceeded">TLE</option>
               <option value="RuntimeError">RE</option>
               <option value="CompileError">CE</option>
@@ -233,23 +235,23 @@ export default function History() {
           </div>
           <label className="flex items-center gap-1.5 text-xs ml-auto cursor-pointer">
             <input type="checkbox" checked={includeUpsolve} onChange={(e) => setIncludeUpsolve(e.target.checked)} className="h-3 w-3 rounded border-input bg-input" />
-            <span className="text-muted-foreground">include upsolve</span>
+            <span className="text-muted-foreground">{t("common.includeUpsolve")}</span>
           </label>
-          <span className="text-xs text-muted-foreground">{filtered.length} shown</span>
+          <span className="text-xs text-muted-foreground">{filtered.length} {t("history.shownCount")}</span>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">No submissions match the filter. Try submitting a solution.</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">{t("history.noMatch")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-xs text-muted-foreground border-b border-border bg-white/[0.02]">
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium">Time</th>
-                  <th className="text-left px-3 py-2 font-medium">Problem</th>
-                  <th className="text-left px-3 py-2 font-medium">Lang</th>
-                  <th className="text-left px-3 py-2 font-medium">Verdict</th>
-                  <th className="text-left px-3 py-2 font-medium">Context</th>
+                  <th className="text-left px-3 py-2 font-medium">{t("history.colTime")}</th>
+                  <th className="text-left px-3 py-2 font-medium">{t("history.colProblem")}</th>
+                  <th className="text-left px-3 py-2 font-medium">{t("history.colLang")}</th>
+                  <th className="text-left px-3 py-2 font-medium">{t("history.colVerdict")}</th>
+                  <th className="text-left px-3 py-2 font-medium">{t("history.colContext")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -275,10 +277,10 @@ export default function History() {
                       </td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <span>{typeof s.context === "string" ? s.context : s.context.Contest ? `Contest ${s.context.Contest.contest_id.slice(0, 6)}` : "Practice"}</span>
+                          <span>{typeof s.context === "string" ? t("nav.practice") : s.context.Contest ? `${t("nav.contest")} ${s.context.Contest.contest_id.slice(0, 6)}` : t("nav.practice")}</span>
                           {typeof s.context !== "string" && (s.context as { Contest?: { upsolve?: boolean } }).Contest?.upsolve && (
                             <Badge variant="outline" className="text-tle border-tle/30 bg-tle/10 text-[10px] px-1 py-0">
-                              upsolve
+                              {t("common.upsolve")}
                             </Badge>
                           )}
                         </div>
@@ -294,7 +296,7 @@ export default function History() {
         {selected && (
           <div className="border-t border-border p-4 bg-black/20 animate-slide-up">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold">Source code</span>
+              <span className="text-xs font-semibold">{t("history.sourceCode")}</span>
               <VerdictBadge verdict={selected.verdict} showLong />
             </div>
             <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs font-mono whitespace-pre-wrap break-words max-h-64 overflow-auto">

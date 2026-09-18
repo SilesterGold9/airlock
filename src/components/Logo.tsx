@@ -22,13 +22,16 @@ export function LogoIcon({ size = 32 }: { size?: number }) {
   );
 }
 
+import { useT } from "../lib/i18n";
+
 export function LogoWordmark({ width = 160 }: { width?: number }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-2.5">
       <LogoIcon size={32} />
       <div className="flex flex-col leading-none">
         <span className="font-mono font-bold text-[16px] tracking-tight text-foreground">Airlock</span>
-        <span className="font-mono text-[10px] tracking-wide text-muted-foreground">offline-first cp trainer</span>
+        <span className="font-mono text-[10px] tracking-wide text-muted-foreground">{t("app.tagline")}</span>
       </div>
     </div>
   );

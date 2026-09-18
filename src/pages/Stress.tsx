@@ -8,6 +8,7 @@ import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { useT } from "../lib/i18n";
 
 const GEN_TEMPLATES: Record<"cpp" | "java", string> = {
   cpp: `#include <bits/stdc++.h>
@@ -114,6 +115,7 @@ type StressResult =
   | { type: "error"; message: string };
 
 export default function Stress() {
+  const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [selectedProblemId, setSelectedProblemId] = useState<string>("");
   const [language, setLanguage] = useState<"cpp" | "java">("cpp");
@@ -148,7 +150,7 @@ export default function Stress() {
 
   async function handleRun() {
     if (!candidate.trim() || !brute.trim() || !generator.trim()) {
-      setResult({ type: "error", message: "All three editors need code." });
+      setResult({ type: "error", message: t("stress.allThreeNeedCode") });
       return;
     }
     setResult({ type: "running" });
@@ -175,17 +177,15 @@ export default function Stress() {
   return (
     <div className="h-full flex flex-col bg-background">
       <div className="border-b border-border bg-card/50 backdrop-blur-sm p-4">
-        <h1 className="text-sm font-semibold">Stress test lab</h1>
+        <h1 className="text-sm font-semibold">{t("stress.title")}</h1>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-          Fuzz your solution against a brute force. Generator takes <span className="font-mono text-foreground">seed</span> from{" "}
-          <span className="font-mono text-foreground">argv[1]</span> and prints one test case. Candidate and brute read from
-          stdin.
+          {t("stress.description")}
         </p>
         <div className="flex flex-wrap gap-3 mt-3 items-end">
           <div className="flex flex-col gap-1 min-w-[220px]">
-            <label className="text-xs font-medium text-muted-foreground">Problem (optional)</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("stress.problemOptional")}</label>
             <Select value={selectedProblemId} onChange={(e) => handleProblemPick(e.target.value)}>
-              <option value="">No problem — free form</option>
+              <option value="">{t("stress.noProblem")}</option>
               {problems.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.title}
@@ -194,22 +194,22 @@ export default function Stress() {
             </Select>
           </div>
           <div className="flex flex-col gap-1 w-28">
-            <label className="text-xs font-medium text-muted-foreground">Language</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("common.language")}</label>
             <Select value={language} onChange={(e) => handleLanguageChange(e.target.value as "cpp" | "java")}>
               <option value="cpp">C++17</option>
               <option value="java">Java</option>
             </Select>
           </div>
           <div className="flex flex-col gap-1 w-28">
-            <label className="text-xs font-medium text-muted-foreground">Max cases</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("stress.maxCases")}</label>
             <Input type="number" min={1} max={10000} value={String(maxCases)} onChange={(e) => setMaxCases(Number(e.target.value) || 100)} />
           </div>
           <div className="flex flex-col gap-1 w-28">
-            <label className="text-xs font-medium text-muted-foreground">Time limit ms</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("stress.timeLimitMs")}</label>
             <Input type="number" min={100} max={10000} value={String(timeLimit)} onChange={(e) => setTimeLimit(Number(e.target.value) || 1000)} />
           </div>
           <Button onClick={handleRun} disabled={result.type === "running"} size="md" className="ml-auto">
-            {result.type === "running" ? "Running..." : "Run stress test"}
+            {result.type === "running" ? t("stress.running") : t("stress.run")}
           </Button>
         </div>
       </div>
@@ -217,8 +217,8 @@ export default function Stress() {
       <div className="flex-1 grid grid-cols-3 gap-3 p-3 min-h-0">
         <div className="flex flex-col gap-2 min-h-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold">Candidate</span>
-            <Badge variant="outline">your solution</Badge>
+            <span className="text-xs font-semibold">{t("stress.candidate")}</span>
+            <Badge variant="outline">{t("stress.yourSolution")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-border">
             <CodeEditor language={language} value={candidate} onChange={setCandidate} onLanguageChange={handleLanguageChange} />
@@ -226,8 +226,8 @@ export default function Stress() {
         </div>
         <div className="flex flex-col gap-2 min-h-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold">Brute force</span>
-            <Badge variant="outline">reference</Badge>
+            <span className="text-xs font-semibold">{t("stress.bruteForce")}</span>
+            <Badge variant="outline">{t("stress.reference")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-border">
             <CodeEditor language={language} value={brute} onChange={setBrute} onLanguageChange={handleLanguageChange} />
@@ -235,8 +235,8 @@ export default function Stress() {
         </div>
         <div className="flex flex-col gap-2 min-h-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold">Generator</span>
-            <Badge variant="outline">seed → test case</Badge>
+            <span className="text-xs font-semibold">{t("stress.generator")}</span>
+            <Badge variant="outline">{t("stress.seedToCase")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-border">
             <CodeEditor language={language} value={generator} onChange={setGenerator} onLanguageChange={handleLanguageChange} />
@@ -246,20 +246,20 @@ export default function Stress() {
 
       <div className="border-t border-border p-3 bg-card/30 max-h-[32%] overflow-y-auto">
         {result.type === "idle" && (
-          <div className="text-xs text-muted-foreground">Fill the three editors and click Run. Start with the templates.</div>
+          <div className="text-xs text-muted-foreground">{t("stress.idleHint")}</div>
         )}
         {result.type === "running" && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="animate-pulse">Fuzzing {maxCases} cases...</span>
-            <span className="text-xs text-muted-foreground">This may take a few seconds</span>
+            <span className="animate-pulse">{t("stress.fuzzing").replace("{count}", String(maxCases))}</span>
+            <span className="text-xs text-muted-foreground">{t("stress.mayTakeSeconds")}</span>
           </div>
         )}
         {result.type === "success" && (
           <div className="flex items-center gap-3">
             <VerdictBadge verdict="Accepted" showLong size="lg" />
             <div className="text-sm">
-              <div className="font-medium">No mismatches in {result.cases} cases</div>
-              <div className="text-xs text-muted-foreground">Generator and both solutions agree. Try more cases or a different generator.</div>
+              <div className="font-medium">{t("stress.noMismatches").replace("{count}", String(result.cases))}</div>
+              <div className="text-xs text-muted-foreground">{t("stress.agreeHint")}</div>
             </div>
           </div>
         )}
@@ -267,36 +267,36 @@ export default function Stress() {
           <div className="space-y-3 animate-slide-up">
             <div className="flex items-center gap-3">
               <VerdictBadge verdict="WrongAnswer" showLong size="lg" />
-              <div className="text-sm font-medium">Found a counter example</div>
+              <div className="text-sm font-medium">{t("stress.foundCounter")}</div>
             </div>
             <div className="grid md:grid-cols-3 gap-3">
               <Card className="p-3">
-                <div className="text-xs font-semibold mb-1">Failing input</div>
+                <div className="text-xs font-semibold mb-1">{t("stress.failingInput")}</div>
                 <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap border border-border font-mono break-words">
                   {result.input}
                 </pre>
               </Card>
               <Card className="p-3">
-                <div className="text-xs font-semibold mb-1">Candidate output</div>
+                <div className="text-xs font-semibold mb-1">{t("stress.candidateOutput")}</div>
                 <pre className="bg-wa/10 border-wa/30 rounded-md p-2 text-xs whitespace-pre-wrap border font-mono break-words">
-                  {result.candidate || "(empty)"}
+                  {result.candidate || t("common.empty")}
                 </pre>
               </Card>
               <Card className="p-3">
-                <div className="text-xs font-semibold mb-1">Brute output</div>
+                <div className="text-xs font-semibold mb-1">{t("stress.bruteOutput")}</div>
                 <pre className="bg-ac/10 border-ac/30 rounded-md p-2 text-xs whitespace-pre-wrap border font-mono break-words">
-                  {result.brute || "(empty)"}
+                  {result.brute || t("common.empty")}
                 </pre>
               </Card>
             </div>
-            <div className="text-xs text-muted-foreground">Copy the input and run both solutions locally to debug. Check whitespace handling.</div>
+            <div className="text-xs text-muted-foreground">{t("stress.copyHint")}</div>
           </div>
         )}
         {result.type === "error" && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <VerdictBadge verdict="CompileError" showLong />
-              <span className="text-sm font-medium">Stress test failed to compile or run</span>
+              <span className="text-sm font-medium">{t("stress.compileFailed")}</span>
             </div>
             <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs whitespace-pre-wrap break-words font-mono max-h-48 overflow-auto">
               {result.message}

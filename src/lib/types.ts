@@ -56,6 +56,7 @@ export interface Submission {
   verdict: Verdict;
   submitted_at: string;
   context: SubmissionContext;
+  failure_category?: FailureCategory | null;
 }
 
 export interface Contest {
@@ -77,6 +78,15 @@ export interface ProblemClaim {
 }
 
 export type TechniqueStatus = "NotStarted" | "Learning" | "Assimilated" | "Rusty";
+
+export type FailureCategory =
+  | "Conceptual"
+  | "Implementation"
+  | "StlGap"
+  | "Indexing"
+  | "Careless"
+  | "MisreadStatement"
+  | "PrematureTechnique";
 
 export interface Technique {
   id: string;

@@ -64,6 +64,7 @@ fn main() {
             commands::update_technique_status,
             commands::update_technique_notes,
             commands::bulk_update_technique_status,
+            commands::classify_submission,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

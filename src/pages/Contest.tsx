@@ -10,6 +10,7 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { SplitView } from "../components/ui/split-view";
 import DiffViewer from "../components/DiffViewer";
+import FailureChips from "../components/FailureChips";
 import ProblemStatement from "../components/ProblemStatement";
 import { Input } from "../components/ui/input";
 import Balloons from "../components/Balloons";
@@ -47,6 +48,7 @@ export default function Contest() {
   const [claims, setClaims] = useState<import("../lib/types").ProblemClaim[]>([]);
   const [activeContestId, setActiveContestId] = useState<string | null>(null);
   const [balloonTrigger, setBalloonTrigger] = useState(0);
+  const [submitSeq, setSubmitSeq] = useState(0);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
@@ -140,6 +142,7 @@ export default function Contest() {
     if (!current) return;
     setJudging(true);
     setReport(null);
+    setSubmitSeq((v) => v + 1);
     const isUpsolve = ended && !viewingHistory;
     try {
       const result = await api.submitSolution({
@@ -424,6 +427,9 @@ export default function Contest() {
                               <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{t(info.hint)}</div>
                             </div>
                           </div>
+                          {!isAC && current && (
+                            <FailureChips problemId={current.id} attemptKey={submitSeq} />
+                          )}
                           {isCE ? (
                             <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs whitespace-pre-wrap break-words max-h-48 overflow-auto font-mono">
                               {report.results[0]?.message || t("contest.noCompilerOutput")}

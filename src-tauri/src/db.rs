@@ -1,5 +1,6 @@
 use crate::models::{
-    Contest, Problem, ProblemClaim, Submission, Technique, TechniqueStatus, TestCase, Verdict,
+    Contest, FailureCategory, Problem, ProblemClaim, Submission, Technique, TechniqueStatus,
+    TestCase, Verdict,
 };
 use rusqlite::{params, Connection, Result as SqlResult};
 use std::path::Path;
@@ -69,6 +70,7 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
     )?;
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN notes_md TEXT", []);
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN primary_technique_id TEXT", []);
+    let _ = conn.execute("ALTER TABLE submissions ADD COLUMN failure_category TEXT", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN team_members TEXT", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN driver TEXT", []);
     Ok(conn)
@@ -239,8 +241,8 @@ pub fn get_tests(conn: &Connection, problem_id: &str) -> SqlResult<Vec<TestCase>
 
 pub fn insert_submission(conn: &Connection, s: &Submission) -> SqlResult<()> {
     conn.execute(
-        "INSERT INTO submissions (id, problem_id, language, source_code, verdict, submitted_at, context)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO submissions (id, problem_id, language, source_code, verdict, submitted_at, context, failure_category)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             s.id,
             s.problem_id,
@@ -249,9 +251,27 @@ pub fn insert_submission(conn: &Connection, s: &Submission) -> SqlResult<()> {
             verdict_to_str(&s.verdict),
             s.submitted_at,
             serde_json::to_string(&s.context).unwrap(),
+            s.failure_category.as_ref().map(failure_category_to_str),
         ],
     )?;
     Ok(())
+}
+
+/// Tags the most recent non-AC submission for a problem. Classification happens
+/// after the verdict is known, so this is a separate step from insert.
+pub fn classify_latest_submission(
+    conn: &Connection,
+    problem_id: &str,
+    category: &FailureCategory,
+) -> SqlResult<usize> {
+    Ok(conn.execute(
+        "UPDATE submissions SET failure_category = ?1 WHERE id = (
+            SELECT id FROM submissions
+            WHERE problem_id = ?2 AND verdict != 'AC'
+            ORDER BY submitted_at DESC LIMIT 1
+        )",
+        params![failure_category_to_str(category), problem_id],
+    )? as usize)
 }
 
 pub fn insert_contest(conn: &Connection, c: &Contest) -> SqlResult<()> {
@@ -323,11 +343,12 @@ pub fn clear_claims(conn: &Connection, contest_id: &str) -> SqlResult<()> {
 
 pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
     let mut stmt = conn.prepare(
-        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context FROM submissions ORDER BY submitted_at DESC",
+        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context, failure_category FROM submissions ORDER BY submitted_at DESC",
     )?;
     let rows = stmt.query_map([], |row| {
         let verdict_str: String = row.get(4)?;
         let context_json: String = row.get(6)?;
+        let failure_str: Option<String> = row.get(7).ok().flatten();
         Ok(Submission {
             id: row.get(0)?,
             problem_id: row.get(1)?,
@@ -336,6 +357,7 @@ pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
             verdict: str_to_verdict(&verdict_str),
             submitted_at: row.get(5)?,
             context: serde_json::from_str(&context_json).unwrap_or(crate::models::SubmissionContext::Practice),
+            failure_category: failure_str.map(|s| str_to_failure_category(&s)),
         })
     })?;
     rows.collect()
@@ -343,11 +365,12 @@ pub fn list_submissions(conn: &Connection) -> SqlResult<Vec<Submission>> {
 
 pub fn list_submissions_by_problem(conn: &Connection, problem_id: &str) -> SqlResult<Vec<Submission>> {
     let mut stmt = conn.prepare(
-        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context FROM submissions WHERE problem_id = ?1 ORDER BY submitted_at DESC",
+        "SELECT id, problem_id, language, source_code, verdict, submitted_at, context, failure_category FROM submissions WHERE problem_id = ?1 ORDER BY submitted_at DESC",
     )?;
     let rows = stmt.query_map(params![problem_id], |row| {
         let verdict_str: String = row.get(4)?;
         let context_json: String = row.get(6)?;
+        let failure_str: Option<String> = row.get(7).ok().flatten();
         Ok(Submission {
             id: row.get(0)?,
             problem_id: row.get(1)?,
@@ -356,6 +379,7 @@ pub fn list_submissions_by_problem(conn: &Connection, problem_id: &str) -> SqlRe
             verdict: str_to_verdict(&verdict_str),
             submitted_at: row.get(5)?,
             context: serde_json::from_str(&context_json).unwrap_or(crate::models::SubmissionContext::Practice),
+            failure_category: failure_str.map(|s| str_to_failure_category(&s)),
         })
     })?;
     rows.collect()
@@ -389,5 +413,30 @@ fn verdict_to_str(v: &Verdict) -> &'static str {
         Verdict::TimeLimitExceeded => "TLE",
         Verdict::RuntimeError => "RE",
         Verdict::CompileError => "CE",
+    }
+}
+
+fn str_to_failure_category(s: &str) -> FailureCategory {
+    match s {
+        "Conceptual" => FailureCategory::Conceptual,
+        "Implementation" => FailureCategory::Implementation,
+        "StlGap" => FailureCategory::StlGap,
+        "Indexing" => FailureCategory::Indexing,
+        "Careless" => FailureCategory::Careless,
+        "MisreadStatement" => FailureCategory::MisreadStatement,
+        "PrematureTechnique" => FailureCategory::PrematureTechnique,
+        _ => FailureCategory::Careless,
+    }
+}
+
+fn failure_category_to_str(c: &FailureCategory) -> &'static str {
+    match c {
+        FailureCategory::Conceptual => "Conceptual",
+        FailureCategory::Implementation => "Implementation",
+        FailureCategory::StlGap => "StlGap",
+        FailureCategory::Indexing => "Indexing",
+        FailureCategory::Careless => "Careless",
+        FailureCategory::MisreadStatement => "MisreadStatement",
+        FailureCategory::PrematureTechnique => "PrematureTechnique",
     }
 }

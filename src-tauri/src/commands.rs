@@ -1,8 +1,8 @@
 use crate::db;
 use crate::judge;
 use crate::models::{
-    Contest, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext, Technique,
-    TechniqueStatus,
+    Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext,
+    Technique, TechniqueStatus,
 };
 use chrono::Utc;
 use rusqlite::Connection;
@@ -81,6 +81,7 @@ pub fn submit_solution(
         verdict: report.overall_verdict.clone(),
         submitted_at: Utc::now().to_rfc3339(),
         context,
+        failure_category: None,
     };
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::insert_submission(&conn, &submission).map_err(|e| e.to_string())?;
@@ -252,6 +253,21 @@ pub fn bulk_update_technique_status(
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::bulk_update_technique_status(&conn, &technique_ids, &status, &Utc::now().to_rfc3339())
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn classify_submission(
+    state: State<AppState>,
+    problem_id: String,
+    failure_category: FailureCategory,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let updated = db::classify_latest_submission(&conn, &problem_id, &failure_category)
+        .map_err(|e| e.to_string())?;
+    if updated == 0 {
+        return Err("no recent non-AC submission to classify".into());
+    }
+    Ok(())
 }
 
 #[tauri::command]

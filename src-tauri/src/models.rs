@@ -63,6 +63,20 @@ pub struct Submission {
     pub verdict: Verdict,
     pub submitted_at: String, // ISO 8601
     pub context: SubmissionContext,
+    // set after a non-AC verdict via classify_submission; None = unclassified
+    #[serde(default)]
+    pub failure_category: Option<FailureCategory>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub enum FailureCategory {
+    Conceptual,
+    Implementation,
+    StlGap,
+    Indexing,
+    Careless,
+    MisreadStatement,
+    PrematureTechnique,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -11,6 +11,7 @@ import { SplitView } from "../components/ui/split-view";
 import { Select } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import DiffViewer from "../components/DiffViewer";
+import FailureChips from "../components/FailureChips";
 import Balloons from "../components/Balloons";
 import ProblemStatement from "../components/ProblemStatement";
 import { getSimilarProblems } from "../lib/rating";
@@ -31,6 +32,7 @@ export default function Practice() {
   const [notesOpen, setNotesOpen] = useState(false);
   const [attempts, setAttempts] = useState<import("../lib/types").Submission[]>([]);
   const [balloonTrigger, setBalloonTrigger] = useState(0);
+  const [submitSeq, setSubmitSeq] = useState(0);
   const [techniques, setTechniques] = useState<Technique[]>([]);
 
   useEffect(() => {
@@ -73,6 +75,7 @@ export default function Practice() {
     if (!selected) return;
     setJudging(true);
     setReport(null);
+    setSubmitSeq((v) => v + 1);
     try {
       const result = await api.submitSolution({
         problemId: selected.id,
@@ -292,6 +295,10 @@ export default function Practice() {
                               <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{t(info.hint)}</div>
                             </div>
                           </div>
+
+                          {!isAC && (
+                            <FailureChips problemId={selected.id} attemptKey={submitSeq} />
+                          )}
 
                           {isCE ? (
                             <div className="mt-3">

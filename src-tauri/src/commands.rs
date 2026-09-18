@@ -1,8 +1,9 @@
 use crate::db;
 use crate::judge;
 use crate::models::{
-    Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, ReimplementationSchedule,
-    Submission, SubmissionContext, Technique, TechniqueStatus, Verdict,
+    Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, RankReflection, RankState,
+    RankTheme, ReimplementationSchedule, Submission, SubmissionContext, Technique,
+    TechniqueStatus, Verdict,
 };
 use chrono::Utc;
 use rusqlite::Connection;
@@ -305,4 +306,147 @@ pub fn clear_submissions(state: State<AppState>) -> Result<usize, String> {
 pub fn clear_all_data(state: State<AppState>) -> Result<(), String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::clear_all_data(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn list_rank_themes(state: State<AppState>) -> Result<Vec<RankTheme>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::list_rank_themes(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn create_rank_theme(
+    state: State<AppState>,
+    system_name: String,
+    tier_names: Vec<String>,
+    tier_colors: Vec<String>,
+) -> Result<RankTheme, String> {
+    if tier_names.len() != 8 {
+        return Err("tier_names must contain exactly 8 entries".into());
+    }
+    if tier_colors.len() != 8 {
+        return Err("tier_colors must contain exactly 8 entries".into());
+    }
+    let name = system_name.trim().to_string();
+    if name.is_empty() {
+        return Err("system name is required".into());
+    }
+    let theme = RankTheme {
+        id: Uuid::new_v4().to_string(),
+        system_name: name,
+        tier_names,
+        tier_colors,
+        is_default: false,
+    };
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::insert_rank_theme(&conn, &theme).map_err(|e| e.to_string())?;
+    Ok(theme)
+}
+
+#[tauri::command]
+pub fn set_active_theme(state: State<AppState>, theme_id: String) -> Result<RankState, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let known = db::get_rank_theme(&conn, &theme_id).map_err(|e| e.to_string())?;
+    if known.is_none() {
+        return Err("unknown theme".into());
+    }
+    let mut rank = db::get_rank_state(&conn).map_err(|e| e.to_string())?;
+    rank.theme_id = theme_id;
+    db::update_rank_state(&conn, &rank).map_err(|e| e.to_string())?;
+    Ok(rank)
+}
+
+#[tauri::command]
+pub fn get_rank_state(state: State<AppState>) -> Result<RankState, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::get_rank_state(&conn).map_err(|e| e.to_string())
+}
+
+/// Suggestion starting point (tunable):
+/// readiness = 0.6 * technique_readiness + 0.4 * contest_signal, where
+/// technique_readiness = fraction of techniques with status Assimilated
+/// (0 when none tracked) and contest_signal = min(1, non-upsolve Contest
+/// AC count / 5). Suggest current+1 (cap 7) when
+/// readiness >= 0.15 * (current+1). Tiers 5-7 additionally require at least
+/// one non-upsolve Contest AC. Never auto-increments current_stars; clears
+/// pending when already at 7 or the threshold is not met.
+#[tauri::command]
+pub fn check_rank_suggestion(state: State<AppState>) -> Result<RankState, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let mut rank = db::get_rank_state(&conn).map_err(|e| e.to_string())?;
+    if rank.current_stars >= 7 {
+        rank.pending_suggestion = None;
+        db::update_rank_state(&conn, &rank).map_err(|e| e.to_string())?;
+        return Ok(rank);
+    }
+    let techniques = db::list_techniques(&conn).map_err(|e| e.to_string())?;
+    let technique_readiness = if techniques.is_empty() {
+        0.0
+    } else {
+        let assimilated = techniques
+            .iter()
+            .filter(|t| t.status == TechniqueStatus::Assimilated)
+            .count() as f64;
+        assimilated / techniques.len() as f64
+    };
+    let submissions = db::list_submissions(&conn).map_err(|e| e.to_string())?;
+    let mut contest_ac_count: u32 = 0;
+    for s in &submissions {
+        if !matches!(s.verdict, Verdict::Accepted) {
+            continue;
+        }
+        if let SubmissionContext::Contest { upsolve, .. } = &s.context {
+            if !upsolve {
+                contest_ac_count += 1;
+            }
+        }
+    }
+    let contest_signal = ((contest_ac_count as f64) / 5.0).min(1.0);
+    let readiness = 0.6 * technique_readiness + 0.4 * contest_signal;
+    let next = rank.current_stars + 1;
+    let gated = next >= 5 && contest_ac_count == 0;
+    if !gated && readiness >= 0.15 * (next as f64) {
+        rank.pending_suggestion = Some(next);
+    } else {
+        rank.pending_suggestion = None;
+    }
+    db::update_rank_state(&conn, &rank).map_err(|e| e.to_string())?;
+    Ok(rank)
+}
+
+#[tauri::command]
+pub fn confirm_rank_up(
+    state: State<AppState>,
+    star_level: u8,
+    reflection_md: String,
+) -> Result<RankState, String> {
+    if star_level == 0 || star_level > 7 {
+        return Err("star level must be between 1 and 7".into());
+    }
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let mut rank = db::get_rank_state(&conn).map_err(|e| e.to_string())?;
+    if star_level != rank.current_stars + 1 {
+        return Err("star level must equal current stars plus one".into());
+    }
+    let now = Utc::now().to_rfc3339();
+    rank.current_stars = star_level;
+    rank.achieved_at.insert(star_level.to_string(), now.clone());
+    if rank.pending_suggestion == Some(star_level) {
+        rank.pending_suggestion = None;
+    }
+    let reflection = RankReflection {
+        id: Uuid::new_v4().to_string(),
+        star_level,
+        reflection_md,
+        created_at: now,
+    };
+    db::insert_rank_reflection(&conn, &reflection).map_err(|e| e.to_string())?;
+    db::update_rank_state(&conn, &rank).map_err(|e| e.to_string())?;
+    Ok(rank)
+}
+
+#[tauri::command]
+pub fn list_rank_reflections(state: State<AppState>) -> Result<Vec<RankReflection>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::list_rank_reflections(&conn).map_err(|e| e.to_string())
 }

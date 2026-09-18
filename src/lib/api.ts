@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, ReimplementationSchedule, Submission, SubmissionContext, Technique, TechniqueStatus } from "./types";
+import type { Contest, FailureCategory, JudgeReport, Problem, ProblemClaim, RankReflection, RankState, RankTheme, ReimplementationSchedule, Submission, SubmissionContext, Technique, TechniqueStatus } from "./types";
 
 export const api = {
   listProblems: () => invoke<Problem[]>("list_problems"),
@@ -94,4 +94,25 @@ export const api = {
 
   listDueReimplementations: () =>
     invoke<ReimplementationSchedule[]>("list_due_reimplementations"),
+
+  listRankThemes: () => invoke<RankTheme[]>("list_rank_themes"),
+
+  createRankTheme: (args: { systemName: string; tierNames: string[]; tierColors: string[] }) =>
+    invoke<RankTheme>("create_rank_theme", {
+      systemName: args.systemName,
+      tierNames: args.tierNames,
+      tierColors: args.tierColors,
+    }),
+
+  setActiveTheme: (themeId: string) =>
+    invoke<RankState>("set_active_theme", { themeId }),
+
+  getRankState: () => invoke<RankState>("get_rank_state"),
+
+  checkRankSuggestion: () => invoke<RankState>("check_rank_suggestion"),
+
+  confirmRankUp: (starLevel: number, reflectionMd: string) =>
+    invoke<RankState>("confirm_rank_up", { starLevel, reflectionMd }),
+
+  listRankReflections: () => invoke<RankReflection[]>("list_rank_reflections"),
 };

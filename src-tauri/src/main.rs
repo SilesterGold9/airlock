@@ -67,6 +67,13 @@ fn main() {
             commands::classify_submission,
             commands::touch_technique,
             commands::list_due_reimplementations,
+            commands::list_rank_themes,
+            commands::create_rank_theme,
+            commands::set_active_theme,
+            commands::get_rank_state,
+            commands::check_rank_suggestion,
+            commands::confirm_rank_up,
+            commands::list_rank_reflections,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

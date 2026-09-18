@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TestCase {
@@ -144,4 +145,32 @@ pub struct ReimplementationSchedule {
     pub last_ac_at: String, // ISO 8601
     pub next_due_at: String, // ISO 8601
     pub completed_reimplementations: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RankTheme {
+    pub id: String,
+    pub system_name: String,
+    pub tier_names: Vec<String>,  // exactly 8
+    pub tier_colors: Vec<String>, // exactly 8 hex
+    pub is_default: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RankState {
+    pub theme_id: String,
+    pub current_stars: u8,
+    /// star ("1".."7") -> ISO date. String keys for serde_json map-key compat.
+    #[serde(default)]
+    pub achieved_at: HashMap<String, String>,
+    #[serde(default)]
+    pub pending_suggestion: Option<u8>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RankReflection {
+    pub id: String,
+    pub star_level: u8,
+    pub reflection_md: String,
+    pub created_at: String, // ISO 8601
 }

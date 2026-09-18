@@ -1,6 +1,6 @@
 use crate::models::{
-    Contest, FailureCategory, Problem, ProblemClaim, ReimplementationSchedule, Submission,
-    Technique, TechniqueStatus, TestCase, Verdict,
+    Contest, FailureCategory, Problem, ProblemClaim, RankReflection, RankState, RankTheme,
+    ReimplementationSchedule, Submission, Technique, TechniqueStatus, TestCase, Verdict,
 };
 use chrono::Utc;
 use rusqlite::{params, Connection, Result as SqlResult};
@@ -75,6 +75,29 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
             next_due_at TEXT NOT NULL,
             completed_reimplementations INTEGER NOT NULL DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS rank_themes (
+            id TEXT PRIMARY KEY,
+            system_name TEXT NOT NULL,
+            tier_names TEXT NOT NULL,    -- JSON array, exactly 8
+            tier_colors TEXT NOT NULL,   -- JSON array, exactly 8 hex
+            is_default INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS rank_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            theme_id TEXT NOT NULL,
+            current_stars INTEGER NOT NULL DEFAULT 0,
+            achieved_at TEXT NOT NULL DEFAULT '{}',  -- JSON object star -> ISO date
+            pending_suggestion INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS rank_reflections (
+            id TEXT PRIMARY KEY,
+            star_level INTEGER NOT NULL,
+            reflection_md TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
         ",
     )?;
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN notes_md TEXT", []);
@@ -84,6 +107,7 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
     let _ = conn.execute("ALTER TABLE submissions ADD COLUMN hints_revealed INTEGER", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN team_members TEXT", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN driver TEXT", []);
+    seed_rank_tables(&conn).ok();
     Ok(conn)
 }
 
@@ -513,4 +537,184 @@ fn failure_category_to_str(c: &FailureCategory) -> &'static str {
         FailureCategory::MisreadStatement => "MisreadStatement",
         FailureCategory::PrematureTechnique => "PrematureTechnique",
     }
+}
+
+// --- Rank / journey system ---
+
+fn default_rank_theme() -> RankTheme {
+    RankTheme {
+        id: "default".to_string(),
+        system_name: "Airlock Standard".to_string(),
+        tier_names: vec![
+            "Docked".to_string(),
+            "Hatch Ajar".to_string(),
+            "Depressurized".to_string(),
+            "Spacewalk".to_string(),
+            "Orbital".to_string(),
+            "Deep Orbit".to_string(),
+            "Command Deck".to_string(),
+            "Voidborne".to_string(),
+        ],
+        tier_colors: vec![
+            "#64748b".to_string(),
+            "#60a5fa".to_string(),
+            "#34d399".to_string(),
+            "#a3e635".to_string(),
+            "#facc15".to_string(),
+            "#fb923c".to_string(),
+            "#c084fc".to_string(),
+            "#eab308".to_string(),
+        ],
+        is_default: true,
+    }
+}
+
+fn seed_rank_tables(conn: &Connection) -> SqlResult<()> {
+    let theme_count: i64 =
+        conn.query_row("SELECT COUNT(*) FROM rank_themes", [], |row| row.get(0))?;
+    if theme_count == 0 {
+        let theme = default_rank_theme();
+        conn.execute(
+            "INSERT INTO rank_themes (id, system_name, tier_names, tier_colors, is_default)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                theme.id,
+                theme.system_name,
+                serde_json::to_string(&theme.tier_names).unwrap(),
+                serde_json::to_string(&theme.tier_colors).unwrap(),
+                1,
+            ],
+        )?;
+    }
+    let state_count: i64 =
+        conn.query_row("SELECT COUNT(*) FROM rank_state", [], |row| row.get(0))?;
+    if state_count == 0 {
+        conn.execute(
+            "INSERT INTO rank_state (id, theme_id, current_stars, achieved_at, pending_suggestion)
+             VALUES (1, 'default', 0, '{}', NULL)",
+            [],
+        )?;
+    }
+    Ok(())
+}
+
+pub fn list_rank_themes(conn: &Connection) -> SqlResult<Vec<RankTheme>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, system_name, tier_names, tier_colors, is_default FROM rank_themes ORDER BY system_name",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        let names_json: String = row.get(2)?;
+        let colors_json: String = row.get(3)?;
+        let is_default_int: i64 = row.get(4)?;
+        Ok(RankTheme {
+            id: row.get(0)?,
+            system_name: row.get(1)?,
+            tier_names: serde_json::from_str(&names_json).unwrap_or_default(),
+            tier_colors: serde_json::from_str(&colors_json).unwrap_or_default(),
+            is_default: is_default_int != 0,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn get_rank_theme(conn: &Connection, theme_id: &str) -> SqlResult<Option<RankTheme>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, system_name, tier_names, tier_colors, is_default FROM rank_themes WHERE id = ?1",
+    )?;
+    let rows = stmt.query_map(params![theme_id], |row| {
+        let names_json: String = row.get(2)?;
+        let colors_json: String = row.get(3)?;
+        let is_default_int: i64 = row.get(4)?;
+        Ok(RankTheme {
+            id: row.get(0)?,
+            system_name: row.get(1)?,
+            tier_names: serde_json::from_str(&names_json).unwrap_or_default(),
+            tier_colors: serde_json::from_str(&colors_json).unwrap_or_default(),
+            is_default: is_default_int != 0,
+        })
+    })?;
+    for theme in rows {
+        return Ok(Some(theme?));
+    }
+    Ok(None)
+}
+
+pub fn insert_rank_theme(conn: &Connection, theme: &RankTheme) -> SqlResult<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO rank_themes (id, system_name, tier_names, tier_colors, is_default)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![
+            theme.id,
+            theme.system_name,
+            serde_json::to_string(&theme.tier_names).unwrap(),
+            serde_json::to_string(&theme.tier_colors).unwrap(),
+            if theme.is_default { 1 } else { 0 },
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn get_rank_state(conn: &Connection) -> SqlResult<RankState> {
+    let res: SqlResult<(String, i64, String, Option<i64>)> = conn.query_row(
+        "SELECT theme_id, current_stars, achieved_at, pending_suggestion FROM rank_state WHERE id = 1",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+    );
+    match res {
+        Ok((theme_id, current_stars, achieved_json, pending)) => Ok(RankState {
+            theme_id,
+            current_stars: current_stars as u8,
+            achieved_at: serde_json::from_str(&achieved_json).unwrap_or_default(),
+            pending_suggestion: pending.map(|v| v as u8),
+        }),
+        Err(rusqlite::Error::QueryReturnedNoRows) => {
+            // Self-heal if the seed row was removed.
+            seed_rank_tables(conn).ok();
+            Ok(RankState {
+                theme_id: "default".to_string(),
+                current_stars: 0,
+                achieved_at: Default::default(),
+                pending_suggestion: None,
+            })
+        }
+        Err(e) => Err(e),
+    }
+}
+
+pub fn update_rank_state(conn: &Connection, state: &RankState) -> SqlResult<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO rank_state (id, theme_id, current_stars, achieved_at, pending_suggestion)
+         VALUES (1, ?1, ?2, ?3, ?4)",
+        params![
+            state.theme_id,
+            state.current_stars as i64,
+            serde_json::to_string(&state.achieved_at).unwrap(),
+            state.pending_suggestion.map(|v| v as i64),
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn insert_rank_reflection(conn: &Connection, r: &RankReflection) -> SqlResult<()> {
+    conn.execute(
+        "INSERT INTO rank_reflections (id, star_level, reflection_md, created_at)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![r.id, r.star_level as i64, r.reflection_md, r.created_at,],
+    )?;
+    Ok(())
+}
+
+pub fn list_rank_reflections(conn: &Connection) -> SqlResult<Vec<RankReflection>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, star_level, reflection_md, created_at FROM rank_reflections ORDER BY created_at DESC",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(RankReflection {
+            id: row.get(0)?,
+            star_level: row.get::<_, i64>(1)? as u8,
+            reflection_md: row.get(2)?,
+            created_at: row.get(3)?,
+        })
+    })?;
+    rows.collect()
 }

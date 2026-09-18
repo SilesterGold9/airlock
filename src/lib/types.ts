@@ -104,3 +104,25 @@ export interface ReimplementationSchedule {
   next_due_at: string;
   completed_reimplementations: number;
 }
+
+export interface RankTheme {
+  id: string;
+  system_name: string;
+  tier_names: string[];
+  tier_colors: string[];
+  is_default: boolean;
+}
+
+export interface RankState {
+  theme_id: string;
+  current_stars: number;
+  achieved_at: Record<string, string>;
+  pending_suggestion?: number | null;
+}
+
+export interface RankReflection {
+  id: string;
+  star_level: number;
+  reflection_md: string;
+  created_at: string;
+}

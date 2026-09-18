@@ -24,6 +24,7 @@ export interface Problem {
   brute_force_src?: string | null;
   brute_force_lang?: string | null;
   notes_md?: string | null;
+  primary_technique_id?: string | null;
 }
 
 export interface TestResult {
@@ -73,4 +74,14 @@ export interface ProblemClaim {
   problem_id: string;
   claimed_by: string;
   status: "thinking" | "coding" | "stuck" | "done" | string;
+}
+
+export type TechniqueStatus = "NotStarted" | "Learning" | "Assimilated" | "Rusty";
+
+export interface Technique {
+  id: string;
+  name: string;
+  status: TechniqueStatus;
+  status_updated_at: string;
+  notes_md?: string | null;
 }

@@ -4,6 +4,7 @@ import Contest from "./pages/Contest";
 import Stress from "./pages/Stress";
 import Import from "./pages/Import";
 import History from "./pages/History";
+import Techniques from "./pages/Techniques";
 import { LogoIcon } from "./components/Logo";
 import { useLocale, useT } from "./lib/i18n";
 import Titlebar from "./components/Titlebar";
@@ -23,6 +24,7 @@ export default function App() {
         <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
         {[
           { to: "/", label: t("nav.practice") },
+          { to: "/techniques", label: t("nav.techniques") },
           { to: "/contest", label: t("nav.contest") },
           { to: "/stress", label: t("nav.stress") },
           { to: "/import", label: t("nav.import") },
@@ -54,6 +56,7 @@ export default function App() {
       <main className="flex-1 min-h-0">
         <Routes>
           <Route path="/" element={<Practice />} />
+          <Route path="/techniques" element={<Techniques />} />
           <Route path="/contest" element={<Contest />} />
           <Route path="/stress" element={<Stress />} />
           <Route path="/import" element={<Import />} />

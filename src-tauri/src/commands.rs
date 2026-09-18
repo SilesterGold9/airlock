@@ -1,6 +1,9 @@
 use crate::db;
 use crate::judge;
-use crate::models::{Contest, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext, Verdict};
+use crate::models::{
+    Contest, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext, Technique,
+    TechniqueStatus,
+};
 use chrono::Utc;
 use rusqlite::Connection;
 use std::sync::Mutex;
@@ -191,8 +194,68 @@ pub fn set_contest_driver(
 }
 
 #[tauri::command]
-pub fn clear_submissions(state: State<AppState>) -> Result<usize, String> {
+pub fn list_techniques(state: State<AppState>) -> Result<Vec<Technique>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::list_techniques(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn save_technique(state: State<AppState>, name: String) -> Result<Technique, String> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err("technique name is required".into());
+    }
+    let technique = Technique {
+        id: Uuid::new_v4().to_string(),
+        name,
+        status: TechniqueStatus::NotStarted,
+        status_updated_at: Utc::now().to_rfc3339(),
+        notes_md: None,
+    };
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::upsert_technique(&conn, &technique).map_err(|e| e.to_string())?;
+    Ok(technique)
+}
+
+#[tauri::command]
+pub fn update_technique_status(
+    state: State<AppState>,
+    technique_id: String,
+    status: TechniqueStatus,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let updated =
+        db::update_technique_status(&conn, &technique_id, &status, &Utc::now().to_rfc3339())
+            .map_err(|e| e.to_string())?;
+    if updated == 0 {
+        return Err("technique not found".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn update_technique_notes(
+    state: State<AppState>,
+    technique_id: String,
+    notes_md: String,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::update_technique_notes(&conn, &technique_id, &notes_md).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn bulk_update_technique_status(
+    state: State<AppState>,
+    technique_ids: Vec<String>,
+    status: TechniqueStatus,
+) -> Result<usize, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::bulk_update_technique_status(&conn, &technique_ids, &status, &Utc::now().to_rfc3339())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn clear_submissions(state: State<AppState>) -> Result<usize, String> {    let conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::clear_submissions(&conn).map_err(|e| e.to_string())
 }
 

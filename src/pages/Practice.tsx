@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import type { JudgeReport, Problem } from "../lib/types";
+import type { JudgeReport, Problem, Technique } from "../lib/types";
 import { getVerdictInfo } from "../lib/verdict";
 import CodeEditor from "../components/CodeEditor";
 import VerdictBadge from "../components/VerdictBadge";
@@ -31,9 +31,11 @@ export default function Practice() {
   const [notesOpen, setNotesOpen] = useState(false);
   const [attempts, setAttempts] = useState<import("../lib/types").Submission[]>([]);
   const [balloonTrigger, setBalloonTrigger] = useState(0);
+  const [techniques, setTechniques] = useState<Technique[]>([]);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
+    api.listTechniques().then(setTechniques).catch(() => setTechniques([]));
   }, []);
 
   useEffect(() => {
@@ -160,6 +162,12 @@ export default function Practice() {
                     </Badge>
                   ))}
                   <DifficultyBadge difficulty={selected.difficulty} />
+                  {selected.primary_technique_id &&
+                    techniques.find((tech) => tech.id === selected.primary_technique_id) && (
+                      <Badge variant="outline">
+                        {techniques.find((tech) => tech.id === selected.primary_technique_id)?.name}
+                      </Badge>
+                    )}
                 </div>
                 <div className="text-xs text-muted-foreground mb-4 tabular-nums">
                   {t("practice.timeLimit")}: {selected.time_limit_ms}ms · {t("practice.memory")}: {selected.memory_limit_mb}MB

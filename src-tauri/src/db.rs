@@ -1,4 +1,6 @@
-use crate::models::{Contest, Problem, ProblemClaim, Submission, TestCase, Verdict};
+use crate::models::{
+    Contest, Problem, ProblemClaim, Submission, Technique, TechniqueStatus, TestCase, Verdict,
+};
 use rusqlite::{params, Connection, Result as SqlResult};
 use std::path::Path;
 
@@ -55,9 +57,18 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
             status TEXT NOT NULL,
             PRIMARY KEY (contest_id, problem_id)
         );
+
+        CREATE TABLE IF NOT EXISTS techniques (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'NotStarted',
+            status_updated_at TEXT NOT NULL,
+            notes_md TEXT
+        );
         ",
     )?;
     let _ = conn.execute("ALTER TABLE problems ADD COLUMN notes_md TEXT", []);
+    let _ = conn.execute("ALTER TABLE problems ADD COLUMN primary_technique_id TEXT", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN team_members TEXT", []);
     let _ = conn.execute("ALTER TABLE contests ADD COLUMN driver TEXT", []);
     Ok(conn)
@@ -66,8 +77,8 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
 pub fn insert_problem(conn: &Connection, p: &Problem) -> SqlResult<()> {
     conn.execute(
         "INSERT OR REPLACE INTO problems
-         (id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+         (id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md, primary_technique_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             p.id,
             p.title,
@@ -80,6 +91,7 @@ pub fn insert_problem(conn: &Connection, p: &Problem) -> SqlResult<()> {
             p.brute_force_src,
             p.brute_force_lang,
             p.notes_md,
+            p.primary_technique_id,
         ],
     )?;
     conn.execute("DELETE FROM test_cases WHERE problem_id = ?1", params![p.id])?;
@@ -100,9 +112,96 @@ pub fn update_problem_notes(conn: &Connection, problem_id: &str, notes_md: &str)
     Ok(())
 }
 
+pub fn list_techniques(conn: &Connection) -> SqlResult<Vec<Technique>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, status, status_updated_at, notes_md FROM techniques ORDER BY name",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        let status_str: String = row.get(2)?;
+        Ok(Technique {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            status: str_to_technique_status(&status_str),
+            status_updated_at: row.get(3)?,
+            notes_md: row.get(4)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn upsert_technique(conn: &Connection, t: &Technique) -> SqlResult<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO techniques (id, name, status, status_updated_at, notes_md)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![
+            t.id,
+            t.name,
+            technique_status_to_str(&t.status),
+            t.status_updated_at,
+            t.notes_md,
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn update_technique_status(
+    conn: &Connection,
+    technique_id: &str,
+    status: &TechniqueStatus,
+    updated_at: &str,
+) -> SqlResult<usize> {
+    Ok(conn.execute(
+        "UPDATE techniques SET status = ?1, status_updated_at = ?2 WHERE id = ?3",
+        params![technique_status_to_str(status), updated_at, technique_id],
+    )? as usize)
+}
+
+pub fn update_technique_notes(conn: &Connection, technique_id: &str, notes_md: &str) -> SqlResult<()> {
+    conn.execute(
+        "UPDATE techniques SET notes_md = ?1 WHERE id = ?2",
+        params![notes_md, technique_id],
+    )?;
+    Ok(())
+}
+
+pub fn bulk_update_technique_status(
+    conn: &Connection,
+    technique_ids: &[String],
+    status: &TechniqueStatus,
+    updated_at: &str,
+) -> SqlResult<usize> {
+    let status_str = technique_status_to_str(status);
+    let mut updated = 0;
+    for id in technique_ids {
+        updated += conn.execute(
+            "UPDATE techniques SET status = ?1, status_updated_at = ?2 WHERE id = ?3",
+            params![status_str, updated_at, id],
+        )? as usize;
+    }
+    Ok(updated)
+}
+
+fn str_to_technique_status(s: &str) -> TechniqueStatus {
+    match s {
+        "Learning" => TechniqueStatus::Learning,
+        "Assimilated" => TechniqueStatus::Assimilated,
+        "Rusty" => TechniqueStatus::Rusty,
+        _ => TechniqueStatus::NotStarted,
+    }
+}
+
+fn technique_status_to_str(s: &TechniqueStatus) -> &'static str {
+    match s {
+        TechniqueStatus::NotStarted => "NotStarted",
+        TechniqueStatus::Learning => "Learning",
+        TechniqueStatus::Assimilated => "Assimilated",
+        TechniqueStatus::Rusty => "Rusty",
+    }
+}
+
 pub fn list_problems(conn: &Connection) -> SqlResult<Vec<Problem>> {
     let mut stmt = conn.prepare(
-        "SELECT id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md FROM problems",
+        "SELECT id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md, primary_technique_id FROM problems",
     )?;
     let rows = stmt.query_map([], |row| {
         let tags_json: String = row.get(3)?;
@@ -118,6 +217,7 @@ pub fn list_problems(conn: &Connection) -> SqlResult<Vec<Problem>> {
             brute_force_src: row.get(8)?,
             brute_force_lang: row.get(9)?,
             notes_md: row.get(10)?,
+            primary_technique_id: row.get(11).ok().flatten(),
             tests: vec![], // populated separately via get_tests
         })
     })?;

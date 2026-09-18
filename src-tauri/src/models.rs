@@ -23,6 +23,9 @@ pub struct Problem {
     pub brute_force_src: Option<String>,
     pub brute_force_lang: Option<String>,
     pub notes_md: Option<String>,
+    // technique this problem targets (drives the structured set generator)
+    #[serde(default)]
+    pub primary_technique_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -87,4 +90,28 @@ pub struct ProblemClaim {
     pub problem_id: String,
     pub claimed_by: String,
     pub status: String, // thinking | coding | stuck | done
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub enum TechniqueStatus {
+    NotStarted,
+    Learning,
+    Assimilated,
+    Rusty, // was Assimilated, needs reassessment
+}
+
+impl Default for TechniqueStatus {
+    fn default() -> Self {
+        TechniqueStatus::NotStarted
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Technique {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub status: TechniqueStatus,
+    pub status_updated_at: String, // ISO 8601
+    pub notes_md: Option<String>,
 }

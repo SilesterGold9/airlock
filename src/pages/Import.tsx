@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import type { Problem } from "../lib/types";
+import type { Problem, Technique } from "../lib/types";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -71,6 +71,12 @@ export default function Import() {
   const [tests, setTests] = useState<TestDraft[]>([{ input: "2 3\n", expected_output: "5\n" }]);
   const [bruteSrc, setBruteSrc] = useState("");
   const [bruteLang, setBruteLang] = useState<"cpp" | "java">("cpp");
+  const [techniques, setTechniques] = useState<Technique[]>([]);
+  const [primaryTechniqueId, setPrimaryTechniqueId] = useState("");
+
+  useEffect(() => {
+    api.listTechniques().then(setTechniques).catch(() => setTechniques([]));
+  }, []);
 
   const [jsonText, setJsonText] = useState(JSON.stringify(SAMPLE, null, 2));
   const [saving, setSaving] = useState(false);
@@ -100,6 +106,7 @@ export default function Import() {
         tests: tests.map((tt) => ({ id: "", input: tt.input, expected_output: tt.expected_output })),
         brute_force_src: bruteSrc.trim() || null,
         brute_force_lang: bruteSrc.trim() ? bruteLang : null,
+        primary_technique_id: primaryTechniqueId || null,
       };
       const saved = await api.saveProblem(problem);
       setResult({ ok: true, msg: t("import.savedWithTests").replace("{title}", saved.title).replace("{count}", String(saved.tests.length)) });
@@ -133,6 +140,7 @@ export default function Import() {
         })),
         brute_force_src: parsed.brute_force_src || null,
         brute_force_lang: parsed.brute_force_lang || null,
+        primary_technique_id: parsed.primary_technique_id || null,
       };
       const saved = await api.saveProblem(problem);
       setResult({ ok: true, msg: t("import.importedCheck").replace("{title}", saved.title).replace("{id}", saved.id.slice(0, 8)) });
@@ -182,6 +190,17 @@ export default function Import() {
               <label className="text-xs font-medium text-muted-foreground">{t("import.sourceLabel")}</label>
               <Input value={source} onChange={(e) => setSource(e.target.value)} placeholder="self-authored" />
             </div>
+          </div>
+          <div className="grid gap-1">
+            <label className="text-xs font-medium text-muted-foreground">{t("import.techniqueLabel")}</label>
+            <Select value={primaryTechniqueId} onChange={(e) => setPrimaryTechniqueId(e.target.value)}>
+              <option value="">{t("import.noTechnique")}</option>
+              {techniques.map((tech) => (
+                <option key={tech.id} value={tech.id}>
+                  {tech.name}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="grid gap-1">

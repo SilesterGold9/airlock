@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Contest, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext } from "./types";
+import type { Contest, JudgeReport, Problem, ProblemClaim, Submission, SubmissionContext, Technique, TechniqueStatus } from "./types";
 
 export const api = {
   listProblems: () => invoke<Problem[]>("list_problems"),
@@ -70,4 +70,17 @@ export const api = {
   clearSubmissions: () => invoke<number>("clear_submissions"),
 
   clearAllData: () => invoke<void>("clear_all_data"),
+
+  listTechniques: () => invoke<Technique[]>("list_techniques"),
+
+  saveTechnique: (name: string) => invoke<Technique>("save_technique", { name }),
+
+  updateTechniqueStatus: (techniqueId: string, status: TechniqueStatus) =>
+    invoke<void>("update_technique_status", { techniqueId, status }),
+
+  updateTechniqueNotes: (techniqueId: string, notesMd: string) =>
+    invoke<void>("update_technique_notes", { techniqueId, notesMd }),
+
+  bulkUpdateTechniqueStatus: (techniqueIds: string[], status: TechniqueStatus) =>
+    invoke<number>("bulk_update_technique_status", { techniqueIds, status }),
 };

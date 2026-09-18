@@ -22,6 +22,7 @@ pub struct Problem {
     // optional brute-force reference solution for stress testing
     pub brute_force_src: Option<String>,
     pub brute_force_lang: Option<String>,
+    pub notes_md: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -46,6 +47,8 @@ pub struct TestResult {
 pub struct JudgeReport {
     pub overall_verdict: Verdict,
     pub results: Vec<TestResult>,
+    pub tests_passed: u32,
+    pub tests_total: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -62,7 +65,7 @@ pub struct Submission {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum SubmissionContext {
     Practice,
-    Contest { contest_id: String },
+    Contest { contest_id: String, #[serde(default)] upsolve: bool },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

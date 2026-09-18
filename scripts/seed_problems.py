@@ -32,8 +32,8 @@ def main():
         cur.execute(
             """INSERT OR REPLACE INTO problems
                (id, title, statement_md, tags, difficulty, time_limit_ms,
-                memory_limit_mb, source, brute_force_src, brute_force_lang)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 problem_id,
                 data["title"],
@@ -45,6 +45,7 @@ def main():
                 data["source"],
                 data.get("brute_force_src"),
                 data.get("brute_force_lang"),
+                data.get("notes_md"),
             ),
         )
         cur.execute("DELETE FROM test_cases WHERE problem_id = ?", (problem_id,))

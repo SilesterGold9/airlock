@@ -37,27 +37,30 @@ pub fn run_judge(
                 time_ms: 0,
                 message: Some(err),
             }],
+            tests_passed: 0,
+            tests_total: tests.len() as u32,
         });
     }
 
     let mut results = Vec::new();
     let mut overall = Verdict::Accepted;
+    let mut passed = 0u32;
 
     for t in tests {
         let result = run_one_test(&compile, t, time_limit_ms)?;
-        if !matches!(result.verdict, Verdict::Accepted) {
+        if matches!(result.verdict, Verdict::Accepted) {
+            passed += 1;
+        } else if matches!(overall, Verdict::Accepted) {
             overall = result.verdict.clone();
         }
         results.push(result);
-        if !matches!(overall, Verdict::Accepted) {
-            // stop at first failing test, like most judges do for immediate feedback
-            break;
-        }
     }
 
     Ok(JudgeReport {
         overall_verdict: overall,
         results,
+        tests_passed: passed,
+        tests_total: tests.len() as u32,
     })
 }
 

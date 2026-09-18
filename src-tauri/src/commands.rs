@@ -36,6 +36,16 @@ pub fn save_problem(state: State<AppState>, mut problem: Problem) -> Result<Prob
     Ok(problem)
 }
 
+#[tauri::command]
+pub fn update_problem_notes(
+    state: State<AppState>,
+    problem_id: String,
+    notes_md: String,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    db::update_problem_notes(&conn, &problem_id, &notes_md).map_err(|e| e.to_string())
+}
+
 /// Compiles + runs `source_code` against every stored test case for `problem_id`,
 /// records the submission, and returns the full per-test report.
 #[tauri::command]

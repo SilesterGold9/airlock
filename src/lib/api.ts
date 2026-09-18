@@ -6,6 +6,9 @@ export const api = {
 
   saveProblem: (problem: Problem) => invoke<Problem>("save_problem", { problem }),
 
+  updateProblemNotes: (problemId: string, notesMd: string) =>
+    invoke<void>("update_problem_notes", { problemId, notesMd }),
+
   submitSolution: (args: {
     problemId: string;
     language: "cpp" | "java";

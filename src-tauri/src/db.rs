@@ -16,7 +16,8 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
             memory_limit_mb INTEGER NOT NULL,
             source TEXT NOT NULL,
             brute_force_src TEXT,
-            brute_force_lang TEXT
+            brute_force_lang TEXT,
+            notes_md TEXT
         );
 
         CREATE TABLE IF NOT EXISTS test_cases (
@@ -46,14 +47,15 @@ pub fn init(path: &Path) -> SqlResult<Connection> {
         );
         ",
     )?;
+    let _ = conn.execute("ALTER TABLE problems ADD COLUMN notes_md TEXT", []);
     Ok(conn)
 }
 
 pub fn insert_problem(conn: &Connection, p: &Problem) -> SqlResult<()> {
     conn.execute(
         "INSERT OR REPLACE INTO problems
-         (id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+         (id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             p.id,
             p.title,
@@ -65,6 +67,7 @@ pub fn insert_problem(conn: &Connection, p: &Problem) -> SqlResult<()> {
             p.source,
             p.brute_force_src,
             p.brute_force_lang,
+            p.notes_md,
         ],
     )?;
     conn.execute("DELETE FROM test_cases WHERE problem_id = ?1", params![p.id])?;
@@ -77,9 +80,17 @@ pub fn insert_problem(conn: &Connection, p: &Problem) -> SqlResult<()> {
     Ok(())
 }
 
+pub fn update_problem_notes(conn: &Connection, problem_id: &str, notes_md: &str) -> SqlResult<()> {
+    conn.execute(
+        "UPDATE problems SET notes_md = ?1 WHERE id = ?2",
+        params![notes_md, problem_id],
+    )?;
+    Ok(())
+}
+
 pub fn list_problems(conn: &Connection) -> SqlResult<Vec<Problem>> {
     let mut stmt = conn.prepare(
-        "SELECT id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang FROM problems",
+        "SELECT id, title, statement_md, tags, difficulty, time_limit_ms, memory_limit_mb, source, brute_force_src, brute_force_lang, notes_md FROM problems",
     )?;
     let rows = stmt.query_map([], |row| {
         let tags_json: String = row.get(3)?;
@@ -94,6 +105,7 @@ pub fn list_problems(conn: &Connection) -> SqlResult<Vec<Problem>> {
             source: row.get(7)?,
             brute_force_src: row.get(8)?,
             brute_force_lang: row.get(9)?,
+            notes_md: row.get(10)?,
             tests: vec![], // populated separately via get_tests
         })
     })?;

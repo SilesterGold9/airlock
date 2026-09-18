@@ -6,8 +6,10 @@ import CodeEditor from "../components/CodeEditor";
 import VerdictBadge from "../components/VerdictBadge";
 import { Badge, DifficultyBadge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import { SplitView } from "../components/ui/split-view";
 import { Select } from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
 import DiffViewer from "../components/DiffViewer";
 
 export default function Practice() {
@@ -18,10 +20,35 @@ export default function Practice() {
   const [report, setReport] = useState<JudgeReport | null>(null);
   const [judging, setJudging] = useState(false);
   const [tagFilter, setTagFilter] = useState<string>("all");
+  const [notes, setNotes] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    setNotes(selected?.notes_md || "");
+  }, [selected?.id]);
+
+  useEffect(() => {
+    if (!selected) return;
+    if (notes === (selected.notes_md || "")) return;
+    setNotesSaving(true);
+    const t = setTimeout(async () => {
+      try {
+        await api.updateProblemNotes(selected.id, notes);
+        setProblems((prev) => prev.map((p) => (p.id === selected.id ? { ...p, notes_md: notes } : p)));
+        setSelected((prev) => (prev ? { ...prev, notes_md: notes } : prev));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setNotesSaving(false);
+      }
+    }, 900);
+    return () => clearTimeout(t);
+  }, [notes]);
 
   const allTags = Array.from(new Set(problems.flatMap((p) => p.tags))).sort();
   const visible =
@@ -108,6 +135,32 @@ export default function Practice() {
                 <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground/90">
                   {selected.statement_md}
                 </pre>
+
+                <Card className="mt-6">
+                  <button
+                    onClick={() => setNotesOpen((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  >
+                    <span className="text-sm font-semibold">My notes</span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-2">
+                      {notesSaving ? "Saving…" : notes ? "Saved" : "No notes"}
+                      <span className={`transition-transform ${notesOpen ? "rotate-180" : ""}`}>▾</span>
+                    </span>
+                  </button>
+                  {notesOpen && (
+                    <div className="px-4 pb-4">
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Write your approach after solving. It sticks for your juniors and for you."
+                        className="min-h-[140px] font-sans text-sm"
+                      />
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Autosaved to the problem. Visible next time you open it.
+                      </div>
+                    </div>
+                  )}
+                </Card>
               </div>
             }
             right={
@@ -154,8 +207,9 @@ export default function Practice() {
                           ) : (
                             <div className="space-y-2 mt-3">
                               <div className="text-xs font-semibold text-foreground">
-                                {isAC ? `All ${report.results.length} tests passed` : `Stopped at test ${report.results.length} of ${selected.tests.length}`}
+                                {report.tests_passed}/{report.tests_total} tests passed
                                 <span className="font-normal text-muted-foreground ml-2">limit {selected.time_limit_ms}ms</span>
+                                {!isAC && <span className="ml-2 text-wa">• {report.tests_total - report.tests_passed} failed</span>}
                               </div>
                               {report.results.map((r, i) => {
                                 const infoR = getVerdictInfo(r.verdict);

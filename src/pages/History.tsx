@@ -41,6 +41,7 @@ export default function History() {
   const [filterVerdict, setFilterVerdict] = useState<string>("all");
   const [selected, setSelected] = useState<Submission | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [includeUpsolve, setIncludeUpsolve] = useState(false);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
@@ -57,24 +58,33 @@ export default function History() {
         const p = problemMap.get(s.problem_id);
         if (!p || !p.tags.includes(filterTag)) return false;
       }
+      const isUpsolve = typeof s.context !== "string" && (s.context as { Contest?: { upsolve?: boolean } }).Contest?.upsolve;
+      if (!includeUpsolve && isUpsolve) return false;
       return true;
     });
-  }, [submissions, filterTag, filterVerdict, problemMap]);
+  }, [submissions, filterTag, filterVerdict, problemMap, includeUpsolve]);
+
+  const visibleSubmissions = useMemo(() => {
+    return submissions.filter((s) => {
+      const isUpsolve = typeof s.context !== "string" && (s.context as { Contest?: { upsolve?: boolean } }).Contest?.upsolve;
+      return includeUpsolve || !isUpsolve;
+    });
+  }, [submissions, includeUpsolve]);
 
   const stats = useMemo(() => {
-    const total = submissions.length;
-    const ac = submissions.filter((s) => s.verdict === "Accepted").length;
+    const total = visibleSubmissions.length;
+    const ac = visibleSubmissions.filter((s) => s.verdict === "Accepted").length;
     const rate = total ? (ac / total) * 100 : 0;
     const byDay = new Map<string, number>();
-    for (const s of submissions) {
+    for (const s of visibleSubmissions) {
       const day = s.submitted_at.slice(0, 10);
       byDay.set(day, (byDay.get(day) || 0) + 1);
     }
     const days = Array.from(byDay.entries()).sort().slice(-14);
     return { total, ac, rate, days };
-  }, [submissions]);
+  }, [visibleSubmissions]);
 
-  const perTag = useMemo(() => groupByTag(problems, submissions), [problems, submissions]);
+  const perTag = useMemo(() => groupByTag(problems, visibleSubmissions), [problems, visibleSubmissions]);
 
   async function handleClear() {
     if (submissions.length === 0) return;
@@ -205,7 +215,11 @@ export default function History() {
               <option value="CompileError">CE</option>
             </Select>
           </div>
-          <span className="text-xs text-muted-foreground ml-auto">{filtered.length} shown</span>
+          <label className="flex items-center gap-1.5 text-xs ml-auto cursor-pointer">
+            <input type="checkbox" checked={includeUpsolve} onChange={(e) => setIncludeUpsolve(e.target.checked)} className="h-3 w-3 rounded border-input bg-input" />
+            <span className="text-muted-foreground">include upsolve</span>
+          </label>
+          <span className="text-xs text-muted-foreground">{filtered.length} shown</span>
         </div>
 
         {filtered.length === 0 ? (
@@ -244,7 +258,14 @@ export default function History() {
                         <VerdictBadge verdict={s.verdict} />
                       </td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">
-                        {typeof s.context === "string" ? s.context : s.context.Contest ? `Contest ${s.context.Contest.contest_id.slice(0, 6)}` : "Practice"}
+                        <div className="flex items-center gap-1">
+                          <span>{typeof s.context === "string" ? s.context : s.context.Contest ? `Contest ${s.context.Contest.contest_id.slice(0, 6)}` : "Practice"}</span>
+                          {typeof s.context !== "string" && (s.context as { Contest?: { upsolve?: boolean } }).Contest?.upsolve && (
+                            <Badge variant="outline" className="text-tle border-tle/30 bg-tle/10 text-[10px] px-1 py-0">
+                              upsolve
+                            </Badge>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

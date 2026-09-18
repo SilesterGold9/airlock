@@ -90,14 +90,17 @@ export default function Contest() {
     if (!current) return;
     setJudging(true);
     setReport(null);
+    const isUpsolve = ended && !viewingHistory;
     try {
       const result = await api.submitSolution({
         problemId: current.id,
         language,
         sourceCode: code,
-        context: { Contest: { contest_id: "current" } },
+        context: { Contest: { contest_id: viewingHistory ? viewingHistory.id : "current", upsolve: isUpsolve } },
       });
       setReport(result);
+
+      if (isUpsolve) return;
 
       setStatuses((prev) => {
         const s = { ...prev[current.id] };
@@ -277,9 +280,14 @@ export default function Contest() {
                     onLanguageChange={setLanguage}
                   />
                 </div>
-                <Button onClick={handleSubmit} disabled={judging || ended} variant="primary" className="w-full">
-                  {judging ? "Judging..." : "Submit"}
+                <Button onClick={handleSubmit} disabled={judging} variant="primary" className="w-full">
+                  {judging ? "Judging..." : ended && !viewingHistory ? "Submit (upsolve)" : "Submit"}
                 </Button>
+                {ended && !viewingHistory && (
+                  <div className="text-xs text-tle border border-tle/30 bg-tle/10 rounded-md px-3 py-2">
+                    Time is up. You are now upsolving. Submissions are tagged as upsolve and do not affect the live scoreboard.
+                  </div>
+                )}
                 {report && (
                   <div className="border border-border rounded-lg p-4 max-h-[380px] overflow-y-auto bg-card animate-slide-up">
                     {(() => {
@@ -302,7 +310,9 @@ export default function Contest() {
                           ) : (
                             <div className="space-y-2 mt-2">
                               <div className="text-xs text-muted-foreground">
-                                {isAC ? `All ${report.results.length} tests passed` : `Failed at test ${report.results.length} of ${current.tests.length}`}
+                                {report.tests_passed}/{report.tests_total} tests passed
+                                {!isAC && <span className="ml-2 text-wa">{report.tests_total - report.tests_passed} failed</span>}
+                                <span className="ml-2">limit {current.time_limit_ms}ms</span>
                               </div>
                               {report.results.map((r, i) => {
                                 const test = current.tests.find((t) => t.id === r.test_id) ?? current.tests[i];

@@ -47,6 +47,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::list_problems,
             commands::save_problem,
+            commands::update_problem_notes,
             commands::submit_solution,
             commands::create_contest,
             commands::run_stress_test,

@@ -23,6 +23,7 @@ export interface Problem {
   tests: TestCase[];
   brute_force_src?: string | null;
   brute_force_lang?: string | null;
+  notes_md?: string | null;
 }
 
 export interface TestResult {
@@ -36,13 +37,15 @@ export interface TestResult {
 export interface JudgeReport {
   overall_verdict: Verdict;
   results: TestResult[];
+  tests_passed: number;
+  tests_total: number;
 }
 
 // serde's default externally-tagged representation: a unit variant serializes
 // as a bare string, a struct variant as { VariantName: { ...fields } }.
 export type SubmissionContext =
   | "Practice"
-  | { Contest: { contest_id: string } };
+  | { Contest: { contest_id: string; upsolve?: boolean } };
 
 export interface Submission {
   id: string;

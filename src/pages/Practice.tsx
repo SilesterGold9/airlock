@@ -554,7 +554,7 @@ export default function Practice() {
                           {hintTotal > 0 && (
                             <button
                               onClick={revealNextHint}
-                              className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors duration-150"
+                              className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all duration-150 active:scale-95"
                             >
                               <Icon d={ICONS.bulb} size={12} />
                               {t("workspace.hint")} {hintsRevealed}/{hintTotal}

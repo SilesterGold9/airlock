@@ -38,6 +38,10 @@
     @apply border-border;
     scrollbar-gutter: stable;
   }
+  button:focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.6);
+    outline-offset: 1px;
+  }
   html {
     scroll-behavior: smooth;
   }

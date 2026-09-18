@@ -46,6 +46,7 @@ export default function HintLadder({
         <Button
           variant="secondary"
           size="sm"
+          className="active:scale-95"
           onClick={() => (nextIsSeventh ? setArming(true) : onReveal(revealed + 1))}
         >
           {t("practice.stuck")}

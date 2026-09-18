@@ -46,7 +46,7 @@ export default function FailureChips({
           <button
             key={c}
             onClick={() => pick(c)}
-            className={`px-2.5 py-1 rounded-full text-xs border transition-colors duration-150 ${
+            className={`px-2.5 py-1 rounded-full text-xs border transition-all duration-150 active:scale-95 ${
               picked === c
                 ? "border-ac/60 bg-ac/10 text-foreground"
                 : "border-border text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"

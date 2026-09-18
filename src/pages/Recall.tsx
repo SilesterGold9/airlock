@@ -107,7 +107,7 @@ export default function Recall() {
     return (
       <div className="max-w-3xl mx-auto p-6 animate-fade-in">
         <h1 className="text-xl font-semibold">{t("recall.title")}</h1>
-        <Card className="p-6 mt-4 text-sm text-muted-foreground">
+        <Card className="p-6 mt-4 text-sm text-muted-foreground rounded-lg border-border bg-card transition-colors duration-150">
           {t("recall.empty")}{" "}
           <Link to="/techniques" className="text-foreground underline">
             {t("techniques.title")}
@@ -121,8 +121,8 @@ export default function Recall() {
     return (
       <div className="max-w-3xl mx-auto p-6 animate-fade-in">
         <h1 className="text-xl font-semibold">{t("recall.title")}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("recall.subtitle")}</p>
-        <Card className="p-6 mt-4 space-y-4">
+        <p className="text-xs text-muted-foreground mt-1">{t("recall.subtitle")}</p>
+        <Card className="p-5 mt-4 space-y-3 rounded-lg border-border bg-card transition-colors duration-150">
           <div className="grid gap-1">
             <label className="text-xs font-medium text-muted-foreground">{t("recall.technique")}</label>
             <Select value={techniqueId} onChange={(e) => setTechniqueId(e.target.value)}>
@@ -133,7 +133,7 @@ export default function Recall() {
               ))}
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1">
               <label className="text-xs font-medium text-muted-foreground">{t("common.language")}</label>
               <Select value={language} onChange={(e) => setLanguage(e.target.value as "cpp" | "java")}>
@@ -162,21 +162,23 @@ export default function Recall() {
 
   if (phase === "session" && selected) {
     return (
-      <div className="flex flex-col h-full animate-fade-in">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
-          <span className="font-medium text-sm truncate">{selected.name}</span>
+      <div className="flex flex-col h-full bg-background animate-fade-in">
+        <div className="flex items-center gap-2 px-3 h-11 border-b border-border shrink-0 bg-background">
+          <span className="text-[13px] font-medium truncate">{selected.name}</span>
           <Badge variant="outline">{t(`techniques.status.${selected.status}`)}</Badge>
           <span
-            className={`ml-auto font-mono text-lg tabular-nums ${remaining <= 60 ? "text-tle" : ""}`}
+            className={`ml-auto font-mono text-sm tabular-nums ${remaining <= 60 ? "text-tle" : "text-muted-foreground"}`}
           >
             {formatClock(remaining)}
           </span>
-          <Button size="sm" onClick={() => setPhase("report")}>
+          <Button size="sm" variant="success" onClick={() => setPhase("report")}>
             {t("recall.finish")}
           </Button>
         </div>
-        <div className="flex-1 min-h-0 p-4">
-          <CodeEditor language={language} value={code} onChange={setCode} onLanguageChange={setLanguage} />
+        <div className="flex-1 min-h-0 p-2">
+          <div className="h-full rounded-lg border border-border overflow-hidden">
+            <CodeEditor language={language} value={code} onChange={setCode} onLanguageChange={setLanguage} />
+          </div>
         </div>
       </div>
     );
@@ -186,16 +188,16 @@ export default function Recall() {
     return (
       <div className="max-w-3xl mx-auto p-6 animate-fade-in">
         <h1 className="text-xl font-semibold">{selected.name}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t("recall.compareHint")}</p>
-        <div className="grid md:grid-cols-2 gap-3 mt-4">
-          <Card className="p-4">
-            <div className="text-xs font-semibold mb-2">{t("recall.yourCode")}</div>
+        <p className="text-xs text-muted-foreground mt-1">{t("recall.compareHint")}</p>
+        <div className="grid md:grid-cols-2 gap-2 mt-4">
+          <Card className="p-4 rounded-lg border-border bg-card transition-colors duration-150">
+            <div className="text-xs font-medium text-muted-foreground mb-2">{t("recall.yourCode")}</div>
             <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs font-mono whitespace-pre-wrap break-words max-h-64 overflow-auto">
               {code || t("common.empty")}
             </pre>
           </Card>
-          <Card className="p-4">
-            <div className="text-xs font-semibold mb-2">{t("recall.yourNotes")}</div>
+          <Card className="p-4 rounded-lg border-border bg-card transition-colors duration-150">
+            <div className="text-xs font-medium text-muted-foreground mb-2">{t("recall.yourNotes")}</div>
             <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto font-sans">
               {selected.notes_md || t("recall.noNotes")}
             </pre>
@@ -203,7 +205,7 @@ export default function Recall() {
         </div>
         {!outcome ? (
           <div className="flex flex-wrap gap-2 mt-4">
-            <Button onClick={() => handleOutcome("reconstructed")} disabled={busy}>
+            <Button variant="success" onClick={() => handleOutcome("reconstructed")} disabled={busy}>
               {t("recall.reconstructed")}
             </Button>
             <Button variant="secondary" onClick={() => handleOutcome("partial")} disabled={busy}>
@@ -214,7 +216,7 @@ export default function Recall() {
             </Button>
           </div>
         ) : (
-          <Card className="p-4 mt-4">
+          <Card className="p-4 mt-4 rounded-lg border-border bg-card transition-colors duration-150 animate-fade-in">
             <div className="text-sm text-muted-foreground">{t("recall.recorded")}</div>
             {outcome === "reconstructed" && !assimilated && (
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3">
@@ -228,7 +230,7 @@ export default function Recall() {
               <Button variant="secondary" size="sm" onClick={() => setPhase("setup")}>
                 {t("recall.again")}
               </Button>
-              <Link to="/techniques" className="text-xs text-muted-foreground self-center hover:text-foreground">
+              <Link to="/techniques" className="text-xs text-muted-foreground self-center hover:text-foreground transition-colors duration-150">
                 {t("techniques.title")}
               </Link>
             </div>

@@ -175,87 +175,103 @@ export default function Stress() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm p-4">
-        <h1 className="text-sm font-semibold">{t("stress.title")}</h1>
-        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+    <div className="flex flex-col h-full bg-background animate-fade-in">
+      {/* Workspace toolbar */}
+      <div className="flex items-center gap-2 px-3 h-11 border-b border-border shrink-0 bg-background">
+        <span className="text-[13px] font-medium truncate">{t("stress.title")}</span>
+        <span className="text-xs text-muted-foreground truncate hidden lg:inline max-w-md">
           {t("stress.description")}
-        </p>
-        <div className="flex flex-wrap gap-3 mt-3 items-end">
-          <div className="flex flex-col gap-1 min-w-[220px]">
-            <label className="text-xs font-medium text-muted-foreground">{t("stress.problemOptional")}</label>
-            <Select value={selectedProblemId} onChange={(e) => handleProblemPick(e.target.value)}>
-              <option value="">{t("stress.noProblem")}</option>
-              {problems.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex flex-col gap-1 w-28">
-            <label className="text-xs font-medium text-muted-foreground">{t("common.language")}</label>
-            <Select value={language} onChange={(e) => handleLanguageChange(e.target.value as "cpp" | "java")}>
-              <option value="cpp">C++17</option>
-              <option value="java">Java</option>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-1 w-28">
-            <label className="text-xs font-medium text-muted-foreground">{t("stress.maxCases")}</label>
-            <Input type="number" min={1} max={10000} value={String(maxCases)} onChange={(e) => setMaxCases(Number(e.target.value) || 100)} />
-          </div>
-          <div className="flex flex-col gap-1 w-28">
-            <label className="text-xs font-medium text-muted-foreground">{t("stress.timeLimitMs")}</label>
-            <Input type="number" min={100} max={10000} value={String(timeLimit)} onChange={(e) => setTimeLimit(Number(e.target.value) || 1000)} />
-          </div>
-          <Button onClick={handleRun} disabled={result.type === "running"} size="md" className="ml-auto">
-            {result.type === "running" ? t("stress.running") : t("stress.run")}
-          </Button>
+        </span>
+        <Button
+          onClick={handleRun}
+          disabled={result.type === "running"}
+          variant="success"
+          size="md"
+          className="ml-auto h-8 px-5 gap-1.5 shrink-0"
+        >
+          {result.type === "running" ? t("stress.running") : t("stress.run")}
+        </Button>
+      </div>
+
+      {/* Controls row */}
+      <div className="flex flex-wrap gap-3 px-3 py-2.5 border-b border-border shrink-0 items-end bg-background">
+        <div className="flex flex-col gap-1 min-w-[200px] flex-1 sm:flex-none sm:w-56">
+          <label className="text-xs font-medium text-muted-foreground">{t("stress.problemOptional")}</label>
+          <Select value={selectedProblemId} onChange={(e) => handleProblemPick(e.target.value)}>
+            <option value="">{t("stress.noProblem")}</option>
+            {problems.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1 w-28">
+          <label className="text-xs font-medium text-muted-foreground">{t("common.language")}</label>
+          <Select value={language} onChange={(e) => handleLanguageChange(e.target.value as "cpp" | "java")}>
+            <option value="cpp">C++17</option>
+            <option value="java">Java</option>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1 w-24">
+          <label className="text-xs font-medium text-muted-foreground">{t("stress.maxCases")}</label>
+          <Input type="number" min={1} max={10000} value={String(maxCases)} onChange={(e) => setMaxCases(Number(e.target.value) || 100)} />
+        </div>
+        <div className="flex flex-col gap-1 w-24">
+          <label className="text-xs font-medium text-muted-foreground">{t("stress.timeLimitMs")}</label>
+          <Input type="number" min={100} max={10000} value={String(timeLimit)} onChange={(e) => setTimeLimit(Number(e.target.value) || 1000)} />
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-3 gap-3 p-3 min-h-0">
-        <div className="flex flex-col gap-2 min-h-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold">{t("stress.candidate")}</span>
+      <div className="flex-1 grid grid-cols-3 gap-2 p-2 min-h-0">
+        <div className="flex flex-col min-h-0">
+          <div className="flex items-center gap-2 px-1 h-10 shrink-0">
+            <span className="text-[13px] font-medium">{t("stress.candidate")}</span>
             <Badge variant="outline">{t("stress.yourSolution")}</Badge>
           </div>
-          <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-border">
+          <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
             <CodeEditor language={language} value={candidate} onChange={setCandidate} onLanguageChange={handleLanguageChange} />
           </div>
         </div>
-        <div className="flex flex-col gap-2 min-h-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold">{t("stress.bruteForce")}</span>
+        <div className="flex flex-col min-h-0">
+          <div className="flex items-center gap-2 px-1 h-10 shrink-0">
+            <span className="text-[13px] font-medium">{t("stress.bruteForce")}</span>
             <Badge variant="outline">{t("stress.reference")}</Badge>
           </div>
-          <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-border">
+          <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
             <CodeEditor language={language} value={brute} onChange={setBrute} onLanguageChange={handleLanguageChange} />
           </div>
         </div>
-        <div className="flex flex-col gap-2 min-h-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold">{t("stress.generator")}</span>
+        <div className="flex flex-col min-h-0">
+          <div className="flex items-center gap-2 px-1 h-10 shrink-0">
+            <span className="text-[13px] font-medium">{t("stress.generator")}</span>
             <Badge variant="outline">{t("stress.seedToCase")}</Badge>
           </div>
-          <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-border">
+          <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
             <CodeEditor language={language} value={generator} onChange={setGenerator} onLanguageChange={handleLanguageChange} />
           </div>
         </div>
       </div>
 
-      <div className="border-t border-border p-3 bg-card/30 max-h-[32%] overflow-y-auto">
+      <div className="rounded-lg border border-border bg-card overflow-hidden shrink-0 mx-2 mb-2 max-h-[32%] flex flex-col transition-colors duration-150">
+        <div className="flex items-center px-3 h-10 border-b border-border shrink-0">
+          <span className="text-[13px] font-medium">{t("stress.title")}</span>
+          {result.type === "running" && (
+            <span className="ml-auto text-xs text-muted-foreground">{t("stress.mayTakeSeconds")}</span>
+          )}
+        </div>
+        <div className="p-3 overflow-y-auto">
         {result.type === "idle" && (
           <div className="text-xs text-muted-foreground">{t("stress.idleHint")}</div>
         )}
         {result.type === "running" && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="animate-pulse">{t("stress.fuzzing").replace("{count}", String(maxCases))}</span>
+          <div className="flex items-center gap-2 text-sm animate-fade-in">
+            <span>{t("stress.fuzzing").replace("{count}", String(maxCases))}</span>
             <span className="text-xs text-muted-foreground">{t("stress.mayTakeSeconds")}</span>
           </div>
         )}
         {result.type === "success" && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 animate-fade-in">
             <VerdictBadge verdict="Accepted" showLong size="lg" />
             <div className="text-sm">
               <div className="font-medium">{t("stress.noMismatches").replace("{count}", String(result.cases))}</div>
@@ -264,27 +280,27 @@ export default function Stress() {
           </div>
         )}
         {result.type === "mismatch" && (
-          <div className="space-y-3 animate-slide-up">
+          <div className="space-y-3 animate-fade-in">
             <div className="flex items-center gap-3">
               <VerdictBadge verdict="WrongAnswer" showLong size="lg" />
               <div className="text-sm font-medium">{t("stress.foundCounter")}</div>
             </div>
-            <div className="grid md:grid-cols-3 gap-3">
-              <Card className="p-3">
-                <div className="text-xs font-semibold mb-1">{t("stress.failingInput")}</div>
-                <pre className="bg-black/40 rounded-md p-2 text-xs whitespace-pre-wrap border border-border font-mono break-words">
+            <div className="grid md:grid-cols-3 gap-2">
+              <Card className="p-3 transition-colors duration-150">
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">{t("stress.failingInput")}</div>
+                <pre className="bg-black/40 rounded-lg p-2 text-xs whitespace-pre-wrap border border-border font-mono break-words">
                   {result.input}
                 </pre>
               </Card>
-              <Card className="p-3">
-                <div className="text-xs font-semibold mb-1">{t("stress.candidateOutput")}</div>
-                <pre className="bg-wa/10 border-wa/30 rounded-md p-2 text-xs whitespace-pre-wrap border font-mono break-words">
+              <Card className="p-3 transition-colors duration-150">
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">{t("stress.candidateOutput")}</div>
+                <pre className="bg-wa/[0.04] border-wa/20 rounded-lg p-2 text-xs whitespace-pre-wrap border font-mono break-words">
                   {result.candidate || t("common.empty")}
                 </pre>
               </Card>
-              <Card className="p-3">
-                <div className="text-xs font-semibold mb-1">{t("stress.bruteOutput")}</div>
-                <pre className="bg-ac/10 border-ac/30 rounded-md p-2 text-xs whitespace-pre-wrap border font-mono break-words">
+              <Card className="p-3 transition-colors duration-150">
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">{t("stress.bruteOutput")}</div>
+                <pre className="bg-ac/[0.04] border-ac/20 rounded-lg p-2 text-xs whitespace-pre-wrap border font-mono break-words">
                   {result.brute || t("common.empty")}
                 </pre>
               </Card>
@@ -293,7 +309,7 @@ export default function Stress() {
           </div>
         )}
         {result.type === "error" && (
-          <div className="space-y-2">
+          <div className="space-y-2 animate-fade-in">
             <div className="flex items-center gap-2">
               <VerdictBadge verdict="CompileError" showLong />
               <span className="text-sm font-medium">{t("stress.compileFailed")}</span>
@@ -303,6 +319,7 @@ export default function Stress() {
             </pre>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

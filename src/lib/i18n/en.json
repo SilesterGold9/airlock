@@ -267,5 +267,19 @@
   "recall.recorded": "Recorded.",
   "recall.markAssimilated": "Mark as Assimilated again?",
   "recall.confirmAssimilated": "Mark Assimilated",
-  "recall.again": "Recall another"
+  "recall.again": "Recall another",
+  "set.button": "Training set",
+  "set.new": "New set",
+  "set.clear": "Back to list",
+  "set.reroll": "Re-roll",
+  "set.reviewDays": "Review after",
+  "set.slot.confidence": "Confidence",
+  "set.slot.target": "Target",
+  "set.slot.stretch": "Stretch",
+  "set.slot.review": "Review",
+  "set.reasonConfidence": "Confidence — {technique} is Assimilated",
+  "set.reasonTarget": "Target — {technique} is Learning",
+  "set.reasonStretch": "Stretch — {difficulty} above your {typical}",
+  "set.reasonReview": "Review — untouched for {days}d",
+  "set.emptySlot": "Nothing fits — add problems or update Techniques."
 }

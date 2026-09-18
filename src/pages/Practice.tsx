@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
-import type { JudgeReport, Problem, Technique } from "../lib/types";
+import type { JudgeReport, Problem, Submission, Technique } from "../lib/types";
 import { getVerdictInfo } from "../lib/verdict";
 import CodeEditor from "../components/CodeEditor";
 import VerdictBadge from "../components/VerdictBadge";
@@ -16,6 +16,15 @@ import HintLadder from "../components/HintLadder";
 import Balloons from "../components/Balloons";
 import ProblemStatement from "../components/ProblemStatement";
 import { getSimilarProblems } from "../lib/rating";
+import {
+  SLOT_ORDER,
+  generateSet,
+  latestAttemptByProblem,
+  pickForSlot,
+  typicalDifficulty,
+  type SlotKind,
+  type TrainingSet,
+} from "../lib/trainingSet";
 import { tracks } from "../lib/tracks";
 import { useT } from "../lib/i18n";
 
@@ -35,6 +44,12 @@ export default function Practice() {
   const [balloonTrigger, setBalloonTrigger] = useState(0);
   const [submitSeq, setSubmitSeq] = useState(0);
   const [hintsRevealed, setHintsRevealed] = useState(0);
+  const [setMode, setSetMode] = useState(false);
+  const [setPicks, setSetPicks] = useState<TrainingSet | null>(null);
+  const [setSubs, setSetSubs] = useState<Submission[]>([]);
+  const [reviewDays, setReviewDays] = useState(() =>
+    Number(localStorage.getItem("airlock.reviewDays") || 10)
+  );
   const [techniques, setTechniques] = useState<Technique[]>([]);
 
   useEffect(() => {
@@ -73,6 +88,80 @@ export default function Practice() {
   const allTags = Array.from(new Set(problems.flatMap((p) => p.tags))).sort();
   const visible =
     tagFilter === "all" ? problems : problems.filter((p) => p.tags.includes(tagFilter));
+
+  const typical = useMemo(() => typicalDifficulty(problems), [problems]);
+  const latestAttempt = useMemo(() => latestAttemptByProblem(setSubs), [setSubs]);
+
+  async function handleEnterSetMode() {
+    setSetMode(true);
+    try {
+      const subs = await api.listSubmissions();
+      setSetSubs(subs);
+      setSetPicks(generateSet(problems, techniques, subs, Date.now(), reviewDays, []));
+    } catch (e) {
+      console.error(e);
+      setSetPicks(generateSet(problems, techniques, [], Date.now(), reviewDays, []));
+    }
+  }
+
+  function handleNewSet() {
+    setSetPicks(generateSet(problems, techniques, setSubs, Date.now(), reviewDays, []));
+  }
+
+  function handleReroll(slot: SlotKind) {
+    setSetPicks((prev) => {
+      if (!prev) return prev;
+      const others = new Set<string>();
+      (Object.keys(prev) as SlotKind[]).forEach((k) => {
+        if (prev[k]) others.add(prev[k]!.id);
+      });
+      const p = pickForSlot(slot, problems, techniques, latestAttempt, Date.now(), reviewDays, typical, others);
+      return { ...prev, [slot]: p ?? prev[slot] };
+    });
+  }
+
+  function handleReviewDays(days: number) {
+    if (isNaN(days) || days < 1) return;
+    setReviewDays(days);
+    localStorage.setItem("airlock.reviewDays", String(days));
+    setSetPicks(generateSet(problems, techniques, setSubs, Date.now(), days, []));
+  }
+
+  function handleToggleSetMode() {
+    if (setMode) {
+      setSetMode(false);
+      setSetPicks(null);
+    } else {
+      void handleEnterSetMode();
+    }
+  }
+
+  function openSetProblem(p: Problem) {
+    setSelected(p);
+    setReport(null);
+    setCode("");
+  }
+
+  function slotReason(slot: SlotKind, problem: Problem): string {
+    const tech = problem.primary_technique_id
+      ? techniques.find((x) => x.id === problem.primary_technique_id)
+      : null;
+    switch (slot) {
+      case "confidence":
+        return t("set.reasonConfidence").replace("{technique}", tech?.name ?? "?");
+      case "target":
+        return t("set.reasonTarget").replace("{technique}", tech?.name ?? "?");
+      case "stretch":
+        return t("set.reasonStretch")
+          .replace("{difficulty}", String(problem.difficulty))
+          .replace("{typical}", String(typical));
+      case "review": {
+        const last = latestAttempt.get(problem.id);
+        const days = last ? Math.max(0, Math.floor((Date.now() - last) / 86400000)) : reviewDays;
+        return t("set.reasonReview").replace("{days}", String(days));
+      }
+    }
+  }
 
   async function handleSubmit() {
     if (!selected) return;
@@ -121,8 +210,70 @@ export default function Practice() {
             <span className="text-xs font-medium text-muted-foreground tracking-wide uppercase">{visible.length} problems</span>
             <span className="text-xs text-muted-foreground tabular-nums">{problems.length} total</span>
           </div>
+          <Button
+            variant={setMode ? "primary" : "secondary"}
+            size="sm"
+            className="w-full mt-3"
+            onClick={handleToggleSetMode}
+          >
+            {setMode ? t("set.clear") : t("set.button")}
+          </Button>
         </div>
         <div className="flex-1 overflow-y-auto">
+          {setMode && setPicks ? (
+            <div className="p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={handleNewSet} className="flex-1">
+                  {t("set.new")}
+                </Button>
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto">
+                  {t("set.reviewDays")}
+                  <input
+                    type="number"
+                    min={1}
+                    value={reviewDays}
+                    onChange={(e) => handleReviewDays(Number(e.target.value))}
+                    className="w-14 bg-input border border-border rounded-md px-2 py-1 text-xs text-foreground"
+                  />
+                </label>
+              </div>
+              {SLOT_ORDER.map((slot) => {
+                const pick = setPicks[slot];
+                const active = pick && selected?.id === pick.id;
+                return (
+                  <div
+                    key={slot}
+                    className={`rounded-lg border bg-card p-3 ${active ? "border-brand/40" : "border-border"}`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-semibold tracking-wide uppercase text-muted-foreground">
+                        {t(`set.slot.${slot}`)}
+                      </span>
+                      <button
+                        onClick={() => handleReroll(slot)}
+                        className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {t("set.reroll")}
+                      </button>
+                    </div>
+                    {pick ? (
+                      <button onClick={() => openSetProblem(pick)} className="w-full text-left group">
+                        <div className="font-medium text-sm leading-tight truncate group-hover:text-foreground transition-colors">
+                          {pick.title}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          {slotReason(slot, pick)}
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">{t("set.emptySlot")}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+          <>
           <div className="px-3 py-2 flex items-center text-xs font-medium text-muted-foreground tracking-wide uppercase border-b border-white/[0.04]">
             <span className="flex-1">Title</span>
             <span className="w-24 text-right">Difficulty</span>
@@ -151,6 +302,8 @@ export default function Practice() {
               </li>
             ))}
           </ul>
+          </>
+          )}
         </div>
       </aside>
 

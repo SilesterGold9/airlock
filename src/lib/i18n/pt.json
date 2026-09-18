@@ -267,5 +267,19 @@
   "recall.recorded": "Registrado.",
   "recall.markAssimilated": "Marcar como Assimilada de novo?",
   "recall.confirmAssimilated": "Marcar assimilada",
-  "recall.again": "Relembrar outra"
+  "recall.again": "Relembrar outra",
+  "set.button": "Treino do dia",
+  "set.new": "Novo treino",
+  "set.clear": "Voltar à lista",
+  "set.reroll": "Trocar",
+  "set.reviewDays": "Revisar após",
+  "set.slot.confidence": "Confiança",
+  "set.slot.target": "Alvo",
+  "set.slot.stretch": "Desafio",
+  "set.slot.review": "Revisão",
+  "set.reasonConfidence": "Confiança — {technique} está assimilada",
+  "set.reasonTarget": "Alvo — {technique} em aprendizado",
+  "set.reasonStretch": "Desafio — {difficulty} acima do seu {typical}",
+  "set.reasonReview": "Revisão — sem tocar há {days}d",
+  "set.emptySlot": "Nada encaixa — adicione problemas ou atualize Técnicas."
 }

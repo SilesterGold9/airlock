@@ -12,6 +12,7 @@ import { Select } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import DiffViewer from "../components/DiffViewer";
 import Balloons from "../components/Balloons";
+import ProblemStatement from "../components/ProblemStatement";
 import { getSimilarProblems } from "../lib/rating";
 import { tracks } from "../lib/tracks";
 import { useT } from "../lib/i18n";
@@ -163,9 +164,9 @@ export default function Practice() {
                 <div className="text-xs text-muted-foreground mb-4 tabular-nums">
                   {t("practice.timeLimit")}: {selected.time_limit_ms}ms · {t("practice.memory")}: {selected.memory_limit_mb}MB
                 </div>
-                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground/90">
-                  {selected.statement_md}
-                </pre>
+                <Card className="p-5 bg-card/50 backdrop-blur-sm border-border/50">
+                  <ProblemStatement content={selected.statement_md} />
+                </Card>
 
                 <Card className="mt-6">
                   <button

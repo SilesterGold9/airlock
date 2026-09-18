@@ -10,6 +10,7 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { SplitView } from "../components/ui/split-view";
 import DiffViewer from "../components/DiffViewer";
+import ProblemStatement from "../components/ProblemStatement";
 import { Input } from "../components/ui/input";
 import Balloons from "../components/Balloons";
 import { useT } from "../lib/i18n";
@@ -385,9 +386,9 @@ export default function Contest() {
                 <div className="text-xs text-muted-foreground mb-4 tabular-nums">
                   {t("practice.timeLimit")}: {current.time_limit_ms}ms · {t("practice.memory")}: {current.memory_limit_mb}MB
                 </div>
-                <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans text-foreground/90">
-                  {current.statement_md}
-                </pre>
+                <Card className="p-5 bg-card/50 backdrop-blur-sm border-border/50">
+                  <ProblemStatement content={current.statement_md} />
+                </Card>
               </div>
             }
             right={

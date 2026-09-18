@@ -79,17 +79,17 @@ export default function App() {
   const [onboarded, setOnboarded] = useState(
     () => localStorage.getItem("airlock.onboarded") === "1"
   );
+  const displayName = (localStorage.getItem("airlock.displayName") || "").trim();
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
       {!onboarded && <Onboarding onDone={() => setOnboarded(true)} />}
       <Titlebar />
-      <nav className="sticky top-0 z-50 h-12 flex items-center gap-3 bg-background/80 backdrop-blur-md border-b border-border px-4 shrink-0">
-        <div className="flex items-center gap-2 mr-2">
-          <LogoIcon size={28} />
-          <span className="font-mono font-bold text-sm tracking-tight">Airlock</span>
-          <span className="hidden sm:inline text-xs text-muted-foreground ml-1">{t("app.tagline")}</span>
+      <nav className="h-11 flex items-center gap-1 bg-background border-b border-border px-3 shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-1.5 mr-1 shrink-0">
+          <LogoIcon size={22} />
+          <span className="font-mono font-bold text-[13px] tracking-tight">Airlock</span>
         </div>
-        <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
+        <div className="h-5 w-px bg-border mx-1 shrink-0" />
         {[
           { to: "/", label: t("nav.practice") },
           { to: "/techniques", label: t("nav.techniques") },
@@ -105,7 +105,7 @@ export default function App() {
             to={item.to}
             end={item.to === "/"}
             className={({ isActive }) =>
-              `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
+              `px-2.5 h-7 flex items-center rounded-md text-xs font-medium whitespace-nowrap transition-colors duration-150 ease-[cubic-bezier(0.2,0,0,1)] shrink-0 ${
                 isActive
                   ? "bg-white/[0.08] text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
@@ -115,13 +115,23 @@ export default function App() {
             {item.label}
           </NavLink>
         ))}
-        <button
-          onClick={() => setLocale(locale === "en" ? "pt" : "en")}
-          className="ml-auto text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-white/[0.06] transition-colors"
-          title={locale === "en" ? t("app.switchToPt") : t("app.switchToEn")}
-        >
-          {locale === "en" ? "PT" : "EN"}
-        </button>
+        <div className="ml-auto flex items-center gap-1.5 shrink-0 pl-2">
+          {displayName && (
+            <span
+              title={displayName}
+              className="w-6 h-6 rounded-full bg-ac/[0.15] border border-ac/30 text-ac text-[11px] font-semibold flex items-center justify-center select-none"
+            >
+              {displayName.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <button
+            onClick={() => setLocale(locale === "en" ? "pt" : "en")}
+            className="text-[11px] font-medium px-2.5 h-7 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
+            title={locale === "en" ? t("app.switchToPt") : t("app.switchToEn")}
+          >
+            {locale === "en" ? "PT" : "EN"}
+          </button>
+        </div>
       </nav>
       <main className="flex-1 min-h-0">
         <Routes>

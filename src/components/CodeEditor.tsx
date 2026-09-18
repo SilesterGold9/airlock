@@ -1,6 +1,8 @@
-import Editor from "@monaco-editor/react";
+import { useState } from "react";
+import Editor, { type OnMount } from "@monaco-editor/react";
 import { Select } from "./ui/select";
 import { useT } from "../lib/i18n";
+import { handleEditorBeforeMount } from "../lib/editorTheme";
 
 interface CodeEditorProps {
   language: "cpp" | "java";
@@ -86,10 +88,20 @@ export default function CodeEditor({
 }: CodeEditorProps) {
   const t = useT();
   const templates = templateSet === "analysis" ? ANALYSIS_TEMPLATES : TEMPLATES;
+  const [cursor, setCursor] = useState({ line: 1, column: 1 });
+
+  const handleMount: OnMount = (editor) => {
+    editor.onDidChangeCursorPosition((e) =>
+      setCursor({ line: e.position.lineNumber, column: e.position.column })
+    );
+  };
+
   return (
-    <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden bg-card">
-      <div className="flex items-center justify-between bg-card px-3 h-9 border-b border-border shrink-0">
-        <div className="w-24">
+    <div className="flex flex-col h-full rounded-lg overflow-hidden bg-card">
+      <div className="flex items-center gap-2 bg-card px-3 h-10 border-b border-border shrink-0">
+        <span className="text-ac font-mono text-sm font-semibold select-none">{"</>"}</span>
+        <span className="text-sm font-medium">{t("editor.code")}</span>
+        <div className="w-24 ml-1">
           <Select
             size="sm"
             value={language}
@@ -104,26 +116,43 @@ export default function CodeEditor({
           </Select>
         </div>
         <button
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
+          className="ml-auto w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors duration-150"
           onClick={() => onChange(templates[language])}
+          title={t("editor.resetTemplate")}
+          aria-label={t("editor.resetTemplate")}
         >
-          {t("editor.resetTemplate")}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 2.6-6.4" />
+            <path d="M3 4v5h5" />
+          </svg>
         </button>
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <Editor
           height="100%"
-          theme="vs-dark"
+          theme="airlock-dark"
           language={language === "cpp" ? "cpp" : "java"}
           value={value || templates[language]}
+          beforeMount={handleEditorBeforeMount}
+          onMount={handleMount}
           onChange={(v) => onChange(v ?? "")}
           options={{
             fontSize: 14,
+            lineHeight: 20,
             minimap: { enabled: false },
             tabSize: 4,
             wordWrap: "on",
+            padding: { top: 8 },
+            scrollBeyondLastLine: false,
+            renderLineHighlight: "all",
           }}
         />
+      </div>
+      <div className="flex items-center justify-between px-3 h-7 border-t border-border shrink-0 text-[11px] text-muted-foreground select-none">
+        <span>{t("editor.spaces")}</span>
+        <span className="tabular-nums">
+          Ln {cursor.line}, Col {cursor.column}
+        </span>
       </div>
     </div>
   );

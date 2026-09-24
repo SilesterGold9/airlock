@@ -3,8 +3,9 @@ import { api } from "../lib/api";
 import { loadDraft, saveDraft } from "../lib/drafts";
 import { templateFor } from "../lib/templates";
 import type { Contest as ContestModel, JudgeReport, Problem } from "../lib/types";
-import { getVerdictInfo } from "../lib/verdict";
 import LazyCodeEditor, { type CodeEditorHandle } from "../components/LazyCodeEditor";
+import ResultConsole from "../components/ResultConsole";
+import Spinner from "../components/Spinner";
 import { usePersistentState } from "../lib/persist";
 import VerdictBadge from "../components/VerdictBadge";
 import Timer from "../components/Timer";
@@ -13,7 +14,6 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { SplitView } from "../components/ui/split-view";
 import { PanelTabs, ToolButton, Icon, WS_ICONS } from "../components/PanelTabs";
-import DiffViewer from "../components/DiffViewer";
 import FailureChips from "../components/FailureChips";
 import ProblemStatement from "../components/ProblemStatement";
 import { Input } from "../components/ui/input";
@@ -66,12 +66,27 @@ export default function Contest() {
   const [activeContestId, setActiveContestId] = useState<string | null>(null);
   const [balloonTrigger, setBalloonTrigger] = useState(0);
   const [submitSeq, setSubmitSeq] = useState(0);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const [running, setRunning] = useState(false);
   const [lastWasSubmit, setLastWasSubmit] = useState(true);
   const [panelTab, setPanelTab] = useState<ContestTabId>("description");
   const [consoleOpen, setConsoleOpen] = useState(true);
   const [consoleTab, setConsoleTab] = useState<"testcase" | "result">("testcase");
-  const [expandedCase, setExpandedCase] = useState<number | null>(null);
+  const [focusedPanel, setFocusedPanel] = useState<null | "left" | "right" | "console">(null);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && focusedPanel) setFocusedPanel(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusedPanel]);
+
+  function toggleFocus(panel: "left" | "right" | "console") {
+    setFocusedPanel((prev) => (prev === panel ? null : panel));
+  }
+
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
@@ -84,7 +99,6 @@ export default function Contest() {
   }, [setup]);
 
   useEffect(() => {
-    setExpandedCase(null);
     setConsoleTab("testcase");
   }, [current?.id]);
 
@@ -163,31 +177,45 @@ export default function Contest() {
     );
   }
 
+  const allSetupSelected = problems.length > 0 && selectedIds.length === problems.length;
+
+  function toggleSelectAllSetup() {
+    if (allSetupSelected) setSelectedIds([]);
+    else setSelectedIds(problems.map((p) => p.id));
+  }
+
   async function startContest() {
     const chosen = problems.filter((p) => selectedIds.includes(p.id));
-    if (chosen.length === 0) return;
+    if (chosen.length === 0 || starting) return;
     const members = teamMembersStr
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    const contest = await api.createContest({
-      name: contestName,
-      problemIds: chosen.map((p) => p.id),
-      durationMinutes,
-      teamMembers: members,
-      driver: driver || (members[0] || null),
-    });
-    setActive(chosen);
-    setStatuses(
-      Object.fromEntries(chosen.map((p) => [p.id, { solved: false, wrongAttempts: 0 }]))
-    );
-    setCurrent(chosen[0]);
-    seedEditor(loadDraft(chosen[0].id, language) ?? templateFor(language, "standard"));
-    setStartTime(Date.now());
-    setActiveContestId(contest.id);
-    setClaims([]);
-    setSetup(false);
-    setEnded(false);
+    setStarting(true);
+    try {
+      const contest = await api.createContest({
+        name: contestName,
+        problemIds: chosen.map((p) => p.id),
+        durationMinutes,
+        teamMembers: members,
+        driver: driver || (members[0] || null),
+      });
+      setActive(chosen);
+      setStatuses(
+        Object.fromEntries(chosen.map((p) => [p.id, { solved: false, wrongAttempts: 0 }]))
+      );
+      setCurrent(chosen[0]);
+      seedEditor(loadDraft(chosen[0].id, language) ?? templateFor(language, "standard"));
+      setStartTime(Date.now());
+      setActiveContestId(contest.id);
+      setClaims([]);
+      setSetup(false);
+      setEnded(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setStarting(false);
+    }
   }
 
   function backToSetup() {
@@ -201,6 +229,7 @@ export default function Contest() {
     if (!current || judging || running) return;
     setJudging(true);
     setReport(null);
+    setSubmitError(null);
     setLastWasSubmit(true);
     setSubmitSeq((v) => v + 1);
     const isUpsolve = ended && !viewingHistory;
@@ -231,6 +260,9 @@ export default function Contest() {
       });
     } catch (e) {
       console.error(e);
+      setSubmitError(String(e));
+      setConsoleTab("result");
+      setConsoleOpen(true);
     } finally {
       setJudging(false);
     }
@@ -240,6 +272,7 @@ export default function Contest() {
     if (!current || judging || running) return;
     setRunning(true);
     setReport(null);
+    setSubmitError(null);
     try {
       const result = await api.runSolution({
         problemId: current.id,
@@ -252,6 +285,9 @@ export default function Contest() {
       setConsoleOpen(true);
     } catch (e) {
       console.error(e);
+      setSubmitError(String(e));
+      setConsoleTab("result");
+      setConsoleOpen(true);
     } finally {
       setRunning(false);
     }
@@ -266,89 +302,151 @@ export default function Contest() {
   }, [statuses]);
 
   const solvedCount = Object.values(statuses).filter((s) => s.solved).length;
-  const failCount =
-    report && report.overall_verdict !== "Accepted"
-      ? report.tests_total - report.tests_passed
-      : 0;
 
   if (setup) {
     return (
-      <div className="p-6 max-w-2xl mx-auto animate-fade-in">
-        <h1 className="text-xl font-semibold mb-6">{t("contest.setup")}</h1>
-        <Card className="p-6">
-          <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.name")}</label>
-          <Input className="mb-4" value={contestName} onChange={(e) => setContestName(e.target.value)} placeholder={t("contest.namePlaceholder")} />
-          <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.duration")}</label>
-          <Input type="number" className="mb-4" value={String(durationMinutes)} onChange={(e) => setDurationMinutes(Math.max(1, Math.round(Number(e.target.value) || 180)))} />
-          <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.teamMembersLabel")}</label>
-          <Input className="mb-2" value={teamMembersStr} onChange={(e) => setTeamMembersStr(e.target.value)} placeholder={t("contest.teamPlaceholder")} />
-          {teamMembersStr.trim() && (
-            <>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.driverLabel")}</label>
-                <Select
-                  className="w-full mb-4"
-                  value={driver}
-                  onChange={(e) => setDriver(e.target.value)}
-                >
-                  <option value="">{t("contest.autoFirstMember")}</option>
-                  {teamMembersStr
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean)
-                    .map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                </Select>
-            </>
-          )}
-          <label className="block text-xs font-medium text-muted-foreground mb-2">
-            {t("contest.problemsCount").replace("{count}", String(selectedIds.length))}
-          </label>
-          <ul className="space-y-0 mb-6 max-h-80 overflow-y-auto border border-border rounded-lg">
-            {problems.map((p) => (
-              <li key={p.id} className="border-b border-white/[0.04] last:border-0">
-                <label className="flex items-center gap-2 px-3 py-2.5 hover:bg-white/[0.04] cursor-pointer transition-colors duration-150">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(p.id)}
-                    onChange={() => toggleSelect(p.id)}
-                    className="h-4 w-4 rounded border-input bg-input accent-current"
-                  />
-                  <span className="text-sm font-medium flex-1">{p.title}</span>
-                  <DifficultyBadge difficulty={p.difficulty} />
-                </label>
-              </li>
-            ))}
-          </ul>
-          <Button onClick={startContest} disabled={selectedIds.length === 0} variant="success" className="w-full">
-            {t("contest.start")}
-          </Button>
-        </Card>
+      <div className="h-full overflow-y-auto animate-fade-in">
+        <div className="p-4 md:p-6 w-full max-w-5xl mx-auto">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold leading-tight">{t("contest.setup")}</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">{t("contest.setupSub")}</p>
+            </div>
+            <div className="ml-auto flex items-center gap-1.5 shrink-0">
+              <Badge variant="outline" className="tabular-nums">
+                {problems.length} {t("contest.problems").toLowerCase()}
+              </Badge>
+              <Badge variant="outline" className="tabular-nums">
+                {contests.length} {t("contest.savedCount")}
+              </Badge>
+            </div>
+          </div>
 
-        <Card className="p-4 mt-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="grid lg:grid-cols-5 gap-4 mt-4">
+            <Card className="p-5 lg:col-span-2 h-fit lg:sticky lg:top-0">
+              <div className="text-sm font-semibold mb-4">{t("contest.configTitle")}</div>
+              <div className="grid gap-4">
+                <div className="grid gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">{t("contest.name")}</label>
+                  <Input value={contestName} onChange={(e) => setContestName(e.target.value)} placeholder={t("contest.namePlaceholder")} />
+                </div>
+                <div className="grid gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">{t("contest.duration")}</label>
+                  <div className="flex items-center gap-2">
+                    <ToolButton title="−15" onClick={() => setDurationMinutes((v) => Math.max(15, v - 15))}>
+                      <span className="text-base leading-none font-semibold">−</span>
+                    </ToolButton>
+                    <span className="font-mono text-sm tabular-nums min-w-20 text-center">
+                      {durationMinutes} min
+                    </span>
+                    <ToolButton title="+15" onClick={() => setDurationMinutes((v) => Math.min(600, v + 15))}>
+                      <span className="text-base leading-none font-semibold">+</span>
+                    </ToolButton>
+                  </div>
+                </div>
+                <div className="grid gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">{t("contest.teamMembersLabel")}</label>
+                  <Input value={teamMembersStr} onChange={(e) => setTeamMembersStr(e.target.value)} placeholder={t("contest.teamPlaceholder")} />
+                </div>
+                {teamMembersStr.trim() && (
+                  <div className="grid gap-1 animate-fade-in">
+                    <label className="text-xs font-medium text-muted-foreground">{t("contest.driverLabel")}</label>
+                    <Select
+                      className="w-full"
+                      value={driver}
+                      onChange={(e) => setDriver(e.target.value)}
+                    >
+                      <option value="">{t("contest.autoFirstMember")}</option>
+                      {teamMembersStr
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                        .map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="lg:col-span-3 overflow-hidden flex flex-col min-h-[320px]">
+              <div className="flex items-center gap-2 px-4 h-12 border-b border-border shrink-0">
+                <span className="text-sm font-semibold flex-1">
+                  {t("contest.problemsCount").replace("{count}", String(selectedIds.length))}
+                </span>
+                <Button variant="ghost" size="sm" onClick={toggleSelectAllSetup}>
+                  {t(allSetupSelected ? "contest.clearSelection" : "contest.selectAll")}
+                </Button>
+              </div>
+              <ul className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 max-h-[420px] lg:max-h-none">
+                {problems.map((p) => (
+                  <li key={p.id}>
+                    <label className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-150 ${
+                      selectedIds.includes(p.id)
+                        ? "bg-ac/[0.06] border-ac/30"
+                        : "bg-transparent border-transparent hover:bg-white/[0.03] hover:border-white/[0.06]"
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(p.id)}
+                        onChange={() => toggleSelect(p.id)}
+                        className="h-4 w-4 rounded border-input bg-input accent-current shrink-0"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium truncate">{p.title}</span>
+                        <span className="block text-xs text-muted-foreground truncate mt-0.5">
+                          {p.source}{p.tags.length > 0 && ` · ${p.tags.slice(0, 2).join(", ")}`}
+                        </span>
+                      </span>
+                      <DifficultyBadge difficulty={p.difficulty} />
+                    </label>
+                  </li>
+                ))}
+                {problems.length === 0 && (
+                  <div className="text-xs text-muted-foreground py-8 text-center border border-dashed border-border rounded-lg m-2">
+                    {t("workspace.none")}
+                  </div>
+                )}
+              </ul>
+              <div className="p-3 border-t border-border shrink-0 bg-card">
+                <Button onClick={startContest} disabled={selectedIds.length === 0 || starting} variant="success" className="w-full">
+                  {starting ? (
+                    <>
+                      <Spinner />
+                      {t("contest.starting")}
+                    </>
+                  ) : t("contest.start")}
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2 px-1">
             <h2 className="text-sm font-semibold">{t("contest.pastContests")}</h2>
-            <span className="text-xs text-muted-foreground">{contests.length} {t("contest.savedCount")}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{contests.length} {t("contest.savedCount")}</span>
           </div>
           {contests.length === 0 ? (
-            <div className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg bg-white/[0.02]">
+            <div className="text-xs text-muted-foreground py-6 text-center border border-dashed border-border rounded-lg bg-white/[0.02]">
               {t("contest.noPastContests")}
             </div>
           ) : (
-            <ul className="space-y-2 max-h-64 overflow-y-auto">
+            <ul className="grid sm:grid-cols-2 gap-2">
               {contests.map((c) => {
                 const started = c.started_at ? new Date(c.started_at).toLocaleString() : "unknown";
                 return (
-                  <li key={c.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-white/[0.04] transition-colors">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{c.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {c.problem_ids.length} {t("contest.problems").toLowerCase()} · {c.duration_minutes} min · {started}
+                  <li key={c.id} className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:border-white/[0.12] hover:bg-white/[0.02] transition-all duration-150">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold truncate">{c.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1 tabular-nums">
+                        {c.problem_ids.length} {t("contest.problems").toLowerCase()} · {c.duration_minutes} min
                       </div>
+                      <div className="text-[11px] text-muted-foreground/70 tabular-nums">{started}</div>
                     </div>
-                    <Button size="sm" variant="secondary" onClick={() => reviewContest(c)}>
+                    <Button size="sm" variant="secondary" onClick={() => reviewContest(c)} className="shrink-0">
                       {t("contest.review")}
                     </Button>
                   </li>
@@ -356,7 +454,8 @@ export default function Contest() {
               })}
             </ul>
           )}
-        </Card>
+        </div>
+        </div>
       </div>
     );
   }
@@ -409,9 +508,7 @@ export default function Contest() {
             title={t("workspace.runHint")}
           >
             {running ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
-                <path d="M21 12a9 9 0 1 1-6.2-8.56" />
-              </svg>
+              <Spinner />
             ) : (
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M8 5v14l11-7z" />
@@ -430,9 +527,7 @@ export default function Contest() {
           >
             {judging ? (
               <>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
-                  <path d="M21 12a9 9 0 1 1-6.2-8.56" />
-                </svg>
+                <Spinner />
                 {t("practice.judging")}
               </>
             ) : (
@@ -444,8 +539,11 @@ export default function Contest() {
           </Button>
         </div>
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground tabular-nums hidden md:inline">
-            {t("contest.solved")} {solvedCount}/{active.length} · {t("contest.penalty")} {totalPenalty}min
+          <span className="text-xs tabular-nums hidden md:inline-flex items-center gap-1.5 rounded-full border border-border bg-white/[0.02] px-2.5 py-1">
+            <span className="font-semibold text-foreground">{solvedCount}/{active.length}</span>
+            <span className="text-muted-foreground">{t("contest.solved")}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="text-muted-foreground">{totalPenalty}min {t("contest.penalty").toLowerCase()}</span>
           </span>
           {teamList.length > 0 && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground border border-border rounded-full pl-2.5 pr-1 py-0.5">
@@ -484,10 +582,18 @@ export default function Contest() {
             storageKey="contest-split"
             left={
               <div className="h-full pr-1">
-                <div className="h-full rounded-lg border border-border bg-card overflow-hidden flex flex-col">
+                <div className={`h-full rounded-lg border border-border bg-card overflow-hidden flex flex-col ${focusedPanel === "left" ? "fixed inset-2 z-[70]" : ""}`}>
                   <PanelTabs
                     active={panelTab}
                     onChange={(id) => setPanelTab(id as ContestTabId)}
+                    actions={
+                      <ToolButton
+                        title={focusedPanel === "left" ? t("editor.unfocusPanel") : t("editor.focusPanel")}
+                        onClick={() => toggleFocus("left")}
+                      >
+                        <Icon d={focusedPanel === "left" ? WS_ICONS.restore : WS_ICONS.expand} size={14} />
+                      </ToolButton>
+                    }
                     tabs={[
                       { id: "description", label: t("workspace.description"), icon: <Icon d={WS_ICONS.file} size={14} /> },
                       { id: "team", label: t("contest.team"), icon: <Icon d={WS_ICONS.users} size={14} /> },
@@ -497,8 +603,8 @@ export default function Contest() {
                   <div className="flex-1 min-h-0 overflow-y-auto">
                     {panelTab === "description" && (
                       <div key={current.id} className="p-5 animate-panel-in">
-                        <h1 className="text-[15px] font-semibold leading-tight">{current.title}</h1>
-                        <div className="flex gap-1.5 mt-3 flex-wrap items-center">
+                        <h1 className="text-lg font-semibold leading-snug">{current.title}</h1>
+                        <div className="flex gap-1.5 mt-2.5 flex-wrap items-center">
                           <DifficultyBadge difficulty={current.difficulty} />
                           {current.tags.map((tag) => (
                             <Badge key={tag} variant="outline">
@@ -506,13 +612,41 @@ export default function Contest() {
                             </Badge>
                           ))}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-3 tabular-nums">
+                        <div className="text-xs text-muted-foreground mt-2.5 tabular-nums">
                           {t("practice.timeLimit")}: {current.time_limit_ms}ms · {t("practice.memory")}:{" "}
                           {current.memory_limit_mb}MB
                         </div>
                         <div className="mt-4">
                           <ProblemStatement content={current.statement_md} />
                         </div>
+                        {current.tests.length > 0 && (
+                          <div className="mt-6">
+                            <div className="text-sm font-semibold mb-2">{t("workspace.examples")}</div>
+                            <div className="space-y-2">
+                              {current.tests.map((tc, i) => (
+                                <div key={tc.id || i} className="rounded-lg border border-white/[0.06] overflow-hidden">
+                                  <div className="px-3 py-1.5 text-xs font-semibold bg-white/[0.02] border-b border-white/[0.06]">
+                                    {t("workspace.example")} {i + 1}
+                                  </div>
+                                  <div className="p-3 grid gap-2">
+                                    <div>
+                                      <span className="text-xs font-semibold text-muted-foreground">{t("workspace.exampleInput")}: </span>
+                                      <pre className="mt-1 bg-black/30 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
+                                        {tc.input || t("common.empty")}
+                                      </pre>
+                                    </div>
+                                    <div>
+                                      <span className="text-xs font-semibold text-muted-foreground">{t("workspace.exampleOutput")}: </span>
+                                      <pre className="mt-1 bg-black/30 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
+                                        {tc.expected_output || t("common.empty")}
+                                      </pre>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     {panelTab === "team" && (
@@ -549,8 +683,8 @@ export default function Contest() {
                                       {String.fromCharCode(65 + active.indexOf(p))}
                                     </span>
                                     <span className="flex-1 truncate">{p.title}</span>
-                                    <select
-                                      className="bg-input border border-input rounded-md text-xs h-7 px-1.5 max-w-24"
+                                      <Select
+                                      className="text-xs max-w-24"
                                       value={claim?.claimed_by || ""}
                                       onChange={(e) => handleClaim(p.id, e.target.value, claim?.status || "thinking")}
                                     >
@@ -560,9 +694,9 @@ export default function Contest() {
                                           {m}
                                         </option>
                                       ))}
-                                    </select>
-                                    <select
-                                      className="bg-input border border-input rounded-md text-xs h-7 px-1.5"
+                                    </Select>
+                                    <Select
+                                      className="text-xs"
                                       value={claim?.status || "thinking"}
                                       onChange={(e) =>
                                         handleClaim(
@@ -576,7 +710,7 @@ export default function Contest() {
                                       <option value="coding">{t("contest.status.coding")}</option>
                                       <option value="stuck">{t("contest.status.stuck")}</option>
                                       <option value="done">{t("contest.status.done")}</option>
-                                    </select>
+                                    </Select>
                                   </div>
                                 );
                               })}
@@ -587,45 +721,59 @@ export default function Contest() {
                     )}
                     {panelTab === "standings" && (
                       <div className="p-4 animate-panel-in">
-                        <div className="space-y-0.5">
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          <div className="rounded-lg border border-border bg-white/[0.02] p-3 text-center">
+                            <div className="text-xl font-semibold tabular-nums leading-none">
+                              {solvedCount}
+                              <span className="text-muted-foreground font-normal text-sm">/{active.length}</span>
+                            </div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1.5">
+                              {t("contest.solved")}
+                            </div>
+                          </div>
+                          <div className="rounded-lg border border-border bg-white/[0.02] p-3 text-center">
+                            <div className="text-xl font-semibold tabular-nums leading-none">
+                              {totalPenalty}
+                              <span className="text-muted-foreground font-normal text-sm">min</span>
+                            </div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1.5">
+                              {t("contest.penalty")}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
                           {active.map((p, i) => {
                             const s = statuses[p.id];
                             return (
                               <button
                                 key={p.id}
                                 onClick={() => openContestProblem(p)}
-                                className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/[0.04] flex items-center gap-2 text-sm transition-colors duration-150 ${
-                                  current?.id === p.id ? "bg-white/[0.05]" : ""
+                                className={`w-full text-left px-3 py-2.5 rounded-lg border flex items-center gap-3 text-sm transition-all duration-150 ${
+                                  current?.id === p.id
+                                    ? "bg-white/[0.05] border-ac/30"
+                                    : "bg-transparent border-transparent hover:bg-white/[0.03] hover:border-white/[0.06]"
                                 }`}
                               >
-                                <span className="w-6 font-mono text-xs text-muted-foreground">
+                                <span className="w-6 h-6 rounded-md bg-white/[0.05] font-mono text-xs text-muted-foreground flex items-center justify-center shrink-0">
                                   {String.fromCharCode(65 + i)}
                                 </span>
-                                <span className="flex-1 truncate">{p.title}</span>
+                                <span className="flex-1 truncate font-medium">{p.title}</span>
                                 {s?.solved ? (
-                                  <span className="flex items-center gap-1 text-xs text-ac tabular-nums">
+                                  <span className="flex items-center gap-1.5 text-xs text-ac tabular-nums shrink-0">
                                     <Icon d={WS_ICONS.check} size={12} />
                                     {s.solvedAtSeconds !== undefined ? `${Math.floor(s.solvedAtSeconds / 60)}m` : ""}
                                     {s.wrongAttempts > 0 ? ` +${s.wrongAttempts}` : ""}
                                   </span>
                                 ) : s && s.wrongAttempts > 0 ? (
-                                  <Badge variant="default" className="bg-wa/15 text-wa border-wa/20">
+                                  <Badge variant="default" className="bg-wa/15 text-wa border-wa/20 shrink-0">
                                     {s.wrongAttempts}
                                   </Badge>
                                 ) : (
-                                  <span className="text-[11px] text-muted-foreground">—</span>
+                                  <span className="text-[11px] text-muted-foreground shrink-0">—</span>
                                 )}
                               </button>
                             );
                           })}
-                        </div>
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06] text-xs text-muted-foreground tabular-nums">
-                          <span>
-                            {t("contest.solved")} {solvedCount}/{active.length}
-                          </span>
-                          <span>
-                            {t("contest.penalty")} {totalPenalty}min
-                          </span>
                         </div>
                       </div>
                     )}
@@ -634,7 +782,7 @@ export default function Contest() {
               </div>
             }
             right={
-              <div className="h-full pl-1 flex flex-col min-h-0 gap-2">
+              <div className={`h-full pl-1 flex flex-col min-h-0 gap-2 ${focusedPanel === "right" ? "fixed inset-2 z-[70] bg-background p-2 pr-3 rounded-xl" : ""}`}>
                 <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
                   <LazyCodeEditor
                     ref={editorRef}
@@ -645,222 +793,60 @@ export default function Contest() {
                     onContentChange={(v) => {
                       if (current) saveDraft(current.id, language, v);
                     }}
+                    onToggleFocus={() => toggleFocus("right")}
+                    focused={focusedPanel === "right"}
                     draftScope={current?.id ?? "contest"}
                   />
                 </div>
-                <div
-                  className={`rounded-lg border border-border bg-card overflow-hidden shrink-0 transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${
-                    consoleOpen ? "h-64" : "h-11"
-                  }`}
-                >
-                  <div className="flex items-center gap-0.5 px-2 h-11 border-b border-border shrink-0">
-                    {(["testcase", "result"] as const).map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => {
-                          setConsoleTab(tab);
-                          setConsoleOpen(true);
-                        }}
-                        className={`relative flex items-center gap-1.5 px-2.5 h-11 text-[13px] font-medium transition-colors duration-150 ${
-                          consoleTab === tab && consoleOpen
-                            ? "text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {tab === "result" && (
-                          <span className={failCount > 0 ? "text-wa" : "text-ac"}>
-                            <Icon d={failCount > 0 ? WS_ICONS.x : WS_ICONS.check} size={13} />
-                          </span>
-                        )}
-                        {t(`workspace.${tab === "testcase" ? "testcase" : "testresult"}`)}
-                        {tab === "result" && failCount > 0 && (
-                          <span className="text-[10px] tabular-nums bg-wa/15 text-wa rounded-full px-1.5 py-px">
-                            {failCount}
-                          </span>
-                        )}
-                        <span
-                          className={`absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-foreground transition-transform duration-200 ${
-                            consoleTab === tab && consoleOpen ? "scale-x-100" : "scale-x-0"
-                          }`}
-                        />
-                      </button>
-                    ))}
-                    <div className="ml-auto">
-                      <ToolButton
-                        title={consoleOpen ? t("workspace.collapseConsole") : t("workspace.expandConsole")}
-                        onClick={() => setConsoleOpen((v) => !v)}
-                      >
-                        <span className={`inline-block transition-transform duration-200 ${consoleOpen ? "" : "rotate-180"}`}>
-                          <Icon d={WS_ICONS.chevD} />
-                        </span>
-                      </ToolButton>
-                    </div>
+                {focusedPanel === "console" ? (
+                  <div className="fixed inset-2 z-[70] bg-background p-2 rounded-xl flex flex-col min-h-0">
+                    <ResultConsole
+                      tests={current.tests}
+                      timeLimitMs={current.time_limit_ms}
+                      report={report}
+                      submitSeq={submitSeq}
+                      lastWasSubmit={lastWasSubmit}
+                      tab={consoleTab}
+                      onTabChange={setConsoleTab}
+                      busy={judging || running}
+                      runError={submitError}
+                      open
+                      onToggleOpen={() => setConsoleOpen((v) => !v)}
+                      expanded
+                      onToggleExpand={() => toggleFocus("console")}
+                      expandTitle={t("editor.focusPanel")}
+                      restoreTitle={t("editor.unfocusPanel")}
+                      failureSlot={
+                        lastWasSubmit && report && report.overall_verdict !== "Accepted" ? (
+                          <FailureChips problemId={current.id} attemptKey={submitSeq} />
+                        ) : null
+                      }
+                    />
                   </div>
-                  {consoleOpen && (
-                    <div className="h-[calc(100%-2.75rem)] overflow-y-auto p-3 animate-fade-in">
-                      {consoleTab === "testcase" && (
-                        <div className="space-y-1">
-                          {current.tests.length === 0 && (
-                            <div className="text-xs text-muted-foreground">{t("workspace.none")}</div>
-                          )}
-                          {current.tests.map((tc, i) => (
-                            <div key={tc.id || i} className="rounded-lg border border-white/[0.04]">
-                              <button
-                                onClick={() => setExpandedCase(expandedCase === i ? null : i)}
-                                className="w-full flex items-center justify-between px-3 py-2 text-xs cursor-pointer"
-                              >
-                                <span className="font-medium tracking-wide uppercase text-muted-foreground">
-                                  {t("workspace.case")} {i + 1}
-                                </span>
-                                <span className="font-mono text-muted-foreground truncate max-w-[60%]">
-                                  {tc.input.split("\n")[0]}
-                                </span>
-                              </button>
-                              {expandedCase === i && (
-                                <div className="px-3 pb-3 grid gap-2 animate-fade-in">
-                                  <div>
-                                    <div className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                      {t("common.input")}
-                                    </div>
-                                    <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
-                                      {tc.input || t("common.empty")}
-                                    </pre>
-                                  </div>
-                                  <div>
-                                    <div className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                      {t("common.expectedOutput")}
-                                    </div>
-                                    <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
-                                      {tc.expected_output || t("common.empty")}
-                                    </pre>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {consoleTab === "result" && (
-                        <>
-                          {!report ? (
-                            <div className="text-xs text-muted-foreground">{t("workspace.noResult")}</div>
-                          ) : (
-                            <div key={submitSeq} className="animate-pop">
-                              {(() => {
-                                const info = getVerdictInfo(report.overall_verdict);
-                                const isCE = report.overall_verdict === "CompileError";
-                                const isAC = report.overall_verdict === "Accepted";
-                                return (
-                                  <>
-                                    <div className="flex items-start gap-3 mb-3">
-                                      <VerdictBadge verdict={report.overall_verdict} size="lg" showLong />
-                                      <div className="flex-1">
-                                        <div className="font-semibold text-sm">{t(info.description)}</div>
-                                        <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                                          {t(info.hint)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    {!isAC && lastWasSubmit && (
-                                      <FailureChips problemId={current.id} attemptKey={submitSeq} />
-                                    )}
-                                    {isCE ? (
-                                      <pre className="mt-3 bg-black/40 border border-border rounded-lg p-3 text-xs whitespace-pre-wrap break-words max-h-48 overflow-auto font-mono">
-                                        {report.results[0]?.message || t("contest.noCompilerOutput")}
-                                      </pre>
-                                    ) : (
-                                      <div className="space-y-2 mt-3">
-                                        <div className="text-xs text-muted-foreground">
-                                          {report.tests_passed}/{report.tests_total} {t("practice.testsPassed")}
-                                          {!isAC && (
-                                            <span className="ml-2 text-wa">
-                                              {report.tests_total - report.tests_passed} {t("practice.failedCount")}
-                                            </span>
-                                          )}
-                                          <span className="ml-2">
-                                            {t("practice.limit")} {current.time_limit_ms}ms
-                                          </span>
-                                        </div>
-                                        {report.results.map((r, i) => {
-                                          const test =
-                                            current.tests.find((tt) => tt.id === r.test_id) ??
-                                            current.tests[i];
-                                          const isFail = r.verdict !== "Accepted";
-                                          return (
-                                            <details
-                                              key={r.test_id}
-                                              open={isFail}
-                                              className="bg-white/[0.015] rounded-lg border border-white/[0.04] open:border-white/[0.06] open:bg-white/[0.02] animate-fade-in"
-                                            >
-                                              <summary className="flex items-center justify-between px-3 py-2 cursor-pointer list-none">
-                                                <span className="text-xs font-medium tracking-wide uppercase text-muted-foreground">
-                                                  {t("practice.test")} {i + 1}
-                                                </span>
-                                                <span className="flex items-center gap-2">
-                                                  <span className="text-xs text-muted-foreground tabular-nums">
-                                                    {r.time_ms}ms
-                                                  </span>
-                                                  <VerdictBadge verdict={r.verdict} />
-                                                </span>
-                                              </summary>
-                                              <div className="px-3 pb-3 pt-2 border-t border-white/[0.04]">
-                                                {test && (
-                                                  <>
-                                                    <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                                      {t("common.input")}
-                                                    </div>
-                                                    <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
-                                                      {test.input}
-                                                    </pre>
-                                                    {r.verdict === "WrongAnswer" && r.actual_output != null ? (
-                                                      <DiffViewer
-                                                        expected={test.expected_output || ""}
-                                                        actual={r.actual_output || ""}
-                                                      />
-                                                    ) : (
-                                                      <>
-                                                        <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1 mt-2">
-                                                          {t("common.expected")}
-                                                        </div>
-                                                        <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
-                                                          {test.expected_output}
-                                                        </pre>
-                                                        {r.actual_output != null && (
-                                                          <>
-                                                            <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1 mt-2">
-                                                              {t("common.yourOutput")}
-                                                            </div>
-                                                            <pre
-                                                              className={`rounded-md p-2 text-xs whitespace-pre-wrap break-words border font-mono ${
-                                                                isFail
-                                                                  ? "bg-wa/[0.04] border-wa/20"
-                                                                  : "bg-white/[0.02] border-white/[0.04]"
-                                                              }`}
-                                                            >
-                                                              {r.actual_output}
-                                                            </pre>
-                                                          </>
-                                                        )}
-                                                      </>
-                                                    )}
-                                                  </>
-                                                )}
-                                              </div>
-                                            </details>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <ResultConsole
+                    tests={current.tests}
+                    timeLimitMs={current.time_limit_ms}
+                    report={report}
+                    submitSeq={submitSeq}
+                    lastWasSubmit={lastWasSubmit}
+                    tab={consoleTab}
+                    onTabChange={setConsoleTab}
+                    busy={judging || running}
+                    runError={submitError}
+                    open={consoleOpen}
+                    onToggleOpen={() => setConsoleOpen((v) => !v)}
+                    expanded={false}
+                    onToggleExpand={() => toggleFocus("console")}
+                    expandTitle={t("editor.focusPanel")}
+                    restoreTitle={t("editor.unfocusPanel")}
+                    failureSlot={
+                      lastWasSubmit && report && report.overall_verdict !== "Accepted" ? (
+                        <FailureChips problemId={current.id} attemptKey={submitSeq} />
+                      ) : null
+                    }
+                  />
+                )}
               </div>
             }
           />

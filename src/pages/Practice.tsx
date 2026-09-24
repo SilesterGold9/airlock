@@ -4,16 +4,18 @@ import { loadDraft, saveDraft } from "../lib/drafts";
 import { templateFor } from "../lib/templates";
 import { usePersistentState } from "../lib/persist";
 import type { JudgeReport, Problem, ReimplementationSchedule, Submission, Technique } from "../lib/types";
-import { getVerdictInfo } from "../lib/verdict";
 import LazyCodeEditor, { type CodeEditorHandle } from "../components/LazyCodeEditor";
+import FirstWeekChecklist from "../components/Checklist";
+import ResultConsole from "../components/ResultConsole";
+import Spinner from "../components/Spinner";
 import VerdictBadge from "../components/VerdictBadge";
 import { Badge, DifficultyBadge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { SplitView } from "../components/ui/split-view";
 import { Select } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
+import { Input } from "../components/ui/input";
 import { PanelTabs, ToolButton } from "../components/PanelTabs";
-import DiffViewer from "../components/DiffViewer";
 import FailureChips from "../components/FailureChips";
 import HintLadder from "../components/HintLadder";
 import Balloons from "../components/Balloons";
@@ -64,6 +66,8 @@ const ICONS = {
   book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z",
   layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
   history: "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8M12 7v5l4 2",
+  expand: "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7",
+  restore: "M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M16 21v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3",
   file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8",
 };
 
@@ -86,8 +90,11 @@ export default function Practice() {
     ),
   }));
   const [report, setReport] = useState<JudgeReport | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [judging, setJudging] = useState(false);
   const [tagFilter, setTagFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [historySubs, setHistorySubs] = useState<Submission[]>([]);
   const [notes, setNotes] = useState("");
   const [notesSaving, setNotesSaving] = useState(false);
   const [attempts, setAttempts] = useState<Submission[]>([]);
@@ -105,17 +112,32 @@ export default function Practice() {
   );
   const [dueReimpl, setDueReimpl] = useState<ReimplementationSchedule[]>([]);
   const [reimplHideNotesFor, setReimplHideNotesFor] = useState<string | null>(null);
+  // Panel focus mode: one panel takes the full workspace like LeetCode expand.
+  const [focusedPanel, setFocusedPanel] = useState<null | "left" | "right" | "console">(null);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && focusedPanel) setFocusedPanel(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusedPanel]);
+
+  function toggleFocus(panel: "left" | "right" | "console") {
+    setFocusedPanel((prev) => (prev === panel ? null : panel));
+  }
+
   // Workspace chrome state (persisted: tab switches unmount the page)
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [panelTab, setPanelTab] = usePersistentState<PanelTabId>("airlock.practice.panelTab", "description");
   const [consoleOpen, setConsoleOpen] = usePersistentState("airlock.practice.consoleOpen", true);
   const [consoleTab, setConsoleTab] = usePersistentState<"testcase" | "result">("airlock.practice.consoleTab", "testcase");
-  const [expandedCase, setExpandedCase] = useState<number | null>(null);
   const ladderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
     api.listTechniques().then(setTechniques).catch(() => setTechniques([]));
+    api.listSubmissions().then(setHistorySubs).catch(() => {});
     void refreshDue();
   }, []);
 
@@ -144,7 +166,6 @@ export default function Practice() {
   useEffect(() => {
     setNotes(selected?.notes_md || "");
     setHintsRevealed(0);
-    setExpandedCase(null);
     setConsoleTab("testcase");
     if (selected) {
       api.listSubmissionsByProblem(selected.id).then(setAttempts).catch(() => setAttempts([]));
@@ -172,8 +193,26 @@ export default function Practice() {
   }, [notes]);
 
   const allTags = Array.from(new Set(problems.flatMap((p) => p.tags))).sort();
-  const visible =
-    tagFilter === "all" ? problems : problems.filter((p) => p.tags.includes(tagFilter));
+  const progressByProblem = useMemo(() => {
+    const map = new Map<string, "solved" | "attempted">();
+    for (const s of historySubs) {
+      if (s.verdict === "Accepted") map.set(s.problem_id, "solved");
+      else if (!map.has(s.problem_id)) map.set(s.problem_id, "attempted");
+    }
+    return map;
+  }, [historySubs]);
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return problems.filter((p) => {
+      if (tagFilter !== "all" && !p.tags.includes(tagFilter)) return false;
+      if (q && !`${p.title} ${p.source} ${p.tags.join(" ")}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [problems, tagFilter, search]);
+
+  useEffect(() => {
+    api.listSubmissions().then(setHistorySubs).catch(() => {});
+  }, [submitSeq]);
 
   const typical = useMemo(() => typicalDifficulty(problems), [problems]);
   const latestAttempt = useMemo(() => latestAttemptByProblem(setSubs), [setSubs]);
@@ -199,14 +238,11 @@ export default function Practice() {
   const techniqueOfSelected = selected?.primary_technique_id
     ? techniques.find((x) => x.id === selected.primary_technique_id) ?? null
     : null;
-  const failCount = report && report.overall_verdict !== "Accepted"
-    ? report.tests_total - report.tests_passed
-    : 0;
-
   async function handleSubmit() {
     if (!selected || judging || running) return;
     setJudging(true);
     setReport(null);
+    setSubmitError(null);
     setLastWasSubmit(true);
     setSubmitSeq((v) => v + 1);
     try {
@@ -226,6 +262,9 @@ export default function Practice() {
       }
     } catch (e) {
       console.error(e);
+      setSubmitError(String(e));
+      setConsoleTab("result");
+      setConsoleOpen(true);
     } finally {
       setJudging(false);
       setReimplHideNotesFor(null);
@@ -237,6 +276,7 @@ export default function Practice() {
     if (!selected || judging || running) return;
     setRunning(true);
     setReport(null);
+    setSubmitError(null);
     try {
       const result = await api.runSolution({
         problemId: selected.id,
@@ -249,6 +289,9 @@ export default function Practice() {
       setConsoleOpen(true);
     } catch (e) {
       console.error(e);
+      setSubmitError(String(e));
+      setConsoleTab("result");
+      setConsoleOpen(true);
     } finally {
       setRunning(false);
     }
@@ -375,7 +418,7 @@ export default function Practice() {
 
       {/* Workspace toolbar */}
       <div className="relative flex items-center gap-1 px-3 h-11 border-b border-border shrink-0 bg-background">
-        <ToolButton title={t("workspace.problemList")} onClick={() => setDrawerOpen(true)}>
+        <ToolButton title={t("workspace.problemList")} onClick={() => setDrawerOpen(true)} tourId="open-problems">
           <Icon d={ICONS.list} size={16} />
         </ToolButton>
         <span className="text-[13px] font-medium mr-1 hidden sm:inline">{t("workspace.problemList")}</span>
@@ -389,7 +432,7 @@ export default function Practice() {
         <ToolButton title={t("workspace.shuffle")} onClick={shuffleProblem} disabled={problems.length < 2}>
           <Icon d={ICONS.shuffle} />
         </ToolButton>
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+        <div data-tour="run-submit" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
           <Button
             onClick={handleRun}
             disabled={judging || running || !selected}
@@ -399,9 +442,7 @@ export default function Practice() {
             title={t("workspace.runHint")}
           >
             {running ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
-                <path d="M21 12a9 9 0 1 1-6.2-8.56" />
-              </svg>
+              <Spinner />
             ) : (
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M8 5v14l11-7z" />
@@ -418,9 +459,7 @@ export default function Practice() {
           >
             {judging ? (
               <>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
-                  <path d="M21 12a9 9 0 1 1-6.2-8.56" />
-                </svg>
+                <Spinner />
                 {t("practice.judging")}
               </>
             ) : (
@@ -448,36 +487,41 @@ export default function Practice() {
       {drawerOpen && (
         <div className="fixed inset-0 z-[80]">
           <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setDrawerOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-80 max-w-[85vw] bg-background border-r border-border flex flex-col animate-drawer-in">
-            <div className="p-3 border-b border-border/50 shrink-0">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-semibold flex-1">{t("workspace.problemList")}</span>
+          <aside className="absolute inset-y-0 left-0 w-[380px] max-w-[90vw] bg-background border-r border-border flex flex-col animate-drawer-in rounded-r-xl overflow-hidden">
+            <div className="p-4 border-b border-border/50 shrink-0 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[15px] font-semibold flex-1">{t("workspace.problemList")}</span>
+                <span className="text-[11px] text-muted-foreground tabular-nums">
+                  {visible.length}/{problems.length}
+                </span>
                 <ToolButton title={t("common.close")} onClick={() => setDrawerOpen(false)}>
                   <Icon d={ICONS.x} />
                 </ToolButton>
               </div>
-              <Select className="w-full" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
-                <option value="all">{t("practice.allTags")}</option>
-                {allTags.map((tag) => (
-                  <option key={tag} value={tag}>
-                    {tag}
-                  </option>
-                ))}
-              </Select>
-              <div className="flex items-center justify-between mt-3 px-1">
-                <span className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
-                  {visible.length} problems
-                </span>
-                <span className="text-xs text-muted-foreground tabular-nums">{problems.length} total</span>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("workspace.search")}
+                className="h-9"
+              />
+              <div className="flex gap-2">
+                <Select className="flex-1" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+                  <option value="all">{t("practice.allTags")}</option>
+                  {allTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  variant={setMode ? "primary" : "secondary"}
+                  size="sm"
+                  className="shrink-0"
+                  onClick={handleToggleSetMode}
+                >
+                  {setMode ? t("set.clear") : t("set.button")}
+                </Button>
               </div>
-              <Button
-                variant={setMode ? "primary" : "secondary"}
-                size="sm"
-                className="w-full mt-3"
-                onClick={handleToggleSetMode}
-              >
-                {setMode ? t("set.clear") : t("set.button")}
-              </Button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {setMode && setPicks ? (
@@ -558,32 +602,57 @@ export default function Practice() {
                       </ul>
                     </div>
                   )}
-                  <div className="px-3 py-2 flex items-center text-xs font-medium text-muted-foreground tracking-wide uppercase border-b border-white/[0.04]">
-                    <span className="flex-1">Title</span>
-                    <span className="w-24 text-right">Difficulty</span>
-                  </div>
-                  <ul className="divide-y divide-white/[0.04]">
-                    {visible.map((p) => (
-                      <li key={p.id}>
-                        <button
-                          className={`w-full text-left px-3 py-3 flex items-center gap-3 transition-all duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:translate-x-0.5 group ${
-                            selected?.id === p.id
-                              ? "bg-white/[0.06] border-l-2 border-l-ac"
-                              : "hover:bg-white/[0.03] border-l-2 border-l-transparent hover:border-l-white/[0.08]"
-                          }`}
-                          onClick={() => openProblem(p, false)}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm leading-tight truncate group-hover:text-foreground transition-colors">
-                              {p.title}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate mt-0.5">{p.source}</div>
-                          </div>
-                          <DifficultyBadge difficulty={p.difficulty} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {visible.length === 0 ? (
+                    <div className="m-4 text-xs text-muted-foreground py-8 text-center border border-dashed border-border rounded-lg">
+                      {t("workspace.none")}
+                    </div>
+                  ) : (
+                    <ul className="p-2 space-y-1">
+                      {visible.map((p) => {
+                        const progress = progressByProblem.get(p.id);
+                        const isActive = selected?.id === p.id;
+                        return (
+                          <li key={p.id}>
+                            <button
+                              className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all duration-150 ease-[cubic-bezier(0.2,0,0,1)] group border ${
+                                isActive
+                                  ? "bg-white/[0.06] border-ac/40"
+                                  : "bg-transparent border-transparent hover:bg-white/[0.03] hover:border-white/[0.06]"
+                              }`}
+                              onClick={() => openProblem(p, false)}
+                            >
+                              <span
+                                className={`h-2 w-2 rounded-full shrink-0 ${
+                                  progress === "solved"
+                                    ? "bg-ac"
+                                    : progress === "attempted"
+                                      ? "bg-tle"
+                                      : "bg-white/15"
+                                }`}
+                                title={
+                                  progress === "solved"
+                                    ? t("workspace.solved")
+                                    : progress === "attempted"
+                                      ? t("workspace.attempted")
+                                      : undefined
+                                }
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm leading-snug truncate">
+                                  {p.title}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate mt-0.5">
+                                  {p.source}
+                                  {p.tags.length > 0 && ` · ${p.tags.slice(0, 2).join(", ")}`}
+                                </div>
+                              </div>
+                              <DifficultyBadge difficulty={p.difficulty} />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </>
               )}
             </div>
@@ -598,10 +667,18 @@ export default function Practice() {
             storageKey="practice-split"
             left={
               <div className="h-full pr-1">
-                <div className="h-full rounded-lg border border-border bg-card overflow-hidden flex flex-col">
+                <div className={`h-full rounded-lg border border-border bg-card overflow-hidden flex flex-col ${focusedPanel === "left" ? "fixed inset-2 z-[70]" : ""}`}>
                   <PanelTabs
                     active={panelTab}
                     onChange={(id) => setPanelTab(id as PanelTabId)}
+                    actions={
+                      <ToolButton
+                        title={focusedPanel === "left" ? t("editor.unfocusPanel") : t("editor.focusPanel")}
+                        onClick={() => toggleFocus("left")}
+                      >
+                        <Icon d={focusedPanel === "left" ? ICONS.restore : ICONS.expand} size={14} />
+                      </ToolButton>
+                    }
                     tabs={[
                       { id: "description", label: t("workspace.description"), icon: <Icon d={ICONS.file} size={14} /> },
                       { id: "notes", label: t("workspace.notes"), icon: <Icon d={ICONS.book} size={14} /> },
@@ -622,15 +699,15 @@ export default function Practice() {
                     {panelTab === "description" && (
                       <div key={selected.id} className="p-5 animate-panel-in">
                         <div className="flex items-start gap-3">
-                          <h1 className="text-[15px] font-semibold leading-tight flex-1">{selected.title}</h1>
+                          <h1 className="text-lg font-semibold leading-snug flex-1">{selected.title}</h1>
                           {solved && (
-                            <span className="flex items-center gap-1 text-xs font-medium text-ac shrink-0 mt-0.5">
+                            <span className="flex items-center gap-1 text-xs font-medium text-ac shrink-0 mt-1">
                               <Icon d={ICONS.check} size={13} />
                               {t("workspace.solved")}
                             </span>
                           )}
                         </div>
-                        <div className="flex gap-1.5 mt-3 flex-wrap items-center">
+                        <div className="flex gap-1.5 mt-2.5 flex-wrap items-center">
                           <DifficultyBadge difficulty={selected.difficulty} />
                           {selected.tags.map((tag) => (
                             <Badge key={tag} variant="outline">
@@ -651,13 +728,41 @@ export default function Practice() {
                             </button>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-3 tabular-nums">
+                        <div className="text-xs text-muted-foreground mt-2.5 tabular-nums">
                           {t("practice.timeLimit")}: {selected.time_limit_ms}ms · {t("practice.memory")}:{" "}
                           {selected.memory_limit_mb}MB
                         </div>
                         <div className="mt-4">
                           <ProblemStatement content={selected.statement_md} />
                         </div>
+                        {selected.tests.length > 0 && (
+                          <div className="mt-6">
+                            <div className="text-sm font-semibold mb-2">{t("workspace.examples")}</div>
+                            <div className="space-y-2">
+                              {selected.tests.map((tc, i) => (
+                                <div key={tc.id || i} className="rounded-lg border border-white/[0.06] overflow-hidden">
+                                  <div className="px-3 py-1.5 text-xs font-semibold bg-white/[0.02] border-b border-white/[0.06]">
+                                    {t("workspace.example")} {i + 1}
+                                  </div>
+                                  <div className="p-3 grid gap-2">
+                                    <div>
+                                      <span className="text-xs font-semibold text-muted-foreground">{t("workspace.exampleInput")}: </span>
+                                      <pre className="mt-1 bg-black/30 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
+                                        {tc.input || t("common.empty")}
+                                      </pre>
+                                    </div>
+                                    <div>
+                                      <span className="text-xs font-semibold text-muted-foreground">{t("workspace.exampleOutput")}: </span>
+                                      <pre className="mt-1 bg-black/30 rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
+                                        {tc.expected_output || t("common.empty")}
+                                      </pre>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         {selected.hints && selected.hints.length > 0 && (
                           <div ref={ladderRef} className="scroll-mt-4">
                             <HintLadder
@@ -770,8 +875,13 @@ export default function Practice() {
               </div>
             }
             right={
-              <div className="h-full pl-1 flex flex-col min-h-0 gap-2">
-                <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
+              <div className={`h-full pl-1 flex flex-col min-h-0 gap-2 ${focusedPanel === "right" ? "fixed inset-2 z-[70] bg-background p-2 pr-3 rounded-xl" : ""}`}>
+                {focusedPanel !== "right" && (
+                  <div className="pl-1 pr-2 shrink-0">
+                    <FirstWeekChecklist refreshKey={submitSeq} />
+                  </div>
+                )}
+                <div data-tour="editor" className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
                   <LazyCodeEditor
                     ref={editorRef}
                     language={language}
@@ -779,6 +889,8 @@ export default function Practice() {
                     editorKey={editorSeed.key}
                     onLanguageChange={setLanguage}
                     onContentChange={(v) => saveDraft(selected.id, language, v)}
+                    onToggleFocus={() => toggleFocus("right")}
+                    focused={focusedPanel === "right"}
                     draftScope={selected.id}
                     templateSet={
                       localStorage.getItem("airlock.practiceTemplate") === "standard"
@@ -787,252 +899,65 @@ export default function Practice() {
                     }
                   />
                 </div>
-                <div
-                  className={`rounded-lg border border-border bg-card overflow-hidden shrink-0 transition-all duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${
-                    consoleOpen ? "h-64" : "h-11"
-                  }`}
-                >
-                  <div className="flex items-center gap-0.5 px-2 h-11 border-b border-border shrink-0">
-                    {(["testcase", "result"] as const).map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => {
-                          setConsoleTab(tab);
-                          setConsoleOpen(true);
-                        }}
-                        className={`relative flex items-center gap-1.5 px-2.5 h-11 text-[13px] font-medium transition-colors duration-150 ${
-                          consoleTab === tab && consoleOpen
-                            ? "text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {tab === "result" && (
-                          <span className={failCount > 0 ? "text-wa" : "text-ac"}>
-                            <Icon d={failCount > 0 ? ICONS.x : ICONS.check} size={13} />
-                          </span>
-                        )}
-                        {t(`workspace.${tab === "testcase" ? "testcase" : "testresult"}`)}
-                        {tab === "result" && failCount > 0 && (
-                          <span className="text-[10px] tabular-nums bg-wa/15 text-wa rounded-full px-1.5 py-px">
-                            {failCount}
-                          </span>
-                        )}
-                        <span
-                          className={`absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-foreground transition-transform duration-200 ${
-                            consoleTab === tab && consoleOpen ? "scale-x-100" : "scale-x-0"
-                          }`}
-                        />
-                      </button>
-                    ))}
-                    <div className="ml-auto">
-                      <ToolButton
-                        title={consoleOpen ? t("workspace.collapseConsole") : t("workspace.expandConsole")}
-                        onClick={() => setConsoleOpen((v) => !v)}
-                      >
-                        <span className={`inline-block transition-transform duration-200 ${consoleOpen ? "" : "rotate-180"}`}>
-                          <Icon d={ICONS.chevD} />
-                        </span>
-                      </ToolButton>
-                    </div>
+                {focusedPanel === "console" ? (
+                  <div className="fixed inset-2 z-[70] bg-background p-2 rounded-xl flex flex-col min-h-0">
+                    <ResultConsole
+                      tests={selected.tests}
+                      timeLimitMs={selected.time_limit_ms}
+                      report={report}
+                      submitSeq={submitSeq}
+                      lastWasSubmit={lastWasSubmit}
+                      tab={consoleTab}
+                      onTabChange={setConsoleTab}
+                      busy={judging || running}
+                      runError={submitError}
+                      open
+                      onToggleOpen={() => setConsoleOpen((v) => !v)}
+                      expanded
+                      onToggleExpand={() => toggleFocus("console")}
+                      expandTitle={t("editor.focusPanel")}
+                      restoreTitle={t("editor.unfocusPanel")}
+                      failureSlot={
+                        lastWasSubmit && report && report.overall_verdict !== "Accepted" ? (
+                          <FailureChips problemId={selected.id} attemptKey={submitSeq} />
+                        ) : null
+                      }
+                    />
                   </div>
-                  {consoleOpen && (
-                    <div className="h-[calc(100%-2.75rem)] overflow-y-auto p-3 animate-fade-in">
-                      {consoleTab === "testcase" && (
-                        <div className="space-y-1">
-                          {selected.tests.length === 0 && (
-                            <div className="text-xs text-muted-foreground">{t("workspace.none")}</div>
-                          )}
-                          {selected.tests.map((tc, i) => (
-                            <div key={tc.id || i} className="rounded-lg border border-white/[0.04]">
-                              <button
-                                onClick={() => setExpandedCase(expandedCase === i ? null : i)}
-                                className="w-full flex items-center justify-between px-3 py-2 text-xs cursor-pointer"
-                              >
-                                <span className="font-medium tracking-wide uppercase text-muted-foreground">
-                                  {t("workspace.case")} {i + 1}
-                                </span>
-                                <span className="font-mono text-muted-foreground truncate max-w-[60%]">
-                                  {tc.input.split("\n")[0]}
-                                </span>
-                              </button>
-                              {expandedCase === i && (
-                                <div className="px-3 pb-3 grid gap-2 animate-fade-in">
-                                  <div>
-                                    <div className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                      {t("common.input")}
-                                    </div>
-                                    <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
-                                      {tc.input || t("common.empty")}
-                                    </pre>
-                                  </div>
-                                  <div>
-                                    <div className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                      {t("common.expectedOutput")}
-                                    </div>
-                                    <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
-                                      {tc.expected_output || t("common.empty")}
-                                    </pre>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {consoleTab === "result" && (
-                        <>
-                          {!report ? (
-                            <div className="text-xs text-muted-foreground">{t("workspace.noResult")}</div>
-                          ) : (
-                            <div key={submitSeq} className="animate-pop">
-                              {(() => {
-                                const info = getVerdictInfo(report.overall_verdict);
-                                const isCE = report.overall_verdict === "CompileError";
-                                const isAC = report.overall_verdict === "Accepted";
-                                return (
-                                  <>
-                                    <div className="flex items-start gap-3 mb-3">
-                                      <VerdictBadge verdict={report.overall_verdict} size="lg" showLong />
-                                      <div className="flex-1">
-                                        <div className="font-semibold text-sm">{t(info.description)}</div>
-                                        <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                                          {t(info.hint)}
-                                        </div>
-                                      </div>
-                                    </div>
-                            {!isAC && lastWasSubmit && (
-                              <FailureChips problemId={selected.id} attemptKey={submitSeq} />
-                            )}
-                                    {isCE ? (
-                                      <div className="mt-3">
-                                        <div className="text-xs font-semibold text-foreground mb-1">
-                                          {t("practice.compilerSays")}
-                                        </div>
-                                        <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs whitespace-pre-wrap break-words max-h-48 overflow-auto font-mono">
-                                          {report.results[0]?.message || t("practice.noCompilerDetails")}
-                                        </pre>
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-2 mt-3">
-                                        <div className="text-xs font-semibold text-foreground">
-                                          {report.tests_passed}/{report.tests_total} {t("practice.testsPassed")}
-                                          <span className="font-normal text-muted-foreground ml-2">
-                                            {t("practice.limit")} {selected.time_limit_ms}ms
-                                          </span>
-                                          {!isAC && (
-                                            <span className="ml-2 text-wa">
-                                              • {report.tests_total - report.tests_passed} {t("practice.failedCount")}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {report.results.map((r, i) => {
-                                          const infoR = getVerdictInfo(r.verdict);
-                                          const test =
-                                            selected.tests.find((tt) => tt.id === r.test_id) ??
-                                            selected.tests[i];
-                                          const isFail = r.verdict !== "Accepted";
-                                          return (
-                                            <details
-                                              key={r.test_id}
-                                              open={isFail}
-                                              className="bg-white/[0.015] rounded-lg border border-white/[0.04] open:border-white/[0.06] open:bg-white/[0.02] animate-fade-in"
-                                            >
-                                              <summary className="flex items-center justify-between px-3 py-2 cursor-pointer list-none">
-                                                <span className="text-xs font-medium tracking-wide uppercase text-muted-foreground">
-                                                  {t("practice.test")} {i + 1}
-                                                </span>
-                                                <span className="flex items-center gap-2">
-                                                  <span className="text-xs text-muted-foreground tabular-nums">
-                                                    {r.time_ms}ms
-                                                  </span>
-                                                  <VerdictBadge verdict={r.verdict} />
-                                                </span>
-                                              </summary>
-                                              <div className="px-3 pb-3 pt-2 border-t border-white/[0.04]">
-                                                <div className="text-xs text-muted-foreground mb-1">
-                                                  {t(infoR.long)}: {t(infoR.description)}
-                                                </div>
-                                                {test && (
-                                                  <div className="grid gap-3 mt-2">
-                                                    <div>
-                                                      <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                                        {t("common.input")}
-                                                      </div>
-                                                      <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
-                                                        {test.input || t("common.empty")}
-                                                      </pre>
-                                                    </div>
-                                                    {r.verdict === "WrongAnswer" && r.actual_output != null ? (
-                                                      <DiffViewer
-                                                        expected={test.expected_output || ""}
-                                                        actual={r.actual_output || ""}
-                                                      />
-                                                    ) : (
-                                                      <>
-                                                        <div>
-                                                          <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                                            {t("common.expectedOutput")}
-                                                          </div>
-                                                          <pre className="bg-white/[0.02] rounded-md p-2 text-xs whitespace-pre-wrap break-words border border-white/[0.04] font-mono">
-                                                            {test.expected_output || t("common.empty")}
-                                                          </pre>
-                                                        </div>
-                                                        {r.actual_output != null && (
-                                                          <div>
-                                                            <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                                              {t("common.yourOutput")}
-                                                            </div>
-                                                            <pre
-                                                              className={`rounded-md p-2 text-xs whitespace-pre-wrap break-words border font-mono ${
-                                                                isFail
-                                                                  ? "bg-wa/[0.04] border-wa/20"
-                                                                  : "bg-white/[0.02] border-white/[0.04]"
-                                                              }`}
-                                                            >
-                                                              {r.actual_output || t("common.noOutput")}
-                                                            </pre>
-                                                          </div>
-                                                        )}
-                                                      </>
-                                                    )}
-                                                    {r.message && (
-                                                      <div>
-                                                        <div className="text-xs font-medium tracking-wide uppercase text-muted-foreground/70 mb-1">
-                                                          {t("practice.runtimeOutput")}
-                                                        </div>
-                                                        <pre className="bg-re/[0.04] border border-re/20 rounded-md p-2 text-xs whitespace-pre-wrap break-words font-mono">
-                                                          {r.message}
-                                                        </pre>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </details>
-                                          );
-                                        })}
-                                        {isAC && (
-                                          <div className="text-xs text-ac mt-2">{t("practice.submittedHint")}</div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <ResultConsole
+                    tests={selected.tests}
+                    timeLimitMs={selected.time_limit_ms}
+                    report={report}
+                    submitSeq={submitSeq}
+                    lastWasSubmit={lastWasSubmit}
+                    tab={consoleTab}
+                    onTabChange={setConsoleTab}
+                    busy={judging || running}
+                    runError={submitError}
+                    open={consoleOpen}
+                    onToggleOpen={() => setConsoleOpen((v) => !v)}
+                    expanded={false}
+                    onToggleExpand={() => toggleFocus("console")}
+                    expandTitle={t("editor.focusPanel")}
+                    restoreTitle={t("editor.unfocusPanel")}
+                    failureSlot={
+                      lastWasSubmit && report && report.overall_verdict !== "Accepted" ? (
+                        <FailureChips problemId={selected.id} attemptKey={submitSeq} />
+                      ) : null
+                    }
+                  />
+                )}
               </div>
             }
           />
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-          <span className="text-sm">{t("practice.selectProblem")}</span>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground p-4 overflow-y-auto">
+          <div className="w-full max-w-md">
+            <FirstWeekChecklist refreshKey={submitSeq} />
+          </div>
+          <span className="text-sm mt-2">{t("practice.selectProblem")}</span>
           <Button variant="secondary" size="sm" onClick={() => setDrawerOpen(true)}>
             {t("workspace.problemList")}
           </Button>

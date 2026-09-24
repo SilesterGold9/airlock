@@ -4,6 +4,7 @@ import type { Problem } from "../lib/types";
 import LazyCodeEditor, { type CodeEditorHandle } from "../components/LazyCodeEditor";
 import { usePersistentState } from "../lib/persist";
 import VerdictBadge from "../components/VerdictBadge";
+import Spinner from "../components/Spinner";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -229,7 +230,12 @@ export default function Stress() {
           size="md"
           className="ml-auto h-8 px-5 gap-1.5 shrink-0"
         >
-          {result.type === "running" ? t("stress.running") : t("stress.run")}
+          {result.type === "running" ? (
+            <>
+              <Spinner />
+              {t("stress.running")}
+            </>
+          ) : t("stress.run")}
         </Button>
       </div>
 

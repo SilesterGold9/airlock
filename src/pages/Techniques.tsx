@@ -7,6 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
+import Spinner from "../components/Spinner";
 import { useT } from "../lib/i18n";
 
 const STATUSES: TechniqueStatus[] = ["NotStarted", "Learning", "Assimilated", "Rusty"];
@@ -151,7 +152,12 @@ function TechniqueRow({
           />
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={handleSaveNotes} disabled={saving || !dirty}>
-              {saving ? t("common.saving") : t("common.save")}
+              {saving ? (
+                <>
+                  <Spinner size={12} />
+                  {t("common.saving")}
+                </>
+              ) : t("common.save")}
             </Button>
             {saved && !dirty && <span className="text-xs text-muted-foreground">{t("common.saved")}</span>}
           </div>
@@ -259,7 +265,7 @@ export default function Techniques() {
       <h1 className="text-xl font-semibold">{t("techniques.title")}</h1>
       <p className="text-xs text-muted-foreground mt-1">{t("techniques.subtitle")}</p>
 
-      <div className="flex flex-wrap gap-1.5 mt-3">
+      <div data-tour="techniques" className="flex flex-wrap gap-1.5 mt-3">
         {STATUSES.map((s) => (
           <Badge key={s} variant="outline">
             <span className={`h-2 w-2 rounded-full mr-1.5 ${DOT[s]}`} />
@@ -279,7 +285,12 @@ export default function Techniques() {
             }}
           />
           <Button size="sm" onClick={handleAdd} disabled={adding || !newName.trim()}>
-            {t("techniques.add")}
+            {adding ? (
+              <>
+                <Spinner size={12} />
+                {t("common.saving")}
+              </>
+            ) : t("techniques.add")}
           </Button>
         </div>
       </Card>

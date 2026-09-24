@@ -7,6 +7,7 @@ import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Select } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
+import Spinner from "../components/Spinner";
 import { useT } from "../lib/i18n";
 
 function formatDate(iso: string) {
@@ -183,7 +184,12 @@ export default function Journey() {
       <Card className="p-3 mt-3">
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={handleCheck} disabled={checking}>
-            {checking ? t("journey.checking") : t("journey.checkSuggestion")}
+            {checking ? (
+              <>
+                <Spinner size={12} />
+                {t("journey.checking")}
+              </>
+            ) : t("journey.checkSuggestion")}
           </Button>
           {recordError && pending == null && (
             <span className="text-xs text-muted-foreground">{t("journey.recordError")}</span>
@@ -214,9 +220,12 @@ export default function Journey() {
                 onClick={handleConfirm}
                 disabled={confirming || !reflectionMd.trim()}
               >
-                {confirming
-                  ? t("journey.confirming")
-                  : t("journey.confirm").replace("{star}", String(pending))}
+                {confirming ? (
+                  <>
+                    <Spinner size={12} />
+                    {t("journey.confirming")}
+                  </>
+                ) : t("journey.confirm").replace("{star}", String(pending))}
               </Button>
               {recordError && (
                 <span className="text-xs text-muted-foreground">{t("journey.recordError")}</span>

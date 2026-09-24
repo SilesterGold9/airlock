@@ -36,6 +36,8 @@ export const WS_ICONS = {
   rotate: "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15",
   users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
   flag: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
+  expand: "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7",
+  restore: "M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M16 21v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3",
 };
 
 export interface PanelTab {
@@ -50,13 +52,16 @@ export function PanelTabs({
   tabs,
   active,
   onChange,
+  actions,
 }: {
   tabs: PanelTab[];
   active: string;
   onChange: (id: string) => void;
+  actions?: ReactNode;
 }) {
   return (
     <div role="tablist" aria-label="Panel" className="flex items-center gap-0.5 px-2 h-11 border-b border-border shrink-0 overflow-x-auto">
+      <div className="flex items-center gap-0.5 flex-1 min-w-0">
       {tabs.map((tab) => {
         const isActive = tab.id === active;
         return (
@@ -80,6 +85,8 @@ export function PanelTabs({
           </button>
         );
       })}
+      </div>
+      {actions && <div className="flex items-center gap-0.5 shrink-0 ml-auto pl-2">{actions}</div>}
     </div>
   );
 }
@@ -90,11 +97,13 @@ export function ToolButton({
   onClick,
   disabled,
   children,
+  tourId,
 }: {
   title: string;
   onClick?: () => void;
   disabled?: boolean;
   children: ReactNode;
+  tourId?: string;
 }) {
   return (
     <button
@@ -102,6 +111,7 @@ export function ToolButton({
       aria-label={title}
       disabled={disabled}
       onClick={onClick}
+      data-tour={tourId}
       className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:pointer-events-none shrink-0"
     >
       {children}

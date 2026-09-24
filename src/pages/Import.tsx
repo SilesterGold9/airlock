@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import type { Problem, Technique } from "../lib/types";
 import { MAX_HINTS } from "../components/HintLadder";
 import { Button } from "../components/ui/button";
+import Spinner from "../components/Spinner";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
@@ -414,7 +415,12 @@ export default function Import() {
           </div>
 
           <Button onClick={handleFormSave} disabled={saving} className="w-full">
-            {saving ? t("import.saving") : t("import.saveProblem")}
+            {saving ? (
+              <>
+                <Spinner />
+                {t("import.saving")}
+              </>
+            ) : t("import.saveProblem")}
           </Button>
           </div>
           </div>
@@ -457,7 +463,12 @@ export default function Import() {
           </div>
           <Textarea className="flex-1 min-h-[240px] font-mono text-xs leading-relaxed" value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
           <Button onClick={handleJsonSave} disabled={saving} className="w-full shrink-0">
-            {saving ? t("import.importing") : t("import.importJson")}
+            {saving ? (
+              <>
+                <Spinner />
+                {t("import.importing")}
+              </>
+            ) : t("import.importJson")}
           </Button>
         </div>
       ) : (
@@ -504,7 +515,12 @@ export default function Import() {
             </label>
           </div>
           <Button onClick={handlePackImport} disabled={saving} className="w-full">
-            {saving ? t("import.importing") : t("import.importPackBtn")}
+            {saving ? (
+              <>
+                <Spinner />
+                {t("import.importing")}
+              </>
+            ) : t("import.importPackBtn")}
           </Button>
         </div>
         </div>

@@ -258,18 +258,36 @@ export default function Import() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 animate-fade-in">
-      <h1 className="text-xl font-semibold">{t("import.title")}</h1>
-      <p className="text-sm text-muted-foreground mt-1">
-        {t("import.subtitle")}
-      </p>
-
-      <div className="mt-4 mb-4 flex items-center gap-2">
-        <Badge variant="outline">{t("import.localVault")}</Badge>
-        <span className="text-xs text-muted-foreground">{t("import.savedToSqlite")}</span>
+    <div className="h-full flex flex-col p-4 md:p-6 gap-3 w-full max-w-6xl mx-auto min-h-0 animate-fade-in">
+      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold leading-tight">{t("import.title")}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {t("import.subtitle")}
+          </p>
+        </div>
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          <Badge variant="outline">{t("import.localVault")}</Badge>
+          <span className="text-xs text-muted-foreground hidden sm:inline">{t("import.savedToSqlite")}</span>
+        </div>
       </div>
 
-      <Card className="overflow-hidden transition-colors duration-150">
+      {result && (
+        <Card className={`p-3 shrink-0 flex items-start gap-3 rounded-lg border-border bg-card transition-colors duration-150 animate-fade-in ${result.ok ? "border-ac/30" : "border-wa/30"}`}>
+          {result.ok ? <VerdictBadge verdict="Accepted" /> : <VerdictBadge verdict="CompileError" />}
+          <div className="text-sm flex-1 min-w-0">
+            <div className={`font-medium ${result.ok ? "text-ac" : "text-wa"}`}>{result.ok ? t("common.saved") : t("common.failed")}</div>
+            <div className="text-xs text-muted-foreground mt-1 break-words">{result.msg}</div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setResult(null)} aria-label={t("common.close")}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+              <path d="M3 3L9 9M9 3L3 9" />
+            </svg>
+          </Button>
+        </Card>
+      )}
+
+      <Card className="flex-1 min-h-0 flex flex-col overflow-hidden transition-colors duration-150">
         <PanelTabs
           active={mode}
           onChange={(id) => setMode(id as "form" | "json" | "pack")}
@@ -280,14 +298,16 @@ export default function Import() {
           ]}
         />
         {mode === "form" ? (
-        <div className="p-5 space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5">
+          <div className="grid lg:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="space-y-4 min-w-0">
           <div className="grid gap-1">
             <label className="text-xs font-medium text-muted-foreground">{t("import.titleLabel")}</label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A+B" />
           </div>
           <div className="grid gap-1">
             <label className="text-xs font-medium text-muted-foreground">{t("import.statementLabel")}</label>
-            <Textarea className="min-h-[140px] font-sans" value={statement} onChange={(e) => setStatement(e.target.value)} placeholder={t("import.statementPlaceholder")} />
+            <Textarea className="min-h-[240px] font-sans leading-relaxed" value={statement} onChange={(e) => setStatement(e.target.value)} placeholder={t("import.statementPlaceholder")} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1">
@@ -333,6 +353,8 @@ export default function Import() {
               </div>
             ))}
           </div>
+          </div>
+          <div className="space-y-4 min-w-0">
           <div className="grid grid-cols-3 gap-3">
             <div className="grid gap-1">
               <label className="text-xs font-medium text-muted-foreground">{t("import.difficultyLabel")}</label>
@@ -388,16 +410,18 @@ export default function Import() {
               </div>
               <span className="text-xs text-muted-foreground self-center">{t("import.usedByStress")}</span>
             </div>
-            <Textarea className="min-h-[120px] font-mono text-xs" value={bruteSrc} onChange={(e) => setBruteSrc(e.target.value)} placeholder={t("import.brutePlaceholder")} />
+            <Textarea className="min-h-[180px] font-mono text-xs" value={bruteSrc} onChange={(e) => setBruteSrc(e.target.value)} placeholder={t("import.brutePlaceholder")} />
           </div>
 
           <Button onClick={handleFormSave} disabled={saving} className="w-full">
             {saving ? t("import.saving") : t("import.saveProblem")}
           </Button>
+          </div>
+          </div>
         </div>
       ) : mode === "json" ? (
-        <div className="p-5 space-y-3">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex-1 min-h-0 flex flex-col p-5 gap-3">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <span className="text-xs font-medium text-muted-foreground">{t("common.json")}</span>
             <Button variant="ghost" size="sm" onClick={() => setJsonText(JSON.stringify(SAMPLE, null, 2))}>
               {t("import.loadSample")}
@@ -431,13 +455,14 @@ export default function Import() {
               />
             </label>
           </div>
-          <Textarea className="min-h-[360px] font-mono text-xs" value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
-          <Button onClick={handleJsonSave} disabled={saving} className="w-full">
+          <Textarea className="flex-1 min-h-[240px] font-mono text-xs leading-relaxed" value={jsonText} onChange={(e) => setJsonText(e.target.value)} />
+          <Button onClick={handleJsonSave} disabled={saving} className="w-full shrink-0">
             {saving ? t("import.importing") : t("import.importJson")}
           </Button>
         </div>
       ) : (
-        <div className="p-5 space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5">
+        <div className="space-y-4 max-w-2xl">
           <p className="text-xs text-muted-foreground leading-relaxed">{t("import.packDesc")}</p>
           <div className="grid gap-1">
             <label className="text-xs font-medium text-muted-foreground">{t("import.manifest")}</label>
@@ -482,18 +507,9 @@ export default function Import() {
             {saving ? t("import.importing") : t("import.importPackBtn")}
           </Button>
         </div>
+        </div>
       )}
       </Card>
-
-      {result && (
-        <Card className={`p-4 mt-4 flex items-start gap-3 rounded-lg border-border bg-card transition-colors duration-150 animate-fade-in ${result.ok ? "border-ac/30" : "border-wa/30"}`}>
-          {result.ok ? <VerdictBadge verdict="Accepted" /> : <VerdictBadge verdict="CompileError" />}
-          <div className="text-sm">
-            <div className={`font-medium ${result.ok ? "text-ac" : "text-wa"}`}>{result.ok ? t("common.saved") : t("common.failed")}</div>
-            <div className="text-xs text-muted-foreground mt-1 break-words">{result.msg}</div>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

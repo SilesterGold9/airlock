@@ -307,3 +307,16 @@ What actually shipped, where it differs from the proposal above:
   import button (CLI scripts only), skeleton loaders (local SQLite is
   near-instant), axe contrast audit (manual QA).
 
+
+## As built (deviations from the proposal above)
+
+The proposal harvests LeetCode's orange system. What shipped differs in
+three places, deliberately:
+
+* Accent is green `#22c55e` (`brand` and `ac` in `tailwind.config.js`),
+  not orange `#ffa116`. Orange survives only in the wordmark and prose
+  links. Difficulty and verdict scales are unchanged.
+* Radius ladder collapsed one rung: inputs, buttons, cards, and the editor
+  all use `rounded-lg` (8px). Chips and code stay 4px, heroes 12px.
+* App shell is an `h-8` custom `Titlebar.tsx` plus a `w-52` `Sidebar.tsx`
+  with grouped sections, not the proposed `h-12` blurred top bar.

@@ -1,6 +1,6 @@
 [package]
 name = "airlock"
-version = "1.4.0"
+version = "1.5.0"
 description = "Airlock — offline-first competitive programming trainer"
 edition = "2021"
 

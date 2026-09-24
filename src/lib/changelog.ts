@@ -12,6 +12,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.0",
+    en: [
+      "Guided tour, Guide page, and First-week checklist for new users",
+      "LeetCode-style workspace: focusable panels, shared console, new drawer",
+      "Contest setup and live views redesigned",
+      "Editor overhaul: offline bundle, lazy load, drafts, CP snippets",
+      "Import screen as a workspace with a Pack tab",
+      "Problem descriptions with Example blocks",
+    ],
+    pt: [
+      "Tour guiado, página Guia e checklist de primeira semana",
+      "Workspace estilo LeetCode: painéis expansíveis, console único, drawer novo",
+      "Setup e ao vivo do contest redesenhados",
+      "Editor reformulado: pacote offline, lazy load, rascunhos, snippets",
+      "Import como workspace com aba de pacote",
+      "Descrições com blocos de Exemplo",
+    ],
+  },
+  {
     version: "1.4.0",
     en: [
       "Starter vault: 15 problems and 6 techniques load in one click",

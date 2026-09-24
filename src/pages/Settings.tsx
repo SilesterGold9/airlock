@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import type { RankTheme } from "../lib/types";
 import { Button } from "../components/ui/button";
@@ -269,6 +269,17 @@ export default function Settings() {
                   </Select>
                 </div>
               </div>
+              <Card className="p-4 bg-background">
+                <div className="text-sm font-semibold">{t("guide.title")}</div>
+                <div className="text-xs text-muted-foreground mt-1 mb-3 leading-relaxed">
+                  {t("guide.sub")}
+                </div>
+                <Link to="/guide">
+                  <Button variant="secondary" size="sm">
+                    {t("guide.open")}
+                  </Button>
+                </Link>
+              </Card>
               <Card className="p-4 bg-background">
                 <div className="text-sm font-semibold">{t("settings.replayTitle")}</div>
                 <div className="text-xs text-muted-foreground mt-1 mb-3 leading-relaxed">

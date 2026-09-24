@@ -31,6 +31,7 @@ const ICONS = {
   journey: "M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2z",
   history: "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8M12 7v5l4 2",
   import: "M16 16l-4-4-4 4M12 12v9M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3",
+  guide: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
   settings: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
 };
 
@@ -58,6 +59,7 @@ const GROUPS: { groupKey: string; items: Item[] }[] = [
     groupKey: "nav.group.manage",
     items: [
       { to: "/import", labelKey: "nav.import", icon: ICONS.import },
+      { to: "/guide", labelKey: "nav.guide", icon: ICONS.guide },
       { to: "/settings", labelKey: "nav.settings", icon: ICONS.settings },
     ],
   },
@@ -88,7 +90,7 @@ export default function Sidebar() {
   let shortcut = 0;
 
   return (
-    <aside className="w-52 shrink-0 bg-background border-r border-border flex flex-col min-h-0">
+    <aside data-tour="nav" className="w-52 shrink-0 bg-background border-r border-border flex flex-col min-h-0">
       <div className="flex items-center gap-1.5 px-3 h-12 shrink-0">
         <LogoIcon size={22} />
         <span className="font-mono font-bold text-[13px] tracking-tight">Airlock</span>

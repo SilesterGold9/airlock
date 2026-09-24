@@ -8,11 +8,13 @@ import History from "./pages/History";
 import Techniques from "./pages/Techniques";
 import Recall from "./pages/Recall";
 import Journey from "./pages/Journey";
+import Guide from "./pages/Guide";
 import Welcome from "./pages/Welcome";
 import Settings from "./pages/Settings";
 import Titlebar from "./components/Titlebar";
 import Sidebar from "./components/Sidebar";
 import WhatsNew from "./components/WhatsNew";
+import TourProvider from "./components/TourProvider";
 import { api } from "./lib/api";
 import { entryFor } from "./lib/changelog";
 import { getAppVersion } from "./lib/updater";
@@ -77,26 +79,29 @@ export default function App() {
     return <Navigate to="/welcome" replace />;
   }
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground">
-      {newVersion && <WhatsNew version={newVersion} onClose={closeWhatsNew} />}
-      <Titlebar />
-      <div className="flex-1 flex min-h-0">
-        <Sidebar />
-        <main className="flex-1 min-h-0 min-w-0">
-          <Routes>
-            <Route path="/" element={<Practice />} />
-            <Route path="/techniques" element={<Techniques />} />
-            <Route path="/recall" element={<Recall />} />
-            <Route path="/contest" element={<Contest />} />
-            <Route path="/stress" element={<Stress />} />
-            <Route path="/import" element={<Import />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/journey" element={<Journey />} />
-            <Route path="/welcome" element={<Welcome />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </main>
+    <TourProvider>
+      <div className="h-screen flex flex-col bg-background text-foreground">
+        {newVersion && <WhatsNew version={newVersion} onClose={closeWhatsNew} />}
+        <Titlebar />
+        <div className="flex-1 flex min-h-0">
+          <Sidebar />
+          <main className="flex-1 min-h-0 min-w-0">
+            <Routes>
+              <Route path="/" element={<Practice />} />
+              <Route path="/techniques" element={<Techniques />} />
+              <Route path="/recall" element={<Recall />} />
+              <Route path="/contest" element={<Contest />} />
+              <Route path="/stress" element={<Stress />} />
+              <Route path="/import" element={<Import />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/journey" element={<Journey />} />
+              <Route path="/guide" element={<Guide />} />
+              <Route path="/welcome" element={<Welcome />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </main>
+        </div>
       </div>
-    </div>
+    </TourProvider>
   );
 }

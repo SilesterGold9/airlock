@@ -56,6 +56,11 @@ export default function Recall() {
     if (phase !== "session") return;
     if (remaining <= 0) {
       setFinalCode(editorRef.current?.getValue() ?? "");
+      try {
+        localStorage.setItem("airlock.recall.completed", "1");
+      } catch {
+        // ignore
+      }
       setPhase("report");
       return;
     }
@@ -185,6 +190,11 @@ export default function Recall() {
             variant="success"
             onClick={() => {
               setFinalCode(editorRef.current?.getValue() ?? "");
+              try {
+                localStorage.setItem("airlock.recall.completed", "1");
+              } catch {
+                // ignore
+              }
               setPhase("report");
             }}
           >

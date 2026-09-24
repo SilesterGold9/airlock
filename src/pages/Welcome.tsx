@@ -7,7 +7,9 @@ import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { Badge } from "../components/ui/badge";
+import Spinner from "../components/Spinner";
 import { LogoIcon } from "../components/Logo";
+import { useTour } from "../components/TourProvider";
 import { DoneArt, LoadArt, PathArt, SetupArt } from "../components/OnboardingArt";
 import { useLocale, useT } from "../lib/i18n";
 
@@ -18,6 +20,7 @@ export default function Welcome() {
   const t = useT();
   const { locale, setLocale } = useLocale();
   const navigate = useNavigate();
+  const { start: startTour } = useTour();
   const [stepIdx, setStepIdx] = useState(() =>
     Math.min(Number(localStorage.getItem("airlock.onboard.step") || 0), STEPS.length - 1)
   );
@@ -266,7 +269,12 @@ export default function Welcome() {
                         .replace("{problems}", String(problemCount))
                         .replace("{techniques}", String(techniqueCount))
                     : busy
-                      ? t("welcome.loading")
+                      ? (
+                        <>
+                          <Spinner />
+                          {t("welcome.loading")}
+                        </>
+                      )
                       : t("welcome.loadAllButton")
                           .replace("{problems}", String(SAMPLE_PROBLEMS.length))
                           .replace("{techniques}", String(CORE_TECHNIQUES.length))}
@@ -296,8 +304,14 @@ export default function Welcome() {
                   <Button ref={primaryRef} variant="success" onClick={() => finish()} className="w-full">
                     {t("welcome.openPractice")}
                   </Button>
+                  <Button variant="secondary" onClick={() => {
+                    finish();
+                    startTour("first-run");
+                  }} className="w-full">
+                    {t("welcome.startTour")}
+                  </Button>
                   <Link to="/techniques" onClick={() => finish()} className="block w-full">
-                    <Button variant="secondary" className="w-full">
+                    <Button variant="ghost" className="w-full">
                       {t("welcome.viewTechniques")}
                     </Button>
                   </Link>

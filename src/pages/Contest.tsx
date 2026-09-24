@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { loadDraft, saveDraft } from "../lib/drafts";
 import { templateFor } from "../lib/templates";
 import type { Contest as ContestModel, JudgeReport, Problem } from "../lib/types";
 import { getVerdictInfo } from "../lib/verdict";
-import CodeEditor from "../components/CodeEditor";
+import LazyCodeEditor, { type CodeEditorHandle } from "../components/LazyCodeEditor";
+import { usePersistentState } from "../lib/persist";
 import VerdictBadge from "../components/VerdictBadge";
 import Timer from "../components/Timer";
 import { Badge, DifficultyBadge } from "../components/ui/badge";
@@ -33,24 +34,32 @@ export default function Contest() {
   const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [setup, setSetup] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [durationMinutes, setDurationMinutes] = useState(180);
-  const [contestName, setContestName] = useState("Virtual Contest");
+  const [selectedIds, setSelectedIds] = usePersistentState<string[]>("airlock.contest.selectedIds", []);
+  const [durationMinutes, setDurationMinutes] = usePersistentState("airlock.contest.duration", 180);
+  const [contestName, setContestName] = usePersistentState("airlock.contest.name", "Virtual Contest");
 
   const [active, setActive] = useState<Problem[]>([]);
   const [statuses, setStatuses] = useState<Record<string, ProblemStatus>>({});
   const [current, setCurrent] = useState<Problem | null>(null);
-  const [language, setLanguage] = useState<"cpp" | "java">(() =>
+  const [language, setLanguage] = usePersistentState<"cpp" | "java">(
+    "airlock.contest.lang",
     localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp"
   );
-  const [code, setCode] = useState("");
+  const editorRef = useRef<CodeEditorHandle>(null);
+  const [editorSeed, setEditorSeed] = useState(() => ({
+    key: 0,
+    value: templateFor(
+      localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp",
+      "standard"
+    ),
+  }));
   const [report, setReport] = useState<JudgeReport | null>(null);
   const [judging, setJudging] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
   const [ended, setEnded] = useState(false);
   const [contests, setContests] = useState<ContestModel[]>([]);
   const [viewingHistory, setViewingHistory] = useState<ContestModel | null>(null);
-  const [teamMembersStr, setTeamMembersStr] = useState("");
+  const [teamMembersStr, setTeamMembersStr] = usePersistentState("airlock.contest.team", "");
   const [driver, setDriver] = useState("");
   const [claims, setClaims] = useState<import("../lib/types").ProblemClaim[]>([]);
   const [activeContestId, setActiveContestId] = useState<string | null>(null);
@@ -90,13 +99,17 @@ export default function Contest() {
   );
   const effectiveDriver = viewingHistory?.driver || driver;
 
+  function seedEditor(value: string) {
+    setEditorSeed((s) => ({ key: s.key + 1, value }));
+  }
+
   function openContestProblem(p: Problem) {
     if (current && current.id !== p.id) {
-      saveDraft(current.id, language, code);
+      saveDraft(current.id, language, editorRef.current?.getValue() ?? "");
     }
     setCurrent(p);
     setReport(null);
-    setCode(loadDraft(p.id, language) ?? templateFor(language, "standard"));
+    seedEditor(loadDraft(p.id, language) ?? templateFor(language, "standard"));
   }
 
   function reviewContest(c: ContestModel) {
@@ -105,7 +118,7 @@ export default function Contest() {
     setActive(chosen);
     setStatuses(Object.fromEntries(chosen.map((p) => [p.id, { solved: false, wrongAttempts: 0 }])));
     setCurrent(chosen[0]);
-    setCode(loadDraft(chosen[0].id, language) ?? templateFor(language, "standard"));
+    seedEditor(loadDraft(chosen[0].id, language) ?? templateFor(language, "standard"));
     setStartTime(c.started_at ? new Date(c.started_at).getTime() : Date.now());
     setViewingHistory(c);
     setDurationMinutes(c.duration_minutes);
@@ -168,7 +181,7 @@ export default function Contest() {
       Object.fromEntries(chosen.map((p) => [p.id, { solved: false, wrongAttempts: 0 }]))
     );
     setCurrent(chosen[0]);
-    setCode(loadDraft(chosen[0].id, language) ?? templateFor(language, "standard"));
+    seedEditor(loadDraft(chosen[0].id, language) ?? templateFor(language, "standard"));
     setStartTime(Date.now());
     setActiveContestId(contest.id);
     setClaims([]);
@@ -194,7 +207,7 @@ export default function Contest() {
       const result = await api.submitSolution({
         problemId: current.id,
         language,
-        sourceCode: code,
+        sourceCode: editorRef.current?.getValue() ?? "",
         context: { Contest: { contest_id: viewingHistory ? viewingHistory.id : "current", upsolve: isUpsolve } },
         hintsRevealed: null,
       });
@@ -230,7 +243,7 @@ export default function Contest() {
       const result = await api.runSolution({
         problemId: current.id,
         language,
-        sourceCode: code,
+        sourceCode: editorRef.current?.getValue() ?? "",
       });
       setReport(result);
       setLastWasSubmit(false);
@@ -265,7 +278,7 @@ export default function Contest() {
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.name")}</label>
           <Input className="mb-4" value={contestName} onChange={(e) => setContestName(e.target.value)} placeholder={t("contest.namePlaceholder")} />
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.duration")}</label>
-          <Input type="number" className="mb-4" value={String(durationMinutes)} onChange={(e) => setDurationMinutes(Number(e.target.value))} />
+          <Input type="number" className="mb-4" value={String(durationMinutes)} onChange={(e) => setDurationMinutes(Math.max(1, Math.round(Number(e.target.value) || 180)))} />
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.teamMembersLabel")}</label>
           <Input className="mb-2" value={teamMembersStr} onChange={(e) => setTeamMembersStr(e.target.value)} placeholder={t("contest.teamPlaceholder")} />
           {teamMembersStr.trim() && (
@@ -622,11 +635,15 @@ export default function Contest() {
             right={
               <div className="h-full pl-1 flex flex-col min-h-0 gap-2">
                 <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-                  <CodeEditor
+                  <LazyCodeEditor
+                    ref={editorRef}
                     language={language}
-                    value={code}
-                    onChange={setCode}
+                    initialValue={editorSeed.value}
+                    editorKey={editorSeed.key}
                     onLanguageChange={setLanguage}
+                    onContentChange={(v) => {
+                      if (current) saveDraft(current.id, language, v);
+                    }}
                     draftScope={current?.id ?? "contest"}
                   />
                 </div>

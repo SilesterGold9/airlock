@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { templateFor } from "../lib/templates";
@@ -7,7 +7,8 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Select } from "../components/ui/select";
-import CodeEditor from "../components/CodeEditor";
+import LazyCodeEditor, { type CodeEditorHandle } from "../components/LazyCodeEditor";
+import { usePersistentState } from "../lib/persist";
 import { useT } from "../lib/i18n";
 
 type Phase = "setup" | "session" | "report";
@@ -25,14 +26,17 @@ function formatClock(totalSeconds: number) {
 export default function Recall() {
   const t = useT();
   const [techniques, setTechniques] = useState<Technique[]>([]);
-  const [techniqueId, setTechniqueId] = useState("");
-  const [language, setLanguage] = useState<"cpp" | "java">(() =>
+  const [techniqueId, setTechniqueId] = usePersistentState("airlock.recall.technique", "");
+  const [language, setLanguage] = usePersistentState<"cpp" | "java">(
+    "airlock.recall.lang",
     localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp"
   );
-  const [minutes, setMinutes] = useState(10);
+  const [minutes, setMinutes] = usePersistentState("airlock.recall.minutes", 10);
   const [phase, setPhase] = useState<Phase>("setup");
   const [remaining, setRemaining] = useState(0);
-  const [code, setCode] = useState("");
+  const editorRef = useRef<CodeEditorHandle>(null);
+  const [sessionSeed, setSessionSeed] = useState({ key: 0, value: templateFor("cpp", "standard") });
+  const [finalCode, setFinalCode] = useState("");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [assimilated, setAssimilated] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -51,6 +55,7 @@ export default function Recall() {
   useEffect(() => {
     if (phase !== "session") return;
     if (remaining <= 0) {
+      setFinalCode(editorRef.current?.getValue() ?? "");
       setPhase("report");
       return;
     }
@@ -62,7 +67,8 @@ export default function Recall() {
 
   function handleStart() {
     if (!selected) return;
-    setCode(templateFor(language, "standard"));
+    setSessionSeed((s) => ({ key: s.key + 1, value: templateFor(language, "standard") }));
+    setFinalCode("");
     setOutcome(null);
     setAssimilated(false);
     setRemaining(minutes * 60);
@@ -174,13 +180,20 @@ export default function Recall() {
           >
             {formatClock(remaining)}
           </span>
-          <Button size="sm" variant="success" onClick={() => setPhase("report")}>
+          <Button
+            size="sm"
+            variant="success"
+            onClick={() => {
+              setFinalCode(editorRef.current?.getValue() ?? "");
+              setPhase("report");
+            }}
+          >
             {t("recall.finish")}
           </Button>
         </div>
         <div className="flex-1 min-h-0 p-2">
           <div className="h-full rounded-lg border border-border overflow-hidden">
-            <CodeEditor language={language} value={code} onChange={setCode} onLanguageChange={setLanguage} draftScope={selected.id} />
+            <LazyCodeEditor ref={editorRef} language={language} initialValue={sessionSeed.value} editorKey={sessionSeed.key} onLanguageChange={setLanguage} draftScope={selected.id} />
           </div>
         </div>
       </div>
@@ -196,7 +209,7 @@ export default function Recall() {
           <Card className="p-4 rounded-lg border-border bg-card transition-colors duration-150">
             <div className="text-xs font-medium text-muted-foreground mb-2">{t("recall.yourCode")}</div>
             <pre className="bg-black/40 border border-border rounded-lg p-3 text-xs font-mono whitespace-pre-wrap break-words max-h-64 overflow-auto">
-              {code || t("common.empty")}
+              {finalCode || t("common.empty")}
             </pre>
           </Card>
           <Card className="p-4 rounded-lg border-border bg-card transition-colors duration-150">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Editor, { loader, type Monaco, type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { Select } from "./ui/select";
@@ -8,13 +8,24 @@ import { templateFor, type CodeLanguage, type TemplateSet } from "../lib/templat
 
 // Bundle Monaco locally instead of the CDN default: the app is
 // offline-first and the editor must mount with no network. Workers are
-// emitted to dist by vite-plugin-monaco-editor (see vite.config.ts).
+// emitted to dist by the local-monaco-workers Vite plugin (vite.config.ts).
+// This module is loaded lazily (see LazyCodeEditor) so the editor chunk
+// stays out of the initial bundle.
 loader.config({ monaco });
+
+export interface CodeEditorHandle {
+  getValue: () => string;
+  setValue: (value: string) => void;
+  focus: () => void;
+}
 
 interface CodeEditorProps {
   language: CodeLanguage;
-  value: string;
-  onChange: (value: string) => void;
+  // Content seed, applied on mount and whenever editorKey changes (the
+  // inner editor remounts). Typing never touches parent state, so
+  // keystrokes do not re-render the page.
+  initialValue: string;
+  editorKey: string | number;
   onLanguageChange: (language: CodeLanguage) => void;
   // Practice mode seeds the analysis scaffold (what is asked / signal vs noise / OBS)
   // instead of the bare template. Contest and Stress keep "standard".
@@ -29,6 +40,10 @@ interface CodeEditorProps {
   // brute / generator templates so a language toggle restores the right
   // scaffold instead of the generic one.
   languageTemplates?: Record<CodeLanguage, string>;
+  // Fired on every content change (typing included). For autosave-style
+  // side effects only: it must not set React state upstream, or keystrokes
+  // re-render the page again.
+  onContentChange?: (value: string) => void;
 }
 
 interface Snippet {
@@ -82,25 +97,38 @@ function registerCpSnippets(m: Monaco) {
   }
 }
 
-export default function CodeEditor({
-  language,
-  value,
-  onChange,
-  onLanguageChange,
-  templateSet = "standard",
-  showLanguageSelect = true,
-  draftScope = "default",
-  languageTemplates,
-}: CodeEditorProps) {
+const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(function CodeEditor(
+  {
+    language,
+    initialValue,
+    editorKey,
+    onLanguageChange,
+    templateSet = "standard",
+    showLanguageSelect = true,
+    draftScope = "default",
+    languageTemplates,
+    onContentChange,
+  },
+  ref
+) {
   const t = useT();
   const tpl = (lang: CodeLanguage): string =>
     languageTemplates?.[lang] ?? templateFor(lang, templateSet);
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   // Per-language drafts: toggling cpp/java stashes the current buffer and
   // restores what was there before, so a language switch never destroys code.
   const draftsRef = useRef<Partial<Record<CodeLanguage, string>>>({});
   const prevLangRef = useRef<CodeLanguage>(language);
   const scopeRef = useRef<string>(draftScope);
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
+
+  useImperativeHandle(ref, () => ({
+    getValue: () => editorRef.current?.getValue() ?? "",
+    setValue: (v: string) => editorRef.current?.setValue(v),
+    focus: () => editorRef.current?.focus(),
+  }));
+  const contentCbRef = useRef(onContentChange);
+  contentCbRef.current = onContentChange;
 
   useEffect(() => {
     if (scopeRef.current !== draftScope) {
@@ -114,14 +142,18 @@ export default function CodeEditor({
     if (prevLangRef.current === language) return;
     const from = prevLangRef.current;
     prevLangRef.current = language;
-    draftsRef.current[from] = value;
-    onChange(draftsRef.current[language] ?? tpl(language));
+    const editor = editorRef.current;
+    if (editor) {
+      draftsRef.current[from] = editor.getValue();
+      editor.setValue(draftsRef.current[language] ?? tpl(language));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
   function switchLanguage(lang: CodeLanguage) {
     if (lang === language) return;
-    const dirty = value !== "" && value !== tpl(language);
+    const current = editorRef.current?.getValue() ?? "";
+    const dirty = current !== "" && current !== tpl(language);
     // Switching never destroys code (the buffer is stashed), but confirm the
     // first time so the template swap does not surprise. Returning to a
     // language with a saved draft restores silently.
@@ -132,13 +164,17 @@ export default function CodeEditor({
   }
 
   function resetTemplate() {
-    if (value !== "" && value !== tpl(language)) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const current = editor.getValue();
+    if (current !== "" && current !== tpl(language)) {
       if (!window.confirm(t("editor.resetConfirm"))) return;
     }
-    onChange(tpl(language));
+    editor.setValue(tpl(language));
   }
 
   const handleMount: OnMount = (editor, m) => {
+    editorRef.current = editor;
     registerCpSnippets(m);
     editor.onDidChangeCursorPosition((e) =>
       setCursor({ line: e.position.lineNumber, column: e.position.column })
@@ -172,13 +208,14 @@ export default function CodeEditor({
       </div>
       <div className="flex-1 min-h-0">
         <Editor
+          key={editorKey}
           height="100%"
           theme="airlock-dark"
           language={language === "cpp" ? "cpp" : "java"}
-          value={value}
+          defaultValue={initialValue}
           beforeMount={handleEditorBeforeMount}
           onMount={handleMount}
-          onChange={(v) => onChange(v ?? "")}
+          onChange={(v) => contentCbRef.current?.(v ?? "")}
           loading={
             <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
               {t("editor.loading")}
@@ -236,4 +273,6 @@ export default function CodeEditor({
       </div>
     </div>
   );
-}
+});
+
+export default CodeEditor;

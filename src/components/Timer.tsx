@@ -7,25 +7,32 @@ interface TimerProps {
 }
 
 export default function Timer({ durationMinutes, onExpire, compact = false }: TimerProps) {
-  const [secondsLeft, setSecondsLeft] = useState(durationMinutes * 60);
+  const totalSeconds = Number.isFinite(durationMinutes) && durationMinutes > 0
+    ? Math.floor(durationMinutes * 60)
+    : 0;
+  const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
   const expiredRef = useRef(false);
+  const cbRef = useRef(onExpire);
+  cbRef.current = onExpire;
 
+  // Deadline-based: parent re-renders (new onExpire identity) restart the
+  // interval but never the countdown, and interval drift cannot accumulate.
   useEffect(() => {
+    const deadline = Date.now() + totalSeconds * 1000;
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          if (!expiredRef.current) {
-            expiredRef.current = true;
-            onExpire?.();
-          }
-          return 0;
+      const left = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left <= 0) {
+        clearInterval(interval);
+        if (!expiredRef.current) {
+          expiredRef.current = true;
+          cbRef.current?.();
         }
-        return prev - 1;
-      });
-    }, 1000);
+      }
+    }, 500);
     return () => clearInterval(interval);
-  }, [onExpire]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalSeconds]);
 
   const h = Math.floor(secondsLeft / 3600);
   const m = Math.floor((secondsLeft % 3600) / 60);

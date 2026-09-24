@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import type { Problem } from "../lib/types";
-import CodeEditor from "../components/CodeEditor";
+import LazyCodeEditor, { type CodeEditorHandle } from "../components/LazyCodeEditor";
+import { usePersistentState } from "../lib/persist";
 import VerdictBadge from "../components/VerdictBadge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -114,29 +115,66 @@ type StressResult =
   | { type: "mismatch"; input: string; candidate: string; brute: string }
   | { type: "error"; message: string };
 
+function loadStressBuffer(key: string, language: "cpp" | "java", fallback: string): string {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { lang?: string; code?: string };
+    return parsed.lang === language && typeof parsed.code === "string" ? parsed.code : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function storeStressBuffer(key: string, language: "cpp" | "java", code: string): void {
+  try {
+    localStorage.setItem(key, JSON.stringify({ lang: language, code }));
+  } catch {
+    // ignore
+  }
+}
+
 export default function Stress() {
   const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
-  const [selectedProblemId, setSelectedProblemId] = useState<string>("");
-  const [language, setLanguage] = useState<"cpp" | "java">(() =>
+  const [selectedProblemId, setSelectedProblemId] = usePersistentState("airlock.stress.problem", "");
+  const [language, setLanguage] = usePersistentState<"cpp" | "java">(
+    "airlock.stress.lang",
     localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp"
   );
-  const [candidate, setCandidate] = useState(CANDIDATE_TEMPLATES["cpp"]);
-  const [brute, setBrute] = useState(BRUTE_TEMPLATES["cpp"]);
-  const [generator, setGenerator] = useState(GEN_TEMPLATES["cpp"]);
-  const [maxCases, setMaxCases] = useState(100);
-  const [timeLimit, setTimeLimit] = useState(1000);
+  // Buffers live inside Monaco (no per-keystroke re-renders). Mount seeds
+  // come from the last session when the language matches, else templates.
+  const [seeds] = useState(() => ({
+    candidate: loadStressBuffer("airlock.stress.candidate", language, CANDIDATE_TEMPLATES[language]),
+    brute: loadStressBuffer("airlock.stress.brute", language, BRUTE_TEMPLATES[language]),
+    generator: loadStressBuffer("airlock.stress.generator", language, GEN_TEMPLATES[language]),
+  }));
+  const candidateRef = useRef<CodeEditorHandle>(null);
+  const bruteRef = useRef<CodeEditorHandle>(null);
+  const generatorRef = useRef<CodeEditorHandle>(null);
+  const [maxCases, setMaxCases] = usePersistentState("airlock.stress.maxCases", 100);
+  const [timeLimit, setTimeLimit] = usePersistentState("airlock.stress.timeLimit", 1000);
   const [result, setResult] = useState<StressResult>({ type: "idle" });
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
   }, []);
 
+  function snapshotBuffers() {
+    const candidate = candidateRef.current?.getValue() ?? "";
+    const brute = bruteRef.current?.getValue() ?? "";
+    const generator = generatorRef.current?.getValue() ?? "";
+    storeStressBuffer("airlock.stress.candidate", language, candidate);
+    storeStressBuffer("airlock.stress.brute", language, brute);
+    storeStressBuffer("airlock.stress.generator", language, generator);
+    return { candidate, brute, generator };
+  }
+
   function handleProblemPick(id: string) {
     setSelectedProblemId(id);
     const p = problems.find((x) => x.id === id);
     if (p?.brute_force_src) {
-      setBrute(p.brute_force_src);
+      bruteRef.current?.setValue(p.brute_force_src);
       if (p.brute_force_lang === "cpp" || p.brute_force_lang === "java") {
         setLanguage(p.brute_force_lang as "cpp" | "java");
       }
@@ -150,6 +188,7 @@ export default function Stress() {
   }
 
   async function handleRun() {
+    const { candidate, brute, generator } = snapshotBuffers();
     if (!candidate.trim() || !brute.trim() || !generator.trim()) {
       setResult({ type: "error", message: t("stress.allThreeNeedCode") });
       return;
@@ -231,7 +270,7 @@ export default function Stress() {
             <Badge variant="outline">{t("stress.yourSolution")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-            <CodeEditor language={language} value={candidate} onChange={setCandidate} onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-candidate" languageTemplates={CANDIDATE_TEMPLATES} />
+            <LazyCodeEditor ref={candidateRef} language={language} initialValue={seeds.candidate} editorKey="candidate" onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-candidate" languageTemplates={CANDIDATE_TEMPLATES} onContentChange={(v) => storeStressBuffer("airlock.stress.candidate", language, v)} />
           </div>
         </div>
         <div className="flex flex-col min-h-0">
@@ -240,7 +279,7 @@ export default function Stress() {
             <Badge variant="outline">{t("stress.reference")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-            <CodeEditor language={language} value={brute} onChange={setBrute} onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-brute" languageTemplates={BRUTE_TEMPLATES} />
+            <LazyCodeEditor ref={bruteRef} language={language} initialValue={seeds.brute} editorKey="brute" onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-brute" languageTemplates={BRUTE_TEMPLATES} onContentChange={(v) => storeStressBuffer("airlock.stress.brute", language, v)} />
           </div>
         </div>
         <div className="flex flex-col min-h-0">
@@ -249,7 +288,7 @@ export default function Stress() {
             <Badge variant="outline">{t("stress.seedToCase")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-            <CodeEditor language={language} value={generator} onChange={setGenerator} onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-generator" languageTemplates={GEN_TEMPLATES} />
+            <LazyCodeEditor ref={generatorRef} language={language} initialValue={seeds.generator} editorKey="generator" onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-generator" languageTemplates={GEN_TEMPLATES} onContentChange={(v) => storeStressBuffer("airlock.stress.generator", language, v)} />
           </div>
         </div>
       </div>

@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { loadDraft, saveDraft } from "../lib/drafts";
 import { templateFor } from "../lib/templates";
+import { usePersistentState } from "../lib/persist";
 import type { JudgeReport, Problem, ReimplementationSchedule, Submission, Technique } from "../lib/types";
 import { getVerdictInfo } from "../lib/verdict";
-import CodeEditor from "../components/CodeEditor";
+import LazyCodeEditor, { type CodeEditorHandle } from "../components/LazyCodeEditor";
 import VerdictBadge from "../components/VerdictBadge";
 import { Badge, DifficultyBadge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -70,10 +71,20 @@ export default function Practice() {
   const t = useT();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [selected, setSelected] = useState<Problem | null>(null);
-  const [language, setLanguage] = useState<"cpp" | "java">(() =>
+  const [language, setLanguage] = usePersistentState<"cpp" | "java">(
+    "airlock.practice.lang",
     localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp"
   );
-  const [code, setCode] = useState("");
+  // Editor content lives inside Monaco, not React state: keystrokes never
+  // re-render the page. Submit/run pull the text through the handle.
+  const editorRef = useRef<CodeEditorHandle>(null);
+  const [editorSeed, setEditorSeed] = useState(() => ({
+    key: 0,
+    value: templateFor(
+      localStorage.getItem("airlock.defaultLang") === "java" ? "java" : "cpp",
+      localStorage.getItem("airlock.practiceTemplate") === "standard" ? "standard" : "analysis"
+    ),
+  }));
   const [report, setReport] = useState<JudgeReport | null>(null);
   const [judging, setJudging] = useState(false);
   const [tagFilter, setTagFilter] = useState<string>("all");
@@ -94,11 +105,11 @@ export default function Practice() {
   );
   const [dueReimpl, setDueReimpl] = useState<ReimplementationSchedule[]>([]);
   const [reimplHideNotesFor, setReimplHideNotesFor] = useState<string | null>(null);
-  // Workspace chrome state
+  // Workspace chrome state (persisted: tab switches unmount the page)
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [panelTab, setPanelTab] = useState<PanelTabId>("description");
-  const [consoleOpen, setConsoleOpen] = useState(true);
-  const [consoleTab, setConsoleTab] = useState<"testcase" | "result">("testcase");
+  const [panelTab, setPanelTab] = usePersistentState<PanelTabId>("airlock.practice.panelTab", "description");
+  const [consoleOpen, setConsoleOpen] = usePersistentState("airlock.practice.consoleOpen", true);
+  const [consoleTab, setConsoleTab] = usePersistentState<"testcase" | "result">("airlock.practice.consoleTab", "testcase");
   const [expandedCase, setExpandedCase] = useState<number | null>(null);
   const ladderRef = useRef<HTMLDivElement>(null);
 
@@ -107,6 +118,28 @@ export default function Practice() {
     api.listTechniques().then(setTechniques).catch(() => setTechniques([]));
     void refreshDue();
   }, []);
+
+  // Restore the previously open problem after tab switches (which unmount
+  // this page) and restarts.
+  useEffect(() => {
+    if (selected || problems.length === 0) return;
+    try {
+      const id = localStorage.getItem("airlock.practice.selected");
+      const p = id ? problems.find((x) => x.id === id) : undefined;
+      if (p) openProblem(p, false);
+    } catch {
+      // storage unavailable: stay on the empty state
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [problems]);
+
+  useEffect(() => {
+    try {
+      if (selected) localStorage.setItem("airlock.practice.selected", selected.id);
+    } catch {
+      // ignore
+    }
+  }, [selected?.id]);
 
   useEffect(() => {
     setNotes(selected?.notes_md || "");
@@ -180,7 +213,7 @@ export default function Practice() {
       const result = await api.submitSolution({
         problemId: selected.id,
         language,
-        sourceCode: code,
+        sourceCode: editorRef.current?.getValue() ?? "",
         context: "Practice",
         hintsRevealed: hintsRevealed > 0 ? hintsRevealed : null,
       });
@@ -208,7 +241,7 @@ export default function Practice() {
       const result = await api.runSolution({
         problemId: selected.id,
         language,
-        sourceCode: code,
+        sourceCode: editorRef.current?.getValue() ?? "",
       });
       setReport(result);
       setLastWasSubmit(false);
@@ -224,14 +257,17 @@ export default function Practice() {
   function openProblem(p: Problem, fresh: boolean) {
     const set = localStorage.getItem("airlock.practiceTemplate") === "standard" ? "standard" : "analysis";
     if (selected && selected.id !== p.id) {
-      saveDraft(selected.id, language, code);
+      saveDraft(selected.id, language, editorRef.current?.getValue() ?? "");
     }
     setSelected(p);
     setReport(null);
     // Reimplementation mode starts from the bare template; otherwise resume
-    // the saved draft or start from the template. State always holds real
-    // code so Submit never sends an empty buffer behind a template display.
-    setCode(fresh ? templateFor(language, set) : (loadDraft(p.id, language) ?? templateFor(language, set)));
+    // the saved draft or start from the template. The seed remounts the
+    // editor so Submit always reads what is on screen.
+    setEditorSeed((s) => ({
+      key: s.key + 1,
+      value: fresh ? templateFor(language, set) : (loadDraft(p.id, language) ?? templateFor(language, set)),
+    }));
     setReimplHideNotesFor(fresh ? p.id : null);
     setDrawerOpen(false);
   }
@@ -736,11 +772,13 @@ export default function Practice() {
             right={
               <div className="h-full pl-1 flex flex-col min-h-0 gap-2">
                 <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-                  <CodeEditor
+                  <LazyCodeEditor
+                    ref={editorRef}
                     language={language}
-                    value={code}
-                    onChange={setCode}
+                    initialValue={editorSeed.value}
+                    editorKey={editorSeed.key}
                     onLanguageChange={setLanguage}
+                    onContentChange={(v) => saveDraft(selected.id, language, v)}
                     draftScope={selected.id}
                     templateSet={
                       localStorage.getItem("airlock.practiceTemplate") === "standard"

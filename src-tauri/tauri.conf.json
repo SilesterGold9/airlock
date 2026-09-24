@@ -12,9 +12,14 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Airlock",
         "width": 1280,
         "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "center": true,
+        "shadow": true,
         "resizable": true,
         "decorations": false
       }

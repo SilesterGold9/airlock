@@ -114,6 +114,7 @@ export default function Settings() {
       .then((s) => setSubCount(s.length))
       .catch(() => {});
     void getAppVersion().then(setAppVersion).catch(() => setAppVersion("dev"));
+    if (!isTauriApp) return;
     const last = localStorage.getItem("airlock.update.lastCheck");
     if (!last || Date.now() - new Date(last).getTime() > 86400000) {
       void runUpdateCheck();

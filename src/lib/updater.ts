@@ -22,6 +22,7 @@ export async function getAppVersion(): Promise<string> {
 }
 
 export async function checkForUpdates(): Promise<UpdateCheck> {
+  if (!isTauriApp) throw new Error("updater unavailable outside the installed app");
   const update = await check();
   if (!update) {
     return { kind: "current", version: await getAppVersion() };

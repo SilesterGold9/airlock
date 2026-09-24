@@ -58,7 +58,16 @@ per verdict, keyboard-only walk (focus rings), PT toggle.
   `src-tauri/Cargo.toml` + `src-tauri/tauri.conf.json` together, then
   `git tag vX.Y.Z && git push origin main vX.Y.Z`. The tag opens a draft
   release with signed installers — publish it and installed apps update
-  themselves.
+  themselves. GitHub's `/releases/latest` ignores drafts, so nothing
+  updates until the draft is published.
+- Updater signing (one-time setup): `npm run tauri signer generate -w
+  ~/.tauri/airlock.key` prints a public key and writes the private key.
+  Put the public key in `tauri.conf.json` `plugins.updater.pubkey` and
+  the private key plus password in the repo secrets
+  `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+  Without the secrets the bundles ship unsigned and the in-app updater
+  rejects them. Guard the private key — losing it bricks updates for the
+  installed base.
 - CI (`ci.yml`) runs frontend build + vitest, `cargo check` + `cargo test`,
   `cargo fmt --check` and script compile on every push/PR. Keep it green;
   run `cargo fmt` before pushing Rust changes.

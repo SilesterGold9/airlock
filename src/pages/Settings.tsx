@@ -383,7 +383,7 @@ export default function Settings() {
               {!isTauriApp ? (
                 <p className="text-xs text-muted-foreground leading-relaxed">{t("settings.devNote")}</p>
               ) : updateUi.kind === "idle" || updateUi.kind === "checking" ? (
-                <Button size="sm" variant="secondary" disabled onClick={() => void runUpdateCheck()}>
+                <Button size="sm" variant="secondary" disabled={updateUi.kind === "checking"} onClick={() => void runUpdateCheck()}>
                   {updateUi.kind === "checking" ? t("settings.checking") : t("settings.check")}
                 </Button>
               ) : updateUi.kind === "current" ? (

@@ -1,83 +1,86 @@
-import { useState } from "react";
-import Editor, { type OnMount } from "@monaco-editor/react";
+import { useEffect, useRef, useState } from "react";
+import Editor, { loader, type Monaco, type OnMount } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
 import { Select } from "./ui/select";
 import { useT } from "../lib/i18n";
 import { handleEditorBeforeMount } from "../lib/editorTheme";
+import { templateFor, type CodeLanguage, type TemplateSet } from "../lib/templates";
+
+// Bundle Monaco locally instead of the CDN default: the app is
+// offline-first and the editor must mount with no network. Workers are
+// emitted to dist by vite-plugin-monaco-editor (see vite.config.ts).
+loader.config({ monaco });
 
 interface CodeEditorProps {
-  language: "cpp" | "java";
+  language: CodeLanguage;
   value: string;
   onChange: (value: string) => void;
-  onLanguageChange: (language: "cpp" | "java") => void;
+  onLanguageChange: (language: CodeLanguage) => void;
   // Practice mode seeds the analysis scaffold (what is asked / signal vs noise / OBS)
   // instead of the bare template. Contest and Stress keep "standard".
-  templateSet?: "standard" | "analysis";
+  templateSet?: TemplateSet;
+  // Stress drives one shared language from its toolbar: hide the per-editor
+  // dropdown so there is a single control for the shared state.
+  showLanguageSelect?: boolean;
+  // Scope for per-language drafts (usually the problem id). Drafts clear
+  // when the scope changes so code never leaks across problems.
+  draftScope?: string;
+  // Optional per-language fallback templates. Stress passes its candidate /
+  // brute / generator templates so a language toggle restores the right
+  // scaffold instead of the generic one.
+  languageTemplates?: Record<CodeLanguage, string>;
 }
 
-const TEMPLATES: Record<"cpp" | "java", string> = {
-  cpp: `#include <bits/stdc++.h>
-using namespace std;
-
-int main() {
-    ios_base::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    // your solution here
-
-    return 0;
+interface Snippet {
+  label: string;
+  doc: string;
+  code: string;
 }
-`,
-  java: `import java.util.*;
-import java.io.*;
 
-public class Main {
-    public static void main(String[] args) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+const CPP_SNIPPETS: Snippet[] = [
+  { label: "fori", doc: "Indexed for loop", code: "for (int ${1:i} = 0; ${1:i} < ${2:n}; ++${1:i}) {\n\t$0\n}" },
+  { label: "fore", doc: "Range for loop", code: "for (auto &${1:x} : ${2:v}) {\n\t$0\n}" },
+  { label: "yn", doc: "Print YES / NO", code: "cout << (${1:ok} ? \"YES\" : \"NO\") << '\\n';" },
+];
 
-        // your solution here
-    }
+const JAVA_SNIPPETS: Snippet[] = [
+  { label: "fori", doc: "Indexed for loop", code: "for (int ${1:i} = 0; ${1:i} < ${2:n}; i++) {\n\t$0\n}" },
+  { label: "sout", doc: "Print line", code: "System.out.println(${1:x});" },
+];
+
+let snippetsRegistered = false;
+
+function registerCpSnippets(m: Monaco) {
+  if (snippetsRegistered) return;
+  snippetsRegistered = true;
+  const providers: { language: string; snippets: Snippet[] }[] = [
+    { language: "cpp", snippets: CPP_SNIPPETS },
+    { language: "java", snippets: JAVA_SNIPPETS },
+  ];
+  for (const { language, snippets } of providers) {
+    m.languages.registerCompletionItemProvider(language, {
+      provideCompletionItems(model: monaco.editor.ITextModel, position: monaco.Position) {
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+        return {
+          suggestions: snippets.map((s) => ({
+            label: s.label,
+            kind: m.languages.CompletionItemKind.Snippet,
+            documentation: s.doc,
+            insertText: s.code,
+            insertTextRules: m.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            range,
+          })),
+        };
+      },
+    });
+  }
 }
-`,
-};
-
-// Same boilerplate, but the solution slot is replaced with the analysis
-// scaffold: state what is asked, separate signal from noise, write the
-// observation before any code. Both languages use line comments.
-const ANALYSIS_TEMPLATES: Record<"cpp" | "java", string> = {
-  cpp: `#include <bits/stdc++.h>
-using namespace std;
-
-int main() {
-    ios_base::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    // What is the problem asking?
-    //
-    // What info actually matters? What is noise?
-    //
-    // OBS:
-    //
-
-    return 0;
-}
-`,
-  java: `import java.util.*;
-import java.io.*;
-
-public class Main {
-    public static void main(String[] args) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-
-        // What is the problem asking?
-        //
-        // What info actually matters? What is noise?
-        //
-        // OBS:
-        //
-    }
-}
-`,
-};
 
 export default function CodeEditor({
   language,
@@ -85,12 +88,58 @@ export default function CodeEditor({
   onChange,
   onLanguageChange,
   templateSet = "standard",
+  showLanguageSelect = true,
+  draftScope = "default",
+  languageTemplates,
 }: CodeEditorProps) {
   const t = useT();
-  const templates = templateSet === "analysis" ? ANALYSIS_TEMPLATES : TEMPLATES;
+  const tpl = (lang: CodeLanguage): string =>
+    languageTemplates?.[lang] ?? templateFor(lang, templateSet);
+  // Per-language drafts: toggling cpp/java stashes the current buffer and
+  // restores what was there before, so a language switch never destroys code.
+  const draftsRef = useRef<Partial<Record<CodeLanguage, string>>>({});
+  const prevLangRef = useRef<CodeLanguage>(language);
+  const scopeRef = useRef<string>(draftScope);
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
 
-  const handleMount: OnMount = (editor) => {
+  useEffect(() => {
+    if (scopeRef.current !== draftScope) {
+      scopeRef.current = draftScope;
+      draftsRef.current = {};
+      prevLangRef.current = language;
+    }
+  }, [draftScope, language]);
+
+  useEffect(() => {
+    if (prevLangRef.current === language) return;
+    const from = prevLangRef.current;
+    prevLangRef.current = language;
+    draftsRef.current[from] = value;
+    onChange(draftsRef.current[language] ?? tpl(language));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
+
+  function switchLanguage(lang: CodeLanguage) {
+    if (lang === language) return;
+    const dirty = value !== "" && value !== tpl(language);
+    // Switching never destroys code (the buffer is stashed), but confirm the
+    // first time so the template swap does not surprise. Returning to a
+    // language with a saved draft restores silently.
+    if (dirty && draftsRef.current[lang] === undefined) {
+      if (!window.confirm(t("editor.switchConfirm"))) return;
+    }
+    onLanguageChange(lang);
+  }
+
+  function resetTemplate() {
+    if (value !== "" && value !== tpl(language)) {
+      if (!window.confirm(t("editor.resetConfirm"))) return;
+    }
+    onChange(tpl(language));
+  }
+
+  const handleMount: OnMount = (editor, m) => {
+    registerCpSnippets(m);
     editor.onDidChangeCursorPosition((e) =>
       setCursor({ line: e.position.lineNumber, column: e.position.column })
     );
@@ -101,23 +150,17 @@ export default function CodeEditor({
       <div className="flex items-center gap-2 bg-card px-3 h-10 border-b border-border shrink-0">
         <span className="text-ac font-mono text-sm font-semibold select-none">{"</>"}</span>
         <span className="text-sm font-medium">{t("editor.code")}</span>
-        <div className="w-24 ml-1">
-          <Select
-            size="sm"
-            value={language}
-            onChange={(e) => {
-              const lang = e.target.value as "cpp" | "java";
-              onLanguageChange(lang);
-              onChange(templates[lang]);
-            }}
-          >
-            <option value="cpp">C++17</option>
-            <option value="java">Java</option>
-          </Select>
-        </div>
+        {showLanguageSelect && (
+          <div className="w-24 ml-1">
+            <Select size="sm" value={language} onChange={(e) => switchLanguage(e.target.value as CodeLanguage)}>
+              <option value="cpp">C++17</option>
+              <option value="java">Java</option>
+            </Select>
+          </div>
+        )}
         <button
           className="ml-auto w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors duration-150"
-          onClick={() => onChange(templates[language])}
+          onClick={resetTemplate}
           title={t("editor.resetTemplate")}
           aria-label={t("editor.resetTemplate")}
         >
@@ -132,19 +175,56 @@ export default function CodeEditor({
           height="100%"
           theme="airlock-dark"
           language={language === "cpp" ? "cpp" : "java"}
-          value={value || templates[language]}
+          value={value}
           beforeMount={handleEditorBeforeMount}
           onMount={handleMount}
           onChange={(v) => onChange(v ?? "")}
+          loading={
+            <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+              {t("editor.loading")}
+            </div>
+          }
           options={{
+            fontFamily: "'JetBrains Mono', monospace",
             fontSize: 14,
             lineHeight: 20,
+            fontLigatures: true,
             minimap: { enabled: false },
             tabSize: 4,
+            insertSpaces: true,
+            detectIndentation: false,
+            trimAutoWhitespace: true,
             wordWrap: "on",
             padding: { top: 8 },
             scrollBeyondLastLine: false,
             renderLineHighlight: "all",
+            smoothScrolling: true,
+            cursorBlinking: "smooth",
+            cursorSmoothCaretAnimation: "on",
+            renderWhitespace: "selection",
+            matchBrackets: "always",
+            bracketPairColorization: { enabled: true },
+            guides: { bracketPairs: true, indentation: true },
+            autoClosingBrackets: "always",
+            autoClosingQuotes: "always",
+            autoSurround: "languageDefined",
+            formatOnPaste: true,
+            formatOnType: true,
+            suggestOnTriggerCharacters: true,
+            quickSuggestions: { other: true, comments: false, strings: false },
+            tabCompletion: "on",
+            acceptSuggestionOnEnter: "on",
+            wordBasedSuggestions: "currentDocument",
+            parameterHints: { enabled: true },
+            occurrencesHighlight: "singleFile",
+            selectionHighlight: true,
+            codeLens: false,
+            folding: true,
+            mouseWheelZoom: true,
+            multiCursorModifier: "alt",
+            stickyScroll: { enabled: false },
+            scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+            fixedOverflowWidgets: true,
           }}
         />
       </div>

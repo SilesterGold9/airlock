@@ -144,10 +144,9 @@ export default function Stress() {
   }
 
   function handleLanguageChange(lang: "cpp" | "java") {
+    // Buffers are preserved: each editor stashes its own per-language draft
+    // and restores it (or its template) when the shared language changes.
     setLanguage(lang);
-    setCandidate(CANDIDATE_TEMPLATES[lang]);
-    setBrute(BRUTE_TEMPLATES[lang]);
-    setGenerator(GEN_TEMPLATES[lang]);
   }
 
   async function handleRun() {
@@ -232,7 +231,7 @@ export default function Stress() {
             <Badge variant="outline">{t("stress.yourSolution")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-            <CodeEditor language={language} value={candidate} onChange={setCandidate} onLanguageChange={handleLanguageChange} />
+            <CodeEditor language={language} value={candidate} onChange={setCandidate} onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-candidate" languageTemplates={CANDIDATE_TEMPLATES} />
           </div>
         </div>
         <div className="flex flex-col min-h-0">
@@ -241,7 +240,7 @@ export default function Stress() {
             <Badge variant="outline">{t("stress.reference")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-            <CodeEditor language={language} value={brute} onChange={setBrute} onLanguageChange={handleLanguageChange} />
+            <CodeEditor language={language} value={brute} onChange={setBrute} onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-brute" languageTemplates={BRUTE_TEMPLATES} />
           </div>
         </div>
         <div className="flex flex-col min-h-0">
@@ -250,7 +249,7 @@ export default function Stress() {
             <Badge variant="outline">{t("stress.seedToCase")}</Badge>
           </div>
           <div className="flex-1 min-h-0 rounded-lg border border-border overflow-hidden">
-            <CodeEditor language={language} value={generator} onChange={setGenerator} onLanguageChange={handleLanguageChange} />
+            <CodeEditor language={language} value={generator} onChange={setGenerator} onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-generator" languageTemplates={GEN_TEMPLATES} />
           </div>
         </div>
       </div>

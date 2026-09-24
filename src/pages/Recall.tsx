@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
+import { templateFor } from "../lib/templates";
 import type { Technique } from "../lib/types";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -61,7 +62,7 @@ export default function Recall() {
 
   function handleStart() {
     if (!selected) return;
-    setCode("");
+    setCode(templateFor(language, "standard"));
     setOutcome(null);
     setAssimilated(false);
     setRemaining(minutes * 60);
@@ -179,7 +180,7 @@ export default function Recall() {
         </div>
         <div className="flex-1 min-h-0 p-2">
           <div className="h-full rounded-lg border border-border overflow-hidden">
-            <CodeEditor language={language} value={code} onChange={setCode} onLanguageChange={setLanguage} />
+            <CodeEditor language={language} value={code} onChange={setCode} onLanguageChange={setLanguage} draftScope={selected.id} />
           </div>
         </div>
       </div>

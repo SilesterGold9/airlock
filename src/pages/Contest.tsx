@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { loadDraft, saveDraft } from "../lib/drafts";
+import { templateFor } from "../lib/templates";
 import type { Contest as ContestModel, JudgeReport, Problem } from "../lib/types";
 import { getVerdictInfo } from "../lib/verdict";
 import CodeEditor from "../components/CodeEditor";
@@ -88,12 +90,22 @@ export default function Contest() {
   );
   const effectiveDriver = viewingHistory?.driver || driver;
 
+  function openContestProblem(p: Problem) {
+    if (current && current.id !== p.id) {
+      saveDraft(current.id, language, code);
+    }
+    setCurrent(p);
+    setReport(null);
+    setCode(loadDraft(p.id, language) ?? templateFor(language, "standard"));
+  }
+
   function reviewContest(c: ContestModel) {
     const chosen = problems.filter((p) => c.problem_ids.includes(p.id));
     if (chosen.length === 0) return;
     setActive(chosen);
     setStatuses(Object.fromEntries(chosen.map((p) => [p.id, { solved: false, wrongAttempts: 0 }])));
     setCurrent(chosen[0]);
+    setCode(loadDraft(chosen[0].id, language) ?? templateFor(language, "standard"));
     setStartTime(c.started_at ? new Date(c.started_at).getTime() : Date.now());
     setViewingHistory(c);
     setDurationMinutes(c.duration_minutes);
@@ -156,6 +168,7 @@ export default function Contest() {
       Object.fromEntries(chosen.map((p) => [p.id, { solved: false, wrongAttempts: 0 }]))
     );
     setCurrent(chosen[0]);
+    setCode(loadDraft(chosen[0].id, language) ?? templateFor(language, "standard"));
     setStartTime(Date.now());
     setActiveContestId(contest.id);
     setClaims([]);
@@ -360,11 +373,7 @@ export default function Contest() {
               <button
                 key={p.id}
                 title={p.title}
-                onClick={() => {
-                  setCurrent(p);
-                  setReport(null);
-                  setCode("");
-                }}
+                onClick={() => openContestProblem(p)}
                 className={`w-7 h-7 rounded-md text-xs font-mono font-semibold flex items-center justify-center transition-all duration-150 active:scale-95 shrink-0 ${
                   isCurrent
                     ? "bg-white/[0.1] text-foreground"
@@ -570,11 +579,7 @@ export default function Contest() {
                             return (
                               <button
                                 key={p.id}
-                                onClick={() => {
-                                  setCurrent(p);
-                                  setReport(null);
-                                  setCode("");
-                                }}
+                                onClick={() => openContestProblem(p)}
                                 className={`w-full text-left px-2 py-2 rounded-lg hover:bg-white/[0.04] flex items-center gap-2 text-sm transition-colors duration-150 ${
                                   current?.id === p.id ? "bg-white/[0.05]" : ""
                                 }`}
@@ -622,6 +627,7 @@ export default function Contest() {
                     value={code}
                     onChange={setCode}
                     onLanguageChange={setLanguage}
+                    draftScope={current?.id ?? "contest"}
                   />
                 </div>
                 <div

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/api";
+import { loadDraft, saveDraft } from "../lib/drafts";
+import { templateFor } from "../lib/templates";
 import type { JudgeReport, Problem, ReimplementationSchedule, Submission, Technique } from "../lib/types";
 import { getVerdictInfo } from "../lib/verdict";
 import CodeEditor from "../components/CodeEditor";
@@ -220,9 +222,16 @@ export default function Practice() {
   }
 
   function openProblem(p: Problem, fresh: boolean) {
+    const set = localStorage.getItem("airlock.practiceTemplate") === "standard" ? "standard" : "analysis";
+    if (selected && selected.id !== p.id) {
+      saveDraft(selected.id, language, code);
+    }
     setSelected(p);
     setReport(null);
-    setCode("");
+    // Reimplementation mode starts from the bare template; otherwise resume
+    // the saved draft or start from the template. State always holds real
+    // code so Submit never sends an empty buffer behind a template display.
+    setCode(fresh ? templateFor(language, set) : (loadDraft(p.id, language) ?? templateFor(language, set)));
     setReimplHideNotesFor(fresh ? p.id : null);
     setDrawerOpen(false);
   }
@@ -732,6 +741,7 @@ export default function Practice() {
                     value={code}
                     onChange={setCode}
                     onLanguageChange={setLanguage}
+                    draftScope={selected.id}
                     templateSet={
                       localStorage.getItem("airlock.practiceTemplate") === "standard"
                         ? "standard"

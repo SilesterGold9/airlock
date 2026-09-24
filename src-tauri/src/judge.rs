@@ -6,6 +6,30 @@ use std::time::{Duration, Instant};
 use tempfile::TempDir;
 use wait_timeout::ChildExt;
 
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+/// Builds a child-process command that never pops a visible console
+/// window on Windows. On other platforms it is a plain `Command::new`.
+fn silent_command(program: &str) -> Command {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut cmd = Command::new(program);
+        cmd.creation_flags(CREATE_NO_WINDOW);
+        cmd
+    }
+    #[cfg(not(windows))]
+    {
+        Command::new(program)
+    }
+}
+
+#[cfg(windows)]
+const BIN_NAME: &str = "main_bin.exe";
+#[cfg(not(windows))]
+const BIN_NAME: &str = "main_bin";
+
 /// Normalizes output for comparison: trims trailing whitespace on each line
 /// and trailing blank lines, the way most judges do it. This is deliberately
 /// forgiving about trailing newlines/spaces but strict about actual content.
@@ -24,8 +48,7 @@ pub fn run_judge(
     tests: &[TestCase],
     time_limit_ms: u64,
 ) -> Result<JudgeReport, String> {
-    let workdir = TempDir::new().map_err(|e| e.to_string())?;
-    let compile = compile_source(language, source_code, workdir.path())?;
+    let compile = compile_source(language, source_code)?;
 
     if let Some(err) = compile.compile_error {
         return Ok(JudgeReport {
@@ -72,18 +95,15 @@ struct CompiledArtifact {
     _workdir: TempDir,
 }
 
-fn compile_source(
-    language: &str,
-    source_code: &str,
-    dir: &std::path::Path,
-) -> Result<CompiledArtifact, String> {
+fn compile_source(language: &str, source_code: &str) -> Result<CompiledArtifact, String> {
     let workdir = TempDir::new().map_err(|e| e.to_string())?;
+    let dir = workdir.path();
     match language {
         "cpp" | "c++" => {
             let src_path = dir.join("main.cpp");
             fs::write(&src_path, source_code).map_err(|e| e.to_string())?;
-            let bin_path = dir.join("main_bin");
-            let output = Command::new("g++")
+            let bin_path = dir.join(BIN_NAME);
+            let output = silent_command("g++")
                 .args([
                     "-O2",
                     "-std=c++17",
@@ -111,7 +131,7 @@ fn compile_source(
             // Java requires the public class to be named "Main" -> Main.java
             let src_path = dir.join("Main.java");
             fs::write(&src_path, source_code).map_err(|e| e.to_string())?;
-            let output = Command::new("javac")
+            let output = silent_command("javac")
                 .args([src_path.to_str().unwrap()])
                 .current_dir(dir)
                 .output()
@@ -143,7 +163,7 @@ fn run_one_test(
     test: &TestCase,
     time_limit_ms: u64,
 ) -> Result<TestResult, String> {
-    let mut child = Command::new(&artifact.run_cmd)
+    let mut child = silent_command(&artifact.run_cmd)
         .args(&artifact.run_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -227,19 +247,15 @@ pub fn run_stress_test(
     time_limit_ms: u64,
 ) -> Result<Option<(String, String, String)>, String> {
     // (input, candidate_output, brute_output) of the first mismatch found, if any
-    let gen_dir = TempDir::new().map_err(|e| e.to_string())?;
-    let cand_dir = TempDir::new().map_err(|e| e.to_string())?;
-    let brute_dir = TempDir::new().map_err(|e| e.to_string())?;
-
-    let generator = compile_source(language, generator_src, gen_dir.path())?;
+    let generator = compile_source(language, generator_src)?;
     if let Some(e) = generator.compile_error {
         return Err(format!("generator failed to compile: {e}"));
     }
-    let candidate = compile_source(language, candidate_src, cand_dir.path())?;
+    let candidate = compile_source(language, candidate_src)?;
     if let Some(e) = candidate.compile_error {
         return Err(format!("candidate failed to compile: {e}"));
     }
-    let brute = compile_source(language, brute_force_src, brute_dir.path())?;
+    let brute = compile_source(language, brute_force_src)?;
     if let Some(e) = brute.compile_error {
         return Err(format!("brute force failed to compile: {e}"));
     }
@@ -256,7 +272,7 @@ pub fn run_stress_test(
 }
 
 fn run_capture(artifact: &CompiledArtifact, arg: &str) -> Result<String, String> {
-    let output = Command::new(&artifact.run_cmd)
+    let output = silent_command(&artifact.run_cmd)
         .args(&artifact.run_args)
         .arg(arg)
         .output()
@@ -269,7 +285,7 @@ fn run_capture_stdin(
     input: &str,
     time_limit_ms: u64,
 ) -> Result<String, String> {
-    let mut child = Command::new(&artifact.run_cmd)
+    let mut child = silent_command(&artifact.run_cmd)
         .args(&artifact.run_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

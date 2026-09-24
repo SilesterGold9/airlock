@@ -1,0 +1,17 @@
+{
+  "id": "",
+  "title": "Word",
+  "statement_md": "Given a word of mixed-case Latin letters, convert it to all-lowercase if lowercase letters are strictly more or equal in count, otherwise to all-uppercase.\n\n**Input**\nOne line: the word, 1-100 letters.\n\n**Output**\nThe converted word.",
+  "tags": ["strings", "implementation"],
+  "difficulty": 800,
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 59A (Word), restated",
+  "tests": [
+    { "id": "", "input": "HoUse\n", "expected_output": "house\n" },
+    { "id": "", "input": "ViP\n", "expected_output": "VIP\n" },
+    { "id": "", "input": "maTRIx\n", "expected_output": "matrix\n" }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

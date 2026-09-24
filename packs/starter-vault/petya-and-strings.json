@@ -1,0 +1,32 @@
+{
+  "id": "petya-and-strings",
+  "title": "Case-insensitive Compare",
+  "statement_md": "Given two strings of equal length (uppercase and lowercase Latin letters), compare them lexicographically ignoring case.\n\n**Input**\nLine 1: first string\nLine 2: second string (both length 1-100, same length)\n\n**Output**\n`-1` if the first is smaller, `1` if the second is smaller, `0` if equal (case-insensitive).",
+  "tags": [
+    "strings",
+    "implementation"
+  ],
+  "difficulty": 800,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 112A (Petya and Strings), restated",
+  "tests": [
+    {
+      "id": "",
+      "input": "aaaa\naaaA\n",
+      "expected_output": "0\n"
+    },
+    {
+      "id": "",
+      "input": "abs\nAbz\n",
+      "expected_output": "-1\n"
+    },
+    {
+      "id": "",
+      "input": "abcdefg\nAbCdEfF\n",
+      "expected_output": "1\n"
+    }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

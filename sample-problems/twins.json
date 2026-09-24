@@ -1,0 +1,16 @@
+{
+  "id": "",
+  "title": "Twins",
+  "statement_md": "You have n coins of given values. Pick the minimum number of coins so that your sum is strictly greater than the sum of the remaining coins.\n\n**Input**\nLine 1: n (1 <= n <= 100)\nLine 2: n integers, each 1-100 — the coin values\n\n**Output**\nA single integer: the minimum number of coins needed.",
+  "tags": ["greedy", "sorting"],
+  "difficulty": 900,
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 160A (Twins), restated",
+  "tests": [
+    { "id": "", "input": "2\n3 3\n", "expected_output": "2\n" },
+    { "id": "", "input": "3\n2 1 2\n", "expected_output": "2\n" }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

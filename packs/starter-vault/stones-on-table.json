@@ -1,0 +1,33 @@
+{
+  "id": "stones-on-table",
+  "title": "Stones on the Table",
+  "statement_md": "There are n stones in a row, each red (R), green (G), or blue (B). Count the minimum number of stones to remove so that no two neighboring stones share a color.\n\n**Input**\nLine 1: n (1 <= n <= 50)\nLine 2: a string of length n over {R,G,B}\n\n**Output**\nA single integer: the minimum number of stones to remove.",
+  "tags": [
+    "implementation",
+    "warmup",
+    "strings"
+  ],
+  "difficulty": 800,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 266A (Stones on the Table), restated",
+  "tests": [
+    {
+      "id": "",
+      "input": "3\nRRG\n",
+      "expected_output": "1\n"
+    },
+    {
+      "id": "",
+      "input": "5\nRRRRR\n",
+      "expected_output": "4\n"
+    },
+    {
+      "id": "",
+      "input": "4\nBRBG\n",
+      "expected_output": "0\n"
+    }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

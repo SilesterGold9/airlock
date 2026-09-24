@@ -1,0 +1,43 @@
+{
+  "id": "smallest-k-divides-power",
+  "title": "Smallest k with n | k^n",
+  "statement_md": "Given a positive integer n, find the smallest positive integer k such that n divides k^n.\n\n**Input**\nOne line: n (1 <= n <= 10^9)\n\n**Output**\nA single integer: the smallest such k.\n\n**Hint (number theory)**: the answer is the product of the distinct prime factors of n.",
+  "tags": [
+    "math",
+    "number-theory",
+    "prime-factorization"
+  ],
+  "difficulty": 800,
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 2205B (Simons and Cakes for Success), restated — exact numeric constraints self-verified, not scraped",
+  "tests": [
+    {
+      "id": "",
+      "input": "1\n",
+      "expected_output": "1\n"
+    },
+    {
+      "id": "",
+      "input": "2\n",
+      "expected_output": "2\n"
+    },
+    {
+      "id": "",
+      "input": "4\n",
+      "expected_output": "2\n"
+    },
+    {
+      "id": "",
+      "input": "6\n",
+      "expected_output": "6\n"
+    },
+    {
+      "id": "",
+      "input": "12\n",
+      "expected_output": "6\n"
+    }
+  ],
+  "brute_force_src": "#include <bits/stdc++.h>\nusing namespace std;\ntypedef long long ll;\n\nll modpow(ll base, ll exp, ll mod){\n    base %= mod;\n    ll result = 1 % mod;\n    while(exp > 0){\n        if(exp & 1) result = (__int128)result * base % mod;\n        base = (__int128)base * base % mod;\n        exp >>= 1;\n    }\n    return result;\n}\n\nint main(){\n    ll n;\n    cin >> n;\n    for(ll k = 1; ; k++){\n        if(modpow(k, n, n) == 0){\n            cout << k << \"\\n\";\n            return 0;\n        }\n    }\n}\n",
+  "brute_force_lang": "cpp"
+}

@@ -1,0 +1,33 @@
+{
+  "id": "boy-or-girl",
+  "title": "Boy or Girl",
+  "statement_md": "Given a username of lowercase Latin letters, count the number of distinct characters. If that count is even, print `CHAT WITH HER!`; if odd, print `IGNORE HIM!`.\n\n**Input**\nOne line: the username, at most 100 lowercase letters.\n\n**Output**\nOne of the two exact phrases above.",
+  "tags": [
+    "strings",
+    "implementation",
+    "set"
+  ],
+  "difficulty": 800,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 236A (Boy or Girl), restated",
+  "tests": [
+    {
+      "id": "",
+      "input": "wjmzbmr\n",
+      "expected_output": "CHAT WITH HER!\n"
+    },
+    {
+      "id": "",
+      "input": "xiaodao\n",
+      "expected_output": "IGNORE HIM!\n"
+    },
+    {
+      "id": "",
+      "input": "sevenkplus\n",
+      "expected_output": "CHAT WITH HER!\n"
+    }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

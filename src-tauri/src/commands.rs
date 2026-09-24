@@ -473,67 +473,52 @@ pub fn list_rank_reflections(state: State<AppState>) -> Result<Vec<RankReflectio
     db::list_rank_reflections(&conn).map_err(|e| e.to_string())
 }
 
+// Starter vault embedded at compile time. Single source of truth is
+// sample-problems/*.json; this list just includes each file so the
+// binary always ships the same 15 problems as the repo.
 fn sample_problems_json() -> Value {
-    serde_json::json!([
-        {
-            "id": "",
-            "title": "A+B (sanity check)",
-            "statement_md": "Given two integers A and B on a single line, print their sum.\n\n**Input**\nOne line: `A B` (-10^9 <= A, B <= 10^9)\n\n**Output**\nA single integer: A + B.",
-            "tags": ["implementation", "warmup"],
-            "difficulty": 800,
-            "time_limit_ms": 1000,
-            "memory_limit_mb": 256,
-            "source": "self-authored",
-            "tests": [
-                { "id": "", "input": "2 3\n", "expected_output": "5\n" },
-                { "id": "", "input": "-5 10\n", "expected_output": "5\n" },
-                { "id": "", "input": "1000000000 1000000000\n", "expected_output": "2000000000\n" }
-            ],
-            "brute_force_src": null,
-            "brute_force_lang": null,
-            "notes_md": null,
-            "primary_technique_id": null,
-            "hints": []
-        },
-        {
-            "id": "",
-            "title": "Maximum Subarray Sum",
-            "statement_md": "Given an array of integers, find the contiguous subarray with the largest sum.\n\n**Input**\nFirst line: `n` (1 <= n <= 2*10^5)\nSecond line: `n` integers `a_i` (-10^9 <= a_i <= 10^9)\n\n**Output**\nA single integer: the maximum subarray sum.",
-            "tags": ["dp", "kadane"],
-            "difficulty": 1200,
-            "time_limit_ms": 1000,
-            "memory_limit_mb": 256,
-            "source": "self-authored",
-            "tests": [
-                { "id": "", "input": "5\n-2 1 -3 4 -1\n", "expected_output": "4\n" },
-                { "id": "", "input": "3\n-5 -2 -3\n", "expected_output": "-2\n" },
-                { "id": "", "input": "4\n1 2 3 4\n", "expected_output": "10\n" }
-            ],
-            "brute_force_src": null,
-            "brute_force_lang": null,
-            "notes_md": null,
-            "primary_technique_id": null,
-            "hints": [
-                "Consider the best subarray ending at each position.",
-                "If the best sum ending at i-1 is negative, start fresh at i.",
-                "Track the global maximum as you go."
-            ]
-        }
-    ])
+    const FILES: &[&str] = &[
+        include_str!("../../sample-problems/ab-sum.json"),
+        include_str!("../../sample-problems/anton-and-danik.json"),
+        include_str!("../../sample-problems/anton-and-letters.json"),
+        include_str!("../../sample-problems/beautiful-matrix.json"),
+        include_str!("../../sample-problems/boy-or-girl.json"),
+        include_str!("../../sample-problems/free-cash.json"),
+        include_str!("../../sample-problems/helpful-maths.json"),
+        include_str!("../../sample-problems/max-subarray-sum.json"),
+        include_str!("../../sample-problems/petya-and-strings.json"),
+        include_str!("../../sample-problems/smallest-k-divides-power.json"),
+        include_str!("../../sample-problems/static-range-sum.json"),
+        include_str!("../../sample-problems/stones-on-table.json"),
+        include_str!("../../sample-problems/twins.json"),
+        include_str!("../../sample-problems/watermelon.json"),
+        include_str!("../../sample-problems/word.json"),
+    ];
+    let mut arr = Vec::with_capacity(FILES.len());
+    for f in FILES {
+        arr.push(serde_json::from_str::<Value>(f).expect("bundled sample problem must parse"));
+    }
+    Value::Array(arr)
 }
 
+/// Seeds the bundled starter vault. Tops up by title instead of
+/// all-or-nothing, so vaults seeded by an older bundle heal to the full set.
 #[tauri::command]
 pub fn seed_sample_problems(state: State<AppState>) -> Result<usize, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let count = db::count_problems(&conn).map_err(|e| e.to_string())?;
-    if count > 0 {
-        return Ok(0);
-    }
+    let known: std::collections::HashSet<String> = db::list_problems(&conn)
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(|p| p.title)
+        .collect();
     let problems = sample_problems_json();
     let mut seeded = 0;
     for problem_data in problems.as_array().unwrap() {
         let mut problem: Problem =
             serde_json::from_value(problem_data.clone()).map_err(|e| e.to_string())?;
+        if known.contains(&problem.title) {
+            continue;
+        }
         if problem.id.is_empty() {
             problem.id = Uuid::new_v4().to_string();
         }

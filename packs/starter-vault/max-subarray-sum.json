@@ -1,0 +1,32 @@
+{
+  "id": "max-subarray-sum",
+  "title": "Maximum Subarray Sum",
+  "statement_md": "Given an array of N integers, find the maximum sum of a contiguous subarray (Kadane's algorithm territory).\n\n**Input**\nLine 1: N\nLine 2: N space-separated integers (each with |a_i| <= 10^9)\n\n**Output**\nA single integer: the maximum subarray sum.",
+  "tags": [
+    "dp",
+    "arrays"
+  ],
+  "difficulty": 1200,
+  "time_limit_ms": 1500,
+  "memory_limit_mb": 256,
+  "source": "self-authored",
+  "tests": [
+    {
+      "id": "",
+      "input": "9\n-2 1 -3 4 -1 2 1 -5 4\n",
+      "expected_output": "6\n"
+    },
+    {
+      "id": "",
+      "input": "1\n-5\n",
+      "expected_output": "-5\n"
+    },
+    {
+      "id": "",
+      "input": "4\n1 2 3 4\n",
+      "expected_output": "10\n"
+    }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

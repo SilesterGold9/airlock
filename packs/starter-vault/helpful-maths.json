@@ -1,0 +1,29 @@
+{
+  "id": "helpful-maths",
+  "title": "Sorted Sum",
+  "statement_md": "You're given a sum written as digits 1, 2 and 3 separated by plus signs (e.g. `3+2+1`). Rearrange the summands into non-decreasing order and print the resulting expression.\n\n**Input**\nOne line: the sum, containing only digits 1-3 and `+`, at most 100 characters.\n\n**Output**\nThe rearranged sum with the same digits, sorted, separated by `+`.",
+  "tags": [
+    "implementation",
+    "sorting",
+    "strings",
+    "greedy"
+  ],
+  "difficulty": 800,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 339A (Helpful Maths), restated",
+  "tests": [
+    {
+      "id": "",
+      "input": "3+2+1\n",
+      "expected_output": "1+2+3\n"
+    },
+    {
+      "id": "",
+      "input": "1+1+3+1+3\n",
+      "expected_output": "1+1+1+3+3\n"
+    }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

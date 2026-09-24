@@ -1,0 +1,17 @@
+{
+  "id": "",
+  "title": "Watermelon",
+  "statement_md": "Given an integer w, determine if it can be split into two positive even integers (they need not be equal).\n\n**Input**\nOne line: w (1 <= w <= 100)\n\n**Output**\n`YES` if possible, `NO` otherwise.",
+  "tags": ["math", "implementation", "warmup"],
+  "difficulty": 800,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 4A (Watermelon), restated",
+  "tests": [
+    { "id": "", "input": "8\n", "expected_output": "YES\n" },
+    { "id": "", "input": "2\n", "expected_output": "NO\n" },
+    { "id": "", "input": "3\n", "expected_output": "NO\n" }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

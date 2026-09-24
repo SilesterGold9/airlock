@@ -1,0 +1,33 @@
+{
+  "id": "anton-and-letters",
+  "title": "Anton and Letters",
+  "statement_md": "A set of lowercase letters is written as `{a, b, c}` (comma-space separated, wrapped in curly braces; possibly with duplicates, possibly empty `{}`). Count the distinct letters.\n\n**Input**\nOne line: the set, at most 1000 characters, starting with `{` and ending with `}`.\n\n**Output**\nA single integer: the number of distinct letters.",
+  "tags": [
+    "strings",
+    "set",
+    "implementation"
+  ],
+  "difficulty": 800,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 443A (Anton and Letters), restated",
+  "tests": [
+    {
+      "id": "",
+      "input": "{a, b, c}\n",
+      "expected_output": "3\n"
+    },
+    {
+      "id": "",
+      "input": "{b, a, b, a}\n",
+      "expected_output": "2\n"
+    },
+    {
+      "id": "",
+      "input": "{}\n",
+      "expected_output": "0\n"
+    }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

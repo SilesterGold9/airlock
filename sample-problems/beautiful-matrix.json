@@ -1,0 +1,16 @@
+{
+  "id": "",
+  "title": "Beautiful Matrix",
+  "statement_md": "You have a 5x5 matrix of 24 zeroes and a single one. You may repeatedly swap two neighboring rows or two neighboring columns. Find the minimum number of swaps to move the one to the center cell (row 3, column 3), 1-indexed.\n\n**Input**\n5 lines of 5 space-separated integers each — the matrix.\n\n**Output**\nA single integer: the minimum number of moves.",
+  "tags": ["implementation", "matrix", "coordinates"],
+  "difficulty": 800,
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 263A (Beautiful Matrix), restated",
+  "tests": [
+    { "id": "", "input": "0 0 0 0 0\n0 0 0 0 1\n0 0 0 0 0\n0 0 0 0 0\n0 0 0 0 0\n", "expected_output": "3\n" },
+    { "id": "", "input": "0 0 0 0 0\n0 0 0 0 0\n0 1 0 0 0\n0 0 0 0 0\n0 0 0 0 0\n", "expected_output": "1\n" }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

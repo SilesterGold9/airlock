@@ -1,0 +1,22 @@
+{
+  "id": "static-range-sum",
+  "title": "Static Range Sum Queries",
+  "statement_md": "Given an array of n integers, process q queries. Each query gives a range [a,b] (1-indexed, inclusive); report the sum of the array within that range.\n\n**Input**\nLine 1: n q\nLine 2: n integers (the array)\nNext q lines: a b (1 <= a <= b <= n)\n\n**Output**\nq lines, one integer per query: the sum of a[a..b].\n\n**Note**: this is the canonical prefix-sum milestone problem — the one where `pref[b] - pref[a-1]` should become automatic.",
+  "tags": [
+    "prefix-sum",
+    "arrays"
+  ],
+  "difficulty": 900,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "CSES-style (Static Range Sum Queries), self-verified by hand",
+  "tests": [
+    {
+      "id": "",
+      "input": "8 3\n3 2 4 5 1 1 5 3\n2 4\n5 6\n1 8\n",
+      "expected_output": "11\n2\n24\n"
+    }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

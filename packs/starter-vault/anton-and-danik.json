@@ -1,0 +1,33 @@
+{
+  "id": "anton-and-danik",
+  "title": "Anton and Danik",
+  "statement_md": "Anton and Danik played n games; none were ties. Given a string of 'A'/'D' recording each game's winner, print `Anton` if Anton won more, `Danik` if Danik won more, or `Friendship` if tied.\n\n**Input**\nLine 1: n (1 <= n <= 100000)\nLine 2: a string of n characters, each 'A' or 'D'\n\n**Output**\n`Anton`, `Danik`, or `Friendship`.",
+  "tags": [
+    "implementation",
+    "strings",
+    "counting"
+  ],
+  "difficulty": 800,
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 734A (Anton and Danik), restated",
+  "tests": [
+    {
+      "id": "",
+      "input": "6\nADAAAA\n",
+      "expected_output": "Anton\n"
+    },
+    {
+      "id": "",
+      "input": "7\nDDDAADA\n",
+      "expected_output": "Danik\n"
+    },
+    {
+      "id": "",
+      "input": "6\nDADADA\n",
+      "expected_output": "Friendship\n"
+    }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

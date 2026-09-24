@@ -1,0 +1,58 @@
+{
+  "pack_name": "Starter Vault — 15 problems",
+  "techniques": [
+    {
+      "id": "implementation",
+      "name": "Implementation Basics"
+    },
+    {
+      "id": "strings",
+      "name": "Strings"
+    },
+    {
+      "id": "sorting",
+      "name": "Sorting"
+    },
+    {
+      "id": "prefix-sum",
+      "name": "Prefix Sum"
+    },
+    {
+      "id": "two-pointers",
+      "name": "Two Pointers"
+    },
+    {
+      "id": "binary-search",
+      "name": "Binary Search"
+    },
+    {
+      "id": "greedy",
+      "name": "Greedy"
+    },
+    {
+      "id": "dp-basics",
+      "name": "DP Basics"
+    },
+    {
+      "id": "math",
+      "name": "Math"
+    }
+  ],
+  "problem_files": [
+    "ab-sum.json",
+    "anton-and-danik.json",
+    "anton-and-letters.json",
+    "beautiful-matrix.json",
+    "boy-or-girl.json",
+    "free-cash.json",
+    "helpful-maths.json",
+    "max-subarray-sum.json",
+    "petya-and-strings.json",
+    "smallest-k-divides-power.json",
+    "static-range-sum.json",
+    "stones-on-table.json",
+    "twins.json",
+    "watermelon.json",
+    "word.json"
+  ]
+}

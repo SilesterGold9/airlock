@@ -1,0 +1,16 @@
+{
+  "id": "",
+  "title": "Free Cash",
+  "statement_md": "n customers arrive at a cafe at given times (hour, minute), in chronological order. Find the minimum number of cash desks needed so that every customer arriving at the same exact minute can be served simultaneously.\n\n**Input**\nLine 1: n (1 <= n <= 100000)\nNext n lines: h m (0<=h<=23, 0<=m<=59), chronological\n\n**Output**\nA single integer: the minimum number of desks (the maximum count of customers sharing one arrival minute).",
+  "tags": ["implementation", "frequency-counting", "simulation"],
+  "difficulty": 900,
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256,
+  "source": "Codeforces 237A (Free Cash), restated",
+  "tests": [
+    { "id": "", "input": "4\n8 0\n8 10\n8 10\n8 45\n", "expected_output": "2\n" },
+    { "id": "", "input": "3\n0 12\n10 11\n22 22\n", "expected_output": "1\n" }
+  ],
+  "brute_force_src": null,
+  "brute_force_lang": null
+}

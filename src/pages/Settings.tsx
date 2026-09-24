@@ -436,6 +436,7 @@ export default function Settings() {
               ) : (
                 <div className="space-y-3">
                   <div className="text-xs text-muted-foreground">{t("settings.failed")}</div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">{t("settings.failedHint")}</p>
                   <Button size="sm" variant="secondary" onClick={() => void runUpdateCheck()}>
                     {t("settings.check")}
                   </Button>

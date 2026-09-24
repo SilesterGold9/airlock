@@ -124,4 +124,13 @@ export const api = {
   listRankReflections: () => invoke<RankReflection[]>("list_rank_reflections"),
 
   seedSampleProblems: () => invoke<number>("seed_sample_problems"),
+
+  importPack: (args: {
+    techniques: { id: string; name: string }[];
+    problems: Problem[];
+  }) =>
+    invoke<{ techniques_inserted: number; techniques_kept: number; problems_imported: number }>(
+      "import_pack",
+      { techniques: args.techniques, problems: args.problems }
+    ),
 };

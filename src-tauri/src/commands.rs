@@ -7,6 +7,7 @@ use crate::models::{
 };
 use chrono::Utc;
 use rusqlite::Connection;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Mutex;
 use tauri::State;
@@ -503,6 +504,84 @@ fn sample_problems_json() -> Value {
 
 /// Seeds the bundled starter vault. Tops up by title instead of
 /// all-or-nothing, so vaults seeded by an older bundle heal to the full set.
+#[derive(Debug, Deserialize)]
+pub struct PackTechnique {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PackImportSummary {
+    pub techniques_inserted: usize,
+    pub techniques_kept: usize,
+    pub problems_imported: usize,
+}
+
+/// Imports a problem pack (pack.json manifest + problem files) the same way
+/// scripts/import_pack.py does: techniques upsert gently (local rows keep
+/// status/notes), problems insert-or-replace with fresh ids for blanks.
+#[tauri::command]
+pub fn import_pack(
+    state: State<AppState>,
+    techniques: Vec<PackTechnique>,
+    mut problems: Vec<Problem>,
+) -> Result<PackImportSummary, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let known: std::collections::HashSet<String> = db::list_techniques(&conn)
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(|t| t.id)
+        .collect();
+    let mut inserted = 0;
+    let mut kept = 0;
+    let now = Utc::now().to_rfc3339();
+    for pt in &techniques {
+        if pt.id.trim().is_empty() || pt.name.trim().is_empty() {
+            continue;
+        }
+        if known.contains(&pt.id) {
+            kept += 1;
+            continue;
+        }
+        db::upsert_technique(
+            &conn,
+            &Technique {
+                id: pt.id.clone(),
+                name: pt.name.trim().to_string(),
+                status: TechniqueStatus::NotStarted,
+                status_updated_at: now.clone(),
+                notes_md: None,
+            },
+        )
+        .map_err(|e| e.to_string())?;
+        inserted += 1;
+    }
+    let mut imported = 0;
+    for problem in problems.iter_mut() {
+        if problem.title.trim().is_empty() {
+            return Err("pack problem is missing a title".into());
+        }
+        if problem.tests.is_empty() {
+            return Err(format!("pack problem '{}' has no tests", problem.title));
+        }
+        if problem.id.is_empty() {
+            problem.id = Uuid::new_v4().to_string();
+        }
+        for t in problem.tests.iter_mut() {
+            if t.id.is_empty() {
+                t.id = Uuid::new_v4().to_string();
+            }
+        }
+        db::insert_problem(&conn, problem).map_err(|e| e.to_string())?;
+        imported += 1;
+    }
+    Ok(PackImportSummary {
+        techniques_inserted: inserted,
+        techniques_kept: kept,
+        problems_imported: imported,
+    })
+}
+
 #[tauri::command]
 pub fn seed_sample_problems(state: State<AppState>) -> Result<usize, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;

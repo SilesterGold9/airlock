@@ -17,6 +17,7 @@ import DiffViewer from "../components/DiffViewer";
 import FailureChips from "../components/FailureChips";
 import ProblemStatement from "../components/ProblemStatement";
 import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 import Balloons from "../components/Balloons";
 import { useT } from "../lib/i18n";
 
@@ -284,22 +285,22 @@ export default function Contest() {
           {teamMembersStr.trim() && (
             <>
               <label className="block text-xs font-medium text-muted-foreground mb-1">{t("contest.driverLabel")}</label>
-              <select
-                className="w-full mb-4 bg-input border border-input rounded-lg h-9 px-3 text-sm text-foreground"
-                value={driver}
-                onChange={(e) => setDriver(e.target.value)}
-              >
-                <option value="">{t("contest.autoFirstMember")}</option>
-                {teamMembersStr
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean)
-                  .map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-              </select>
+                <Select
+                  className="w-full mb-4"
+                  value={driver}
+                  onChange={(e) => setDriver(e.target.value)}
+                >
+                  <option value="">{t("contest.autoFirstMember")}</option>
+                  {teamMembersStr
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                </Select>
             </>
           )}
           <label className="block text-xs font-medium text-muted-foreground mb-2">

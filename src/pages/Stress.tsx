@@ -263,8 +263,8 @@ export default function Stress() {
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-3 gap-2 p-2 min-h-0">
-        <div className="flex flex-col min-h-0">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2 p-2 min-h-0 overflow-y-auto md:overflow-visible">
+        <div className="flex flex-col min-h-[320px] md:min-h-0">
           <div className="flex items-center gap-2 px-1 h-10 shrink-0">
             <span className="text-[13px] font-medium">{t("stress.candidate")}</span>
             <Badge variant="outline">{t("stress.yourSolution")}</Badge>
@@ -273,7 +273,7 @@ export default function Stress() {
             <LazyCodeEditor ref={candidateRef} language={language} initialValue={seeds.candidate} editorKey="candidate" onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-candidate" languageTemplates={CANDIDATE_TEMPLATES} onContentChange={(v) => storeStressBuffer("airlock.stress.candidate", language, v)} />
           </div>
         </div>
-        <div className="flex flex-col min-h-0">
+        <div className="flex flex-col min-h-[320px] md:min-h-0">
           <div className="flex items-center gap-2 px-1 h-10 shrink-0">
             <span className="text-[13px] font-medium">{t("stress.bruteForce")}</span>
             <Badge variant="outline">{t("stress.reference")}</Badge>
@@ -282,7 +282,7 @@ export default function Stress() {
             <LazyCodeEditor ref={bruteRef} language={language} initialValue={seeds.brute} editorKey="brute" onLanguageChange={handleLanguageChange} showLanguageSelect={false} draftScope="stress-brute" languageTemplates={BRUTE_TEMPLATES} onContentChange={(v) => storeStressBuffer("airlock.stress.brute", language, v)} />
           </div>
         </div>
-        <div className="flex flex-col min-h-0">
+        <div className="flex flex-col min-h-[320px] md:min-h-0">
           <div className="flex items-center gap-2 px-1 h-10 shrink-0">
             <span className="text-[13px] font-medium">{t("stress.generator")}</span>
             <Badge variant="outline">{t("stress.seedToCase")}</Badge>

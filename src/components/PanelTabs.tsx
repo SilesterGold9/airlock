@@ -56,12 +56,14 @@ export function PanelTabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-0.5 px-2 h-11 border-b border-border shrink-0 overflow-x-auto">
+    <div role="tablist" aria-label="Panel" className="flex items-center gap-0.5 px-2 h-11 border-b border-border shrink-0 overflow-x-auto">
       {tabs.map((tab) => {
         const isActive = tab.id === active;
         return (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={isActive}
             onClick={() => onChange(tab.id)}
             className={`relative flex items-center gap-1.5 px-2.5 h-11 text-[13px] font-medium whitespace-nowrap transition-colors duration-150 ${
               isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"

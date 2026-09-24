@@ -45,6 +45,7 @@ export default function History() {
   const [selected, setSelected] = useState<Submission | null>(null);
   const [clearing, setClearing] = useState(false);
   const [includeUpsolve, setIncludeUpsolve] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     api.listProblems().then(setProblems).catch(console.error);
@@ -87,6 +88,14 @@ export default function History() {
     return { total, ac, rate, days };
   }, [visibleSubmissions]);
 
+  const hiddenUpsolve = useMemo(() => {
+    if (includeUpsolve) return 0;
+    return submissions.filter((s) => {
+      const c = s.context as { Contest?: { upsolve?: boolean } };
+      return typeof s.context !== "string" && c.Contest?.upsolve === true;
+    }).length;
+  }, [submissions, includeUpsolve]);
+
   const perTag = useMemo(() => groupByTag(problems, visibleSubmissions), [problems, visibleSubmissions]);
 
   const ratingInfo = useMemo(() => computeRating(problems, visibleSubmissions), [problems, visibleSubmissions]);
@@ -96,13 +105,14 @@ export default function History() {
     const ok = window.confirm(t("history.confirmClear").replace("{count}", String(submissions.length)));
     if (!ok) return;
     setClearing(true);
+    setActionError(null);
     try {
       await api.clearSubmissions();
       setSubmissions([]);
       setSelected(null);
     } catch (e) {
       console.error(e);
-      alert(String(e));
+      setActionError(String(e));
     } finally {
       setClearing(false);
     }
@@ -112,13 +122,14 @@ export default function History() {
     const ok = window.confirm(t("history.confirmReset"));
     if (!ok) return;
     setClearing(true);
+    setActionError(null);
     try {
       await api.clearAllData();
       setSubmissions([]);
       setSelected(null);
     } catch (e) {
       console.error(e);
-      alert(String(e));
+      setActionError(String(e));
     } finally {
       setClearing(false);
     }
@@ -142,6 +153,9 @@ export default function History() {
           </Button>
         </div>
       </div>
+      {actionError && (
+        <div className="text-xs text-wa break-words">{t("common.failed")}: {actionError}</div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Card className="p-3">
@@ -233,9 +247,14 @@ export default function History() {
               <option value="CompileError">CE</option>
             </Select>
           </div>
-          <label className="flex items-center gap-1.5 text-xs ml-auto cursor-pointer">
+          <label className="flex items-center gap-1.5 text-xs ml-auto cursor-pointer" title={hiddenUpsolve > 0 ? t("history.excludingUpsolve").replace("{count}", String(hiddenUpsolve)) : undefined}>
             <input type="checkbox" checked={includeUpsolve} onChange={(e) => setIncludeUpsolve(e.target.checked)} className="h-3 w-3 rounded border-input bg-input" />
-            <span className="text-muted-foreground">{t("common.includeUpsolve")}</span>
+            <span className="text-muted-foreground">
+              {t("common.includeUpsolve")}
+              {hiddenUpsolve > 0 && (
+                <span className="tabular-nums"> · {t("history.excludingUpsolve").replace("{count}", String(hiddenUpsolve))}</span>
+              )}
+            </span>
           </label>
           <span className="text-xs text-muted-foreground tabular-nums">{filtered.length} {t("history.shownCount")}</span>
         </div>
@@ -287,7 +306,7 @@ export default function History() {
                       </td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <span>{typeof s.context === "string" ? t("nav.practice") : s.context.Contest ? `${t("nav.contest")} ${s.context.Contest.contest_id.slice(0, 6)}` : t("nav.practice")}</span>
+                          <span>{typeof s.context === "string" ? t("nav.practice") : s.context.Contest ? (s.context.Contest.contest_id === "current" ? t("nav.contest") : `${t("nav.contest")} ${s.context.Contest.contest_id.slice(0, 6)}`) : t("nav.practice")}</span>
                           {typeof s.context !== "string" && (s.context as { Contest?: { upsolve?: boolean } }).Contest?.upsolve && (
                             <Badge variant="outline" className="text-tle border-tle/30 bg-tle/10 text-[10px] px-1 py-0">
                               {t("common.upsolve")}

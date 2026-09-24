@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { usePersistentState } from "../lib/persist";
 import type { RankReflection, RankState, RankTheme } from "../lib/types";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -21,7 +22,7 @@ export default function Journey() {
   const [themes, setThemes] = useState<RankTheme[]>([]);
   const [rank, setRank] = useState<RankState | null>(null);
   const [reflections, setReflections] = useState<RankReflection[]>([]);
-  const [reflectionMd, setReflectionMd] = useState("");
+  const [reflectionMd, setReflectionMd] = usePersistentState("airlock.journey.reflection", "");
   const [checking, setChecking] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -157,7 +158,7 @@ export default function Journey() {
           <div className="grid gap-0.5">
             {activeTheme.tier_names.map((name, i) => {
               const achieved = rank?.achieved_at[String(i)];
-              const reached = i <= currentStars && currentStars > 0 ? i <= currentStars : i === 0 && currentStars === 0;
+              const reached = i <= currentStars;
               return (
                 <div key={i} className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-white/[0.04] transition-colors duration-150">
                   <span
@@ -180,9 +181,14 @@ export default function Journey() {
       )}
 
       <Card className="p-3 mt-3">
-        <Button size="sm" onClick={handleCheck} disabled={checking}>
-          {checking ? t("journey.checking") : t("journey.checkSuggestion")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={handleCheck} disabled={checking}>
+            {checking ? t("journey.checking") : t("journey.checkSuggestion")}
+          </Button>
+          {recordError && pending == null && (
+            <span className="text-xs text-muted-foreground">{t("journey.recordError")}</span>
+          )}
+        </div>
         {pending != null ? (
           <div className="mt-3 rounded-lg border border-border bg-white/[0.02] p-3 animate-fade-in">
             <div className="text-sm font-semibold">{t("journey.suggestionTitle")}</div>

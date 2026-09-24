@@ -41,22 +41,53 @@ function TechniqueRow({
   onStatusChange: (status: TechniqueStatus) => void;
   t: (k: string) => string;
 }) {
+  const draftKey = `airlock.technique.notes.${technique.id}`;
   const [notesOpen, setNotesOpen] = useState(false);
-  const [notes, setNotes] = useState(technique.notes_md || "");
+  const [committed, setCommitted] = useState(technique.notes_md || "");
+  const [notes, setNotes] = useState(() => {
+    try {
+      return localStorage.getItem(draftKey) ?? technique.notes_md ?? "";
+    } catch {
+      return technique.notes_md || "";
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setNotes(technique.notes_md || "");
-  }, [technique.id, technique.notes_md]);
+    try {
+      if (localStorage.getItem(draftKey) == null) {
+        setNotes(technique.notes_md || "");
+        setCommitted(technique.notes_md || "");
+      }
+    } catch {
+      setNotes(technique.notes_md || "");
+      setCommitted(technique.notes_md || "");
+    }
+  }, [technique.id, technique.notes_md, draftKey]);
 
-  const dirty = notes !== (technique.notes_md || "");
+  const dirty = notes !== committed;
+
+  function handleNotesInput(value: string) {
+    setNotes(value);
+    try {
+      if (value !== committed) localStorage.setItem(draftKey, value);
+      else localStorage.removeItem(draftKey);
+    } catch {
+      // ignore
+    }
+  }
 
   async function handleSaveNotes() {
     setSaving(true);
     try {
       await api.updateTechniqueNotes(technique.id, notes);
-      technique.notes_md = notes;
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        // ignore
+      }
+      setCommitted(notes);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
@@ -115,7 +146,7 @@ function TechniqueRow({
           <Textarea
             className="min-h-[80px] font-sans"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => handleNotesInput(e.target.value)}
             placeholder={t("techniques.notesPlaceholder")}
           />
           <div className="flex items-center gap-2">

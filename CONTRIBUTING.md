@@ -55,11 +55,13 @@ per verdict, keyboard-only walk (focus rings), PT toggle.
 - To sync prod: `npm run ship` (merges `dev` into `main`, pushes both,
   returns to `dev`; refuses on a dirty tree).
 - To release: merge `dev` into `main`, bump `package.json` +
-  `src-tauri/Cargo.toml` + `src-tauri/tauri.conf.json` together, then
-  `git tag vX.Y.Z && git push origin main vX.Y.Z`. The tag opens a draft
-  release with signed installers — publish it and installed apps update
-  themselves. GitHub's `/releases/latest` ignores drafts, so nothing
-  updates until the draft is published.
+  `src-tauri/Cargo.toml` + `src-tauri/tauri.conf.json` together, add a
+  `src/lib/changelog.ts` entry for the version (en + pt highlights),
+  then `git tag vX.Y.Z && git push origin main vX.Y.Z`. The tag opens a
+  draft release whose notes list every commit since the previous tag —
+  publish it and installed apps update themselves. GitHub's
+  `/releases/latest` ignores drafts, so nothing updates until the draft
+  is published.
 - Updater signing (one-time setup): `npm run tauri signer generate -w
   ~/.tauri/airlock.key` prints a public key and writes the private key.
   Put the public key in `tauri.conf.json` `plugins.updater.pubkey` and

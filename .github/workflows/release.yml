@@ -11,12 +11,50 @@ on:
 # train instead of shipping a release without the primary artifact.
 
 jobs:
+  release-notes:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      body: ${{ steps.notes.outputs.body }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: build release notes
+        id: notes
+        run: |
+          git fetch --tags --force
+          CUR="${{ github.ref_name }}"
+          PREV=$(git describe --tags --abbrev=0 "${CUR}^" 2>/dev/null || echo "")
+          if [ -z "$PREV" ]; then
+            RANGE="HEAD"
+            CMP=""
+          else
+            RANGE="${PREV}..HEAD"
+            CMP="Full changelog: https://github.com/${{ github.repository }}/compare/${PREV}...${CUR}"
+          fi
+          {
+            echo "body<<EOF"
+            echo "## What's new in ${CUR}"
+            echo ""
+            git log "${RANGE}" --pretty=format:'- %s (%h)' --reverse
+            echo ""
+            echo ""
+            echo "${CMP}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
   publish-tauri-windows:
+    needs: release-notes
     permissions:
       contents: write
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -43,14 +81,14 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Airlock ${{ github.ref_name }}
-          releaseBody: See the assets to download and install.
+          releaseBody: ${{ needs.release-notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
 
   publish-tauri-macos:
-    needs: publish-tauri-windows
+    needs: [release-notes, publish-tauri-windows]
     permissions:
       contents: write
     strategy:
@@ -90,7 +128,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Airlock ${{ github.ref_name }}
-          releaseBody: See the assets to download and install.
+          releaseBody: ${{ needs.release-notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           uploadUpdaterJson: true
@@ -98,7 +136,7 @@ jobs:
           args: ${{ matrix.args }}
 
   publish-tauri-linux:
-    needs: publish-tauri-macos
+    needs: [release-notes, publish-tauri-macos]
     permissions:
       contents: write
     runs-on: ubuntu-22.04
@@ -135,7 +173,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Airlock ${{ github.ref_name }}
-          releaseBody: See the assets to download and install.
+          releaseBody: ${{ needs.release-notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           uploadUpdaterJson: true

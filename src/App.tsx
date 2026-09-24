@@ -1,5 +1,5 @@
 import { Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Practice from "./pages/Practice";
 import Contest from "./pages/Contest";
 import Stress from "./pages/Stress";
@@ -12,14 +12,15 @@ import Welcome from "./pages/Welcome";
 import Settings from "./pages/Settings";
 import Titlebar from "./components/Titlebar";
 import Sidebar from "./components/Sidebar";
+import WhatsNew from "./components/WhatsNew";
 import { api } from "./lib/api";
+import { entryFor } from "./lib/changelog";
+import { getAppVersion } from "./lib/updater";
 
 export default function App() {
   const location = useLocation();
   const onboarded = localStorage.getItem("airlock.onboarded") === "1";
-  if (!onboarded && location.pathname !== "/welcome") {
-    return <Navigate to="/welcome" replace />;
-  }
+  const [newVersion, setNewVersion] = useState<string | null>(null);
 
   useEffect(() => {
     const seeded = localStorage.getItem("airlock.seededSamples") === "1";
@@ -34,8 +35,50 @@ export default function App() {
         });
     }
   }, []);
+
+  // After an update, show the highlights once. First installs store the
+  // version silently; dev builds never trigger it.
+  useEffect(() => {
+    if (!onboarded) return;
+    getAppVersion()
+      .then((v) => {
+        if (v === "dev" || !entryFor(v)) return;
+        let seen: string | null = null;
+        try {
+          seen = localStorage.getItem("airlock.lastSeenVersion");
+        } catch {
+          // ignore
+        }
+        if (!seen) {
+          try {
+            localStorage.setItem("airlock.lastSeenVersion", v);
+          } catch {
+            // ignore
+          }
+          return;
+        }
+        if (seen !== v) setNewVersion(v);
+      })
+      .catch(() => {
+        // version check is best-effort
+      });
+  }, [onboarded]);
+
+  function closeWhatsNew() {
+    try {
+      if (newVersion) localStorage.setItem("airlock.lastSeenVersion", newVersion);
+    } catch {
+      // ignore
+    }
+    setNewVersion(null);
+  }
+
+  if (!onboarded && location.pathname !== "/welcome") {
+    return <Navigate to="/welcome" replace />;
+  }
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
+      {newVersion && <WhatsNew version={newVersion} onClose={closeWhatsNew} />}
       <Titlebar />
       <div className="flex-1 flex min-h-0">
         <Sidebar />

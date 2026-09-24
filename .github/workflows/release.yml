@@ -47,6 +47,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   publish-tauri-windows:
+    timeout-minutes: 60
     needs: release-notes
     permissions:
       contents: write
@@ -71,7 +72,7 @@ jobs:
           workspaces: ./src-tauri -> target
 
       - name: install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - uses: tauri-apps/tauri-action@v1
         env:
@@ -97,6 +98,7 @@ jobs:
         include:
           - args: --target aarch64-apple-darwin
           - args: --target x86_64-apple-darwin
+    timeout-minutes: 60
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -118,7 +120,7 @@ jobs:
           workspaces: ./src-tauri -> target
 
       - name: install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - uses: tauri-apps/tauri-action@v1
         env:
@@ -139,14 +141,16 @@ jobs:
     needs: [release-notes, publish-tauri-macos]
     permissions:
       contents: write
+    timeout-minutes: 45
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
       - name: install dependencies (ubuntu only)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        uses: awalsh128/cache-apt-pkgs-action@v1.6.3
+        with:
+          packages: libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          version: 1.0
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -163,7 +167,7 @@ jobs:
           workspaces: ./src-tauri -> target
 
       - name: install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - uses: tauri-apps/tauri-action@v1
         env:
